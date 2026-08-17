@@ -167,7 +167,12 @@ no section 11; the § 16 hypotheses list numbers 1–5 then restarts at 4. Cosme
 is cited by section number in agent instructions, so ambiguous numbering causes real
 misreferences.
 
-### G18 — No licence decision and no LICENSE file — **PARTIALLY ADDRESSED 2026-08-17**
+### G18 — No licence decision and no LICENSE file — **DEFERRED BY INTENT 2026-08-17**
+AQENO is a personal project for the maintainer's son; nothing is published or distributed, so no
+licence is needed yet. A `LICENSE` file and the licence choice become necessary **before** the
+repository is made public, not before implementation. The analysis below is retained for that moment.
+
+
 ADR 0004 supplies the missing constraint: the project licence stays deferred, but all work proceeds
 under a binding interim rule (keep the proprietary-commercial path open; no GPL code linked into the
 application). The dependency policy in `AGENTS.md` is now mechanically checkable.
@@ -197,7 +202,13 @@ The slice needs a simulated UID launching one item, so at least identity handlin
 Compatible / Community" are used across documents with slightly varying meaning. `Profile` in
 particular means both a user and a UI configuration depending on the document.
 
-### G23 — No commercialisation or regulatory model — **RESOLVED by ADR 0006, pending acceptance**
+### G23 — No commercialisation or regulatory model — **DEFERRED BY INTENT 2026-08-17**
+Not a gap: there is no commercialisation because AQENO is built for the maintainer's son. Nothing is
+placed on the market, so hardware compliance, toy-safety positioning and GDPR do not arise. The
+analysis below is retained in case that ever changes. **Volume limiting survives as a genuine
+hearing-protection requirement** — see G05.
+
+
 Added and resolved 2026-08-17. The maintainer's governing requirement is no liability, which
 determines the answer: AQENO is a **non-commercial** open-source project under GPL-3.0-or-later, with
 no revenue from any source. ADR 0006 records this, together with the positioning rules that protect
@@ -228,17 +239,17 @@ at all, so it must be spiked early despite being nominally a packaging concern.
 
 1. ~~G02 (git)~~ — done.
 2. ~~G07 (event channel)~~ — done via ADR 0002.
-3. **G23 (commercialisation and positioning)** — now the real gate. It decides G18 (licence), which
-   decides whether ADR 0004's constraints stand, which decides parts of ADR 0002 and ADR 0003.
-   Accepting the technology ADRs before this is decided risks paying for optionality nobody wants.
-4. G01 remainder — accept ADRs 0001–0005, then add the persistence ADR (G09) and test-strategy ADR
-   (G11).
-5. G03 (layout + run/test instructions) — write together with accepting the ADRs.
-6. G04, G05 (display state machine + concrete values) — the largest correctness risk in the slice,
-   and the highest-value thing to specify before delegating implementation.
+3. ~~G18, G23 (licence, commercialisation)~~ — deferred by intent; personal project, nothing
+   published. Revisit only if publication becomes real.
+4. **G04, G05 (display state machine + concrete values)** — now the top item. The largest correctness
+   risk in the slice and the highest-value thing to specify before delegating implementation. G05
+   includes the volume limits, which are a hearing-protection requirement.
+5. G01 remainder — accept ADRs 0001–0003 and 0005, then add the persistence ADR (G09) and
+   test-strategy ADR (G11).
+6. G03 (layout + run/test instructions) — write together with accepting the ADRs.
 7. G24 (packaging and display server) — spike early, decide later; `eglfs` vs Wayland gates the
    display-power story.
 8. G06 (input bus + simulator) — follows directly from G01.
 9. G08, G12, G13, G14 — write each immediately before implementing the slice step that needs it, not
    all up front.
-10. G15–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.
+10. G15–G17, G19–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.
