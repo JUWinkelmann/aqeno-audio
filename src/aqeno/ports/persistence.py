@@ -18,6 +18,7 @@ Two stores, split by who needs to read them (ADR 0007 § "Decision"):
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum, auto
 from typing import Protocol
@@ -77,11 +78,8 @@ class SchemaTooNewError(PersistenceError):
         )
 
 
-class TagMapping(Protocol):
-    """Structural shape of a stored NFC tag mapping — see `adapters` for the
-    concrete dataclass. Declared here only so callers can type against it without
-    importing an adapter."""
-
+@dataclass(frozen=True, slots=True)
+class TagMapping:
     uid: str
     content_id: ContentId
 
@@ -100,7 +98,7 @@ class Library(Protocol):
     def close(self) -> None: ...
 
     # -- content -----------------------------------------------------------
-    def upsert_content(self, item: ContentItem) -> None:
+    def save_content(self, item: ContentItem) -> None:
         """Insert or replace a content item, its sources and its chapters."""
         ...
 

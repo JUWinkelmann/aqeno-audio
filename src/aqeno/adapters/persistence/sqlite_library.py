@@ -16,7 +16,6 @@ import logging
 import sqlite3
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 
@@ -39,12 +38,6 @@ from aqeno.ports.persistence import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True, slots=True)
-class StoredTagMapping:
-    uid: str
-    content_id: ContentId
 
 
 def _content_row_to_item(conn: sqlite3.Connection, row: sqlite3.Row) -> ContentItem:
@@ -145,7 +138,7 @@ class SqliteLibrary:
 
     # -- content -------------------------------------------------------------
 
-    def upsert_content(self, item: ContentItem) -> None:
+    def save_content(self, item: ContentItem) -> None:
         content_id_text = str(item.id.value)
         self._write(lambda: self._upsert_content_locked(item, content_id_text))
 
@@ -247,7 +240,7 @@ class SqliteLibrary:
     def list_tags(self) -> tuple[TagMapping, ...]:
         rows = self._conn.execute("SELECT uid, content_id FROM tag_mapping ORDER BY uid").fetchall()
         return tuple(
-            StoredTagMapping(uid=row["uid"], content_id=ContentId(uuid.UUID(row["content_id"])))
+            TagMapping(uid=row["uid"], content_id=ContentId(uuid.UUID(row["content_id"])))
             for row in rows
         )
 

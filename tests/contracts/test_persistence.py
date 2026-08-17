@@ -79,23 +79,23 @@ def library(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[Library]
 class TestContent:
     def test_round_trips_every_field(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         assert library.get_content(item.id) == item
 
     def test_unknown_id_is_none(self, library: Library) -> None:
         assert library.get_content(ContentId()) is None
 
-    def test_list_includes_every_upserted_item(self, library: Library) -> None:
+    def test_list_includes_every_saved_item(self, library: Library) -> None:
         a, b = _content("A"), _content("B")
-        library.upsert_content(a)
-        library.upsert_content(b)
+        library.save_content(a)
+        library.save_content(b)
         assert {item.id for item in library.list_content()} == {a.id, b.id}
 
-    def test_upsert_replaces_sources_and_chapters(self, library: Library) -> None:
+    def test_saving_again_replaces_sources_and_chapters(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         updated = replace(item, title="Renamed", chapters=(), sources=item.sources[:1])
-        library.upsert_content(updated)
+        library.save_content(updated)
         got = library.get_content(item.id)
         assert got is not None
         assert got.title == "Renamed"
@@ -108,7 +108,7 @@ class TestTagMappings:
 
     def test_map_then_resolve(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.map_tag("uid-1", item.id)
         assert library.resolve_tag("uid-1") == item.id
 
@@ -121,7 +121,7 @@ class TestTagMappings:
 
     def test_deleting_a_mapping_does_not_delete_content(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.map_tag("uid-1", item.id)
 
         library.unmap_tag("uid-1")
@@ -131,16 +131,16 @@ class TestTagMappings:
 
     def test_removing_content_cascades_to_its_mapping(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.map_tag("uid-1", item.id)
 
         library.remove_content(item.id)
 
         assert library.resolve_tag("uid-1") is None
 
-    def test_list_tags(self, library: Library) -> None:
+    def test_lists_every_tag_mapping(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.map_tag("uid-1", item.id)
         mappings = library.list_tags()
         assert [(m.uid, m.content_id) for m in mappings] == [("uid-1", item.id)]
@@ -155,7 +155,7 @@ class TestProfiles:
     def test_unknown_name_is_none(self, library: Library) -> None:
         assert library.get_profile("nobody") is None
 
-    def test_list_profiles(self, library: Library) -> None:
+    def test_lists_every_saved_profile(self, library: Library) -> None:
         library.save_profile(_profile("a"))
         library.save_profile(_profile("b"))
         assert {p.name for p in library.list_profiles()} == {"a", "b"}
@@ -174,18 +174,18 @@ class TestResume:
 
     def test_unset_is_none(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         assert library.get_resume(item.id, "kids-early") is None
 
     def test_set_then_get(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.set_resume(item.id, "kids-early", timedelta(seconds=42))
         assert library.get_resume(item.id, "kids-early") == timedelta(seconds=42)
 
     def test_scoped_by_profile(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.set_resume(item.id, "kids-early", timedelta(seconds=10))
         assert library.get_resume(item.id, "someone-else") is None
 
@@ -193,21 +193,21 @@ class TestResume:
         """Paused playback writes nothing — the position must never move backwards
         just because the last write raced a rewind."""
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.set_resume(item.id, "p", timedelta(seconds=30))
         library.set_resume(item.id, "p", timedelta(seconds=10))
         assert library.get_resume(item.id, "p") == timedelta(seconds=30)
 
     def test_equal_position_is_also_skipped(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.set_resume(item.id, "p", timedelta(seconds=30))
         library.set_resume(item.id, "p", timedelta(seconds=30))
         assert library.get_resume(item.id, "p") == timedelta(seconds=30)
 
     def test_removing_content_cascades_to_resume(self, library: Library) -> None:
         item = _content()
-        library.upsert_content(item)
+        library.save_content(item)
         library.set_resume(item.id, "p", timedelta(seconds=5))
         library.remove_content(item.id)
         assert library.get_resume(item.id, "p") is None

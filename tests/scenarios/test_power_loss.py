@@ -125,7 +125,7 @@ def test_process_killed_mid_write_leaves_the_library_openable_and_resume_close(
     profile_name = "kids-early"
 
     setup_library = open_library(data_dir)
-    setup_library.upsert_content(
+    setup_library.save_content(
         ContentItem(
             id=content_id,
             title="Power Loss Fixture",
@@ -190,7 +190,7 @@ def test_repeated_kills_never_corrupt_the_library(tmp_path: Path) -> None:
     profile_name = "kids-early"
 
     setup_library = open_library(data_dir)
-    setup_library.upsert_content(
+    setup_library.save_content(
         ContentItem(
             id=content_id,
             title="Repeated Kill Fixture",

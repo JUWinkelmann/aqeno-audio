@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field, fields
+from enum import StrEnum, auto
 from typing import Any
 
 
@@ -140,7 +141,11 @@ RESUME_RANGES: dict[str, IntRange] = {"rewind_seconds": IntRange(0, 10)}
 # ---------------------------------------------------------------------------
 
 _SLEEP_TIMER_PRESET_RANGE = IntRange(5, 120)
-_SLEEP_TIMER_ACTIONS = ("pause", "stop")
+
+
+class SleepTimerAction(StrEnum):
+    PAUSE = auto()
+    STOP = auto()
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,7 +153,7 @@ class SleepTimerSettings:
     duration_minutes: int = 30
     presets_minutes: tuple[int, ...] = (15, 30, 45, 60)
     fade_out_seconds: int = 20
-    action_at_end: str = "pause"
+    action_at_end: SleepTimerAction = SleepTimerAction.PAUSE
 
 
 SLEEP_TIMER_RANGES: dict[str, IntRange] = {
@@ -222,6 +227,7 @@ def _validate_int_section(
     ranges: dict[str, IntRange],
     raw: Any,
     warnings: list[str],
+    field_names: tuple[str, ...] | None = None,
 ) -> Any:
     defaults = section_type()
     raw_section = raw if isinstance(raw, dict) else {}
@@ -231,6 +237,8 @@ def _validate_int_section(
         )
     kwargs: dict[str, Any] = {}
     for f in fields(section_type):
+        if field_names is not None and f.name not in field_names:
+            continue
         default_value = getattr(defaults, f.name)
         value = raw_section.get(f.name, default_value)
         key = f"{section_name}.{f.name}"
@@ -259,32 +267,14 @@ def _validate_int_section(
 def _validate_sleep_timer(raw: Any, warnings: list[str]) -> SleepTimerSettings:
     defaults = SleepTimerSettings()
     raw_section = raw if isinstance(raw, dict) else {}
-    if raw is not None and not isinstance(raw, dict):
-        warnings.append(f"sleep_timer: expected a table, got {type(raw).__name__}; using defaults")
-
-    duration = raw_section.get("duration_minutes", defaults.duration_minutes)
-    if isinstance(duration, bool) or not isinstance(duration, int):
-        warnings.append(f"sleep_timer.duration_minutes: invalid value {duration!r}; using default")
-        duration = defaults.duration_minutes
-    rng = SLEEP_TIMER_RANGES["duration_minutes"]
-    if not rng.contains(duration):
-        clamped = rng.clamp(duration)
-        warnings.append(
-            f"sleep_timer.duration_minutes: {duration} out of range; clamped to {clamped}"
-        )
-        duration = clamped
-
-    fade_out = raw_section.get("fade_out_seconds", defaults.fade_out_seconds)
-    if isinstance(fade_out, bool) or not isinstance(fade_out, int):
-        warnings.append(f"sleep_timer.fade_out_seconds: invalid value {fade_out!r}; using default")
-        fade_out = defaults.fade_out_seconds
-    rng = SLEEP_TIMER_RANGES["fade_out_seconds"]
-    if not rng.contains(fade_out):
-        clamped = rng.clamp(fade_out)
-        warnings.append(
-            f"sleep_timer.fade_out_seconds: {fade_out} out of range; clamped to {clamped}"
-        )
-        fade_out = clamped
+    validated_ints = _validate_int_section(
+        "sleep_timer",
+        SleepTimerSettings,
+        SLEEP_TIMER_RANGES,
+        raw,
+        warnings,
+        ("duration_minutes", "fade_out_seconds"),
+    )
 
     presets_raw = raw_section.get("presets_minutes", defaults.presets_minutes)
     presets: list[int] = []
@@ -305,17 +295,19 @@ def _validate_sleep_timer(raw: Any, warnings: list[str]) -> SleepTimerSettings:
         presets = list(defaults.presets_minutes)
 
     action = raw_section.get("action_at_end", defaults.action_at_end)
-    if action not in _SLEEP_TIMER_ACTIONS:
+    try:
+        action = SleepTimerAction(action)
+    except (TypeError, ValueError):
+        allowed = tuple(option.value for option in SleepTimerAction)
         warnings.append(
-            f"sleep_timer.action_at_end: {action!r} is not one of "
-            f"{_SLEEP_TIMER_ACTIONS}; using default"
+            f"sleep_timer.action_at_end: {action!r} is not one of {allowed}; using default"
         )
         action = defaults.action_at_end
 
     return SleepTimerSettings(
-        duration_minutes=duration,
+        duration_minutes=validated_ints.duration_minutes,
         presets_minutes=tuple(presets),
-        fade_out_seconds=fade_out,
+        fade_out_seconds=validated_ints.fade_out_seconds,
         action_at_end=action,
     )
 

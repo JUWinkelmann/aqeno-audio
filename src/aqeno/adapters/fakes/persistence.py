@@ -12,21 +12,15 @@ suite against both, so this cannot drift from the adapter without a test noticin
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from datetime import timedelta
 
 from aqeno.config.defaults import Settings, default_settings
 from aqeno.domain.content import ContentId, ContentItem
 from aqeno.domain.profile import Profile
-from aqeno.ports.persistence import DatabaseHealth, UnknownContentError
+from aqeno.ports.persistence import DatabaseHealth, TagMapping, UnknownContentError
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True, slots=True)
-class FakeTagMapping:
-    uid: str
-    content_id: ContentId
 
 
 class FakeLibrary:
@@ -56,7 +50,7 @@ class FakeLibrary:
 
     # -- content ---------------------------------------------------------------
 
-    def upsert_content(self, item: ContentItem) -> None:
+    def save_content(self, item: ContentItem) -> None:
         if self._degraded():
             return
         self._content[item.id] = item
@@ -93,10 +87,8 @@ class FakeLibrary:
             return
         self._tags.pop(uid, None)
 
-    def list_tags(self) -> tuple[FakeTagMapping, ...]:
-        return tuple(
-            FakeTagMapping(uid=uid, content_id=cid) for uid, cid in sorted(self._tags.items())
-        )
+    def list_tags(self) -> tuple[TagMapping, ...]:
+        return tuple(TagMapping(uid=uid, content_id=cid) for uid, cid in sorted(self._tags.items()))
 
     # -- profiles ----------------------------------------------------------
 

@@ -16,6 +16,7 @@ from aqeno.config.defaults import (
     SUPPORTED_LANGUAGES,
     VOLUME_RANGES,
     Settings,
+    SleepTimerAction,
     default_settings,
     validate,
 )
@@ -24,7 +25,7 @@ from aqeno.config.defaults import (
 class TestDefaultsMatchTheDocument:
     """Every default in `CONFIGURATION_DEFAULTS.md`, transcribed once."""
 
-    def test_display_timeouts(self) -> None:
+    def test_each_experience_starts_with_its_documented_display_timeout(self) -> None:
         d = default_settings().display
         assert (d.kids_early, d.kids_reader, d.kids_explorer, d.easy, d.standard) == (
             30,
@@ -40,7 +41,7 @@ class TestDefaultsMatchTheDocument:
             60,
         )
 
-    def test_brightness(self) -> None:
+    def test_display_and_led_brightness_defaults_match_the_document(self) -> None:
         b = default_settings().brightness
         assert b.interactive_kids_early == 70
         assert b.interactive_other_kids == 80
@@ -69,9 +70,9 @@ class TestDefaultsMatchTheDocument:
         assert s.duration_minutes == 30
         assert s.presets_minutes == (15, 30, 45, 60)
         assert s.fade_out_seconds == 20
-        assert s.action_at_end == "pause"
+        assert s.action_at_end is SleepTimerAction.PAUSE
 
-    def test_nfc(self) -> None:
+    def test_unassigned_tags_are_silent_and_debounced_by_default(self) -> None:
         n = default_settings().nfc
         assert n.debounce_ms == 2000
         assert n.ack_tone_unassigned is False
@@ -196,7 +197,7 @@ class TestSleepTimerPresets:
 
     def test_invalid_action_falls_back_to_pause(self) -> None:
         settings, warnings = validate({"sleep_timer": {"action_at_end": "explode"}})
-        assert settings.sleep_timer.action_at_end == "pause"
+        assert settings.sleep_timer.action_at_end is SleepTimerAction.PAUSE
         assert warnings
 
 
