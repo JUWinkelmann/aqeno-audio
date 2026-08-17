@@ -1,114 +1,158 @@
-# AQENO Reference Hardware — Solderless Prototype
+# AQENO Reference Hardware 1
 
-## Objective
-Build a robust, fully solderless Reference prototype around Raspberry Pi 4B while keeping every input behind replaceable platform adapters.
+**Identifier:** AQENO Reference Hardware 1 (`RH1`)
 
-## Reference v0
-- Raspberry Pi 4B
-- 7-inch Raspberry Pi touch display already available to the project
-- USB-C mains power or suitable commodity power bank
-- plug-in I2C/Qwiic/STEMMA-QT input hardware
-- no breadboard as a permanent mechanical component
-- no loose Dupont wiring in the final prototype enclosure
+**Status:** Acquired prototype platform; incomplete until audio and remaining components are selected
 
-## Controls
+**Date:** 2026-08-17
 
-### Volume / Play-Pause — preferred
-**Adafruit I2C STEMMA QT Rotary Encoder, PID 5880 (pre-soldered encoder).**
+## Role
 
-Why:
-- pre-soldered variant requires no soldering;
-- rotary + push switch in one control;
-- I2C keeps GPIO details out of application logic;
-- onboard controllable NeoPixel provides dimmable RGB feedback and true software OFF;
-- can connect through STEMMA QT/Qwiic.
+Reference Hardware 1 is the first concrete platform on which AQENO is developed, measured and
+tested. AQENO should work exceptionally well on it. It is not the definition of AQENO and does not
+make Raspberry Pi 4, a 7-inch touchscreen, Qwiic, one encoder, four MX switches or this control
+mapping permanent Core requirements.
 
-Important: the board also has small diagnostic/power LEDs. In the enclosure these should be physically hidden from the user; only the intentional user-facing light should be visible.
+> Reference Hardware proves AQENO. It does not define AQENO.
 
-### Previous / Next / optional fourth action — preferred prototype
-**Adafruit NeoKey 1x4 QT I2C + MX-compatible hot-swap switches + translucent keycaps.**
+Future hardware may omit the screen, use different controls or provide a more display-oriented
+experience. Domain and application code consume user intentions and product state; adapters own
+boards, buses, addresses, pins and physical mappings. No generic hardware-profile or persona system
+is implied.
 
-Why:
-- switches plug into Kailh sockets without soldering;
-- each key has an individually controllable NeoPixel;
-- LEDs can be dimmed or switched off by software;
-- mechanical switches are replaceable;
-- STEMMA QT connection is solderless.
+## Acquired components
 
-Mechanical note: the PCB must be fixed to the enclosure and switches supported by the printed front plate. Do not rely on the PCB/socket alone to absorb child-force. Choose robust MX-compatible switches and captive/secure keycaps.
+| Component | Quantity | Product identifier | Role |
+|---|---:|---|---|
+| Raspberry Pi 4B | 1 | Raspberry Pi 4 Model B | Reference computer |
+| 7-inch Raspberry Pi Touch Display | 1 | existing Raspberry Pi display; exact revision to record during assembly | Device UI and touch input |
+| I2C STEMMA QT rotary encoder | 1 | Adafruit 5880 | Relative volume, press for play/pause, restrained RGB feedback |
+| NeoKey 1x4 QT | 1 | Adafruit 4980 | Up to four physical MX keys with individually controlled NeoPixels |
+| CHERRY MX2A Brown RGB, 3-pin | several | CHERRY MX2A-G1NA | Quiet tactile switches |
+| Transparent Cherry MX keycaps | 1 pack of 10 | Adafruit 4956 | Light-transmitting keycaps |
+| Qwiic SHIM for Raspberry Pi | 1 | SparkFun DEV-15794 | Solderless Raspberry Pi I2C/Qwiic connection |
+| STEMMA QT/Qwiic hub | 1 | Adafruit 5625 | Central I2C distribution and free branches |
+| 300 mm STEMMA QT/Qwiic cable | 3 | Adafruit 5384 | Solderless JST-SH wiring |
 
-Recommended mapping:
-1. Previous
-2. optional/context/reserved
-3. Next
-4. initially unused or prototype-only
+The display's exact part/revision and the Raspberry Pi's RAM variant should be added when confirmed
+from the physical units. Unknown inventory details must not be guessed.
 
-The production design may later reduce this to two dedicated rugged buttons after user testing.
+## Prototype topology
 
-## Raspberry Pi I2C connection
-Use an **Adafruit Pi STEMMA QT breakout (PID 6365)** or equivalent Pi-compatible Qwiic adapter that plugs onto the Pi GPIO header without soldering. Chain devices with short locking JST-SH STEMMA QT/Qwiic cables.
+```text
+Raspberry Pi 4B
+│
+├── 7-inch Touch Display
+│
+└── SparkFun Qwiic SHIM DEV-15794
+    │
+    └── Adafruit Qwiic Hub 5625
+        │
+        ├── Adafruit 5880 rotary encoder
+        │   ├── rotate → relative volume change
+        │   ├── press  → play/pause
+        │   └── RGB    → restrained contextual feedback
+        │
+        ├── Adafruit NeoKey 1x4 4980
+        │   ├── key 1 → Previous
+        │   ├── key 2 → unassigned reserve
+        │   ├── key 3 → Next
+        │   └── key 4 → unassigned reserve
+        │
+        ├── free branch → candidate NFC hardware
+        └── free branch → future hardware if a real use case requires it
+```
 
-## NFC
-Do not purchase a permanent NFC module until the first vertical slice is working with simulated NFC. The NFC reader must eventually be:
-- pre-assembled;
-- solderless to install;
-- Linux/Raspberry-Pi friendly;
-- mountable behind a non-metallic enclosure surface;
-- supported by a clean adapter.
+The hub creates physical connection capacity, not product scope. Reserved keys and free branches
+remain unused until a tested interaction needs them.
 
-PN532 remains the preferred technology family, but the exact board is a feasibility decision. Avoid Grove PN532 variants that require cutting/soldering to change interface mode.
+## Reference interaction mapping
 
-## LEDs and visual policy
-Hardware LEDs are not decoration by default.
+| Physical event | Adapter output | Product meaning |
+|---|---|---|
+| Encoder clockwise/counter-clockwise | `VolumeDelta(delta)` | Relative volume change |
+| Encoder press | `TogglePlayback` | Play or pause according to current playback state |
+| NeoKey Previous | `Previous` | Contextual previous/rewind behaviour decided above the adapter |
+| NeoKey Next | `Next` | Contextual next/skip behaviour decided above the adapter |
+| Touch | presentation intention / `WakeRequest` as applicable | Contextual Device UI interaction |
+| Future NFC reader presents/removes UID | `NfcPresented` / `NfcRemoved` | Resolve an AQENO-local token assignment |
 
-Software must support:
-- OFF;
-- very low night-safe brightness;
-- normal interaction brightness;
-- semantic colours only where they add information.
+The mapping ends at semantic events. Core code never receives “Cherry key 3”, a GPIO number, Qwiic
+address or NeoKey coordinate. `Previous` and `Next` semantics depend on content context and remain an
+application/domain decision.
 
-Night/Dark-Room forces all user-facing LEDs to OFF. Diagnostic LEDs that cannot be software-disabled must be hidden inside the enclosure so they cannot illuminate the room.
+`PrimaryAction` and `Acknowledge` are plausible future intentions but are not Vertical Slice events.
+They must not be added merely to occupy reserve keys or anticipate alternative hardware.
 
-## Audio
-For the first software slice, use any already-available USB audio device or HDMI/known working output. Do not lock the architecture to a DAC HAT yet.
+## Feedback channels
 
-Before enclosure freeze, choose a solderless USB audio solution or preassembled amplifier/speaker module with locking connectors. Audio hardware must not consume the only practical connector path for Reference controls.
+AQENO may acknowledge an intention through audio, display, LED or physical affordance. The adapter
+implements concrete hardware output; application/presentation policy determines whether feedback is
+appropriate. Domain logic does not select a QML animation, NeoPixel colour or board-specific effect.
 
-## Power
-Reference input is standard USB-C power to the Pi. Mobile use should work from a suitable third-party power bank; AQENO must not require a proprietary battery.
+The encoder and key LEDs are semantic indicators, not decoration. They must support true off and
+must obey Night/Dark-Room policy. Continuous animation or illumination solely to attract attention
+is out of scope. Diagnostic LEDs that cannot be disabled in software must be hidden by the enclosure.
 
-Power-bank compatibility must be tested for:
-- required sustained current;
-- behaviour at low/idle load;
-- wake/restart behaviour;
-- ability to power Pi + display + audio + controls.
+The future `Send to AQENO` concept illustrates the boundary without requiring implementation: RH1
+might present a message as a heart on the display, while another device could use an illuminated
+large button, an LED symbol or audio. The underlying application capability need not change.
 
-## Mechanical robustness
-- boards screwed into printed bosses/standoffs;
-- strain relief on USB/power/audio cables;
-- JST/Qwiic/Grove-style locking/friction connectors inside enclosure;
-- no exposed PCBs;
-- no loose breadboard;
-- buttons supported by front panel;
-- encoder shaft/knob mechanically supported;
-- serviceable enclosure using screws rather than permanent glue where practical.
+## Open components
 
-## Buy now vs later
+Not yet selected or acquired:
 
-### Buy now
-- Pi STEMMA QT/Qwiic GPIO adapter;
-- pre-soldered RGB rotary encoder module;
-- NeoKey 1x4 QT;
-- 3–4 robust MX-compatible switches;
-- 3–4 translucent/shine-through keycaps;
-- several short STEMMA QT/Qwiic cables;
-- M2.5/M3 screw/standoff assortment for printed prototypes.
+- NFC reader and tags;
+- audio amplifier, speakers and final audio path;
+- final mains/mobile power arrangement;
+- final enclosure and mechanical fixtures;
+- any additional sensor or actuator justified by later product work.
 
-### Buy after first vertical slice
-- NFC reader + tags;
-- final audio amp/speakers;
-- power bank dedicated to AQENO;
-- final knobs/keycaps;
-- enclosure hardware.
+NFC remains simulated until the current Vertical Slice works. PN532 is still a candidate technology
+family, but a specific board requires a feasibility check for Linux support, I2C compatibility,
+read range, mounting behind the enclosure and genuinely solderless installation.
 
-This deliberately avoids spending money on parts whose form factor should be determined by UX testing.
+For initial software work, an already available USB or HDMI audio output is acceptable. The final
+audio path must not consume the only practical connection path for Reference controls.
+
+## Known prototype constraints
+
+- Qwiic simplifies prototype wiring but is not an AQENO platform requirement.
+- Shared I2C wiring still requires address, bus-load, cable-length and startup-order validation.
+- The NeoKey and encoder boards are development modules, not production control assemblies.
+- Small board LEDs may need physical shielding; software-off capability must be verified on the
+  assembled hardware.
+- The touch display makes RH1 useful for Device UI work, but screenless core operation remains a
+  product boundary and must be protected by physical-input/display-off tests.
+- The current control placement, key order, switch feel and enclosure ergonomics require user testing.
+- Logical volume limits are not hearing-safety claims until the complete amplifier/speaker path is
+  measured and calibrated as specified in `CONFIGURATION_DEFAULTS.md`.
+- Raspberry Pi boot time and power behaviour must be measured on the assembled unit rather than
+  inferred from desktop tests.
+
+## Mechanical and power requirements
+
+- Boards are fixed to printed bosses or standoffs; no breadboard or loose Dupont wiring is a
+  permanent enclosure component.
+- Buttons are supported by the front plate rather than relying on PCB sockets to absorb user force.
+- Cables receive strain relief and internal connectors remain serviceable.
+- Exposed PCBs and unavoidable diagnostic light are hidden from the user.
+- The enclosure should use screws rather than permanent glue where practical.
+- Reference input is standard USB-C. A commodity power bank may be used only after sustained load,
+  idle-load, wake/restart and full-system capacity have been tested.
+
+## Current architecture fit
+
+The existing boundaries are sufficient for RH1:
+
+- `ports/input.py` defines semantic input events and the synchronous `InputBus` from ADR 0011;
+- the keyboard adapter and fake input bus already prove that concrete inputs are replaceable;
+- playback consumes semantic volume, transport and NFC intentions without hardware imports;
+- display state is independent from playback, so physical controls remain meaningful while visual
+  output is off;
+- ADR 0010 keeps GPIO, I2C, display power, LEDs and NFC implementations in adapters;
+- ADR 0012 keeps QML/PySide6 outside the Core.
+
+The Vertical Slice needs concrete adapters for the controls and visual hardware when their
+implementation step is reached. It does not need a universal action bus, dynamic input engine,
+persona-specific hardware profiles or adapters for hypothetical external switches.

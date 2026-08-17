@@ -261,6 +261,10 @@ AQENO software runs on a **defined range of hardware**, not one inseparable boar
 
 ### Reference hardware principles
 
+The first concrete platform is **AQENO Reference Hardware 1**, documented in
+`docs/hardware/HARDWARE_REFERENCE.md`. It proves the ports and product experience; it does not define
+which controls, buses, board or display every AQENO device must have.
+
 - slim core player;
 - USB-C power;
 - ordinary external power bank is a valid mobile-power option;
@@ -270,6 +274,11 @@ AQENO software runs on a **defined range of hardware**, not one inseparable boar
 - optional NFC;
 - standard/replaceable audio components where practical;
 - simple printable enclosure designs.
+
+The RH1 touchscreen is used for the current Device UI work, but a touchscreen is not a prerequisite
+for understanding or operating core playback. A future device may rely on a speaker, encoder, a few
+large controls, tokens and restrained feedback, provided its adapters express the same relevant user
+intentions.
 
 A future commercial device may integrate components for manufacturing efficiency while preserving openness wherever reasonable.
 

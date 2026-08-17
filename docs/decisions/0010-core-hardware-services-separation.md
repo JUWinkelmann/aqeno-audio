@@ -42,7 +42,7 @@ it an architectural boundary.
 power state.
 
 **Rule: the Core carries no knowledge of any specific board, bus or pin.** The current Raspberry Pi
-configuration is `AQENO Reference Hardware v0` — the first implementation of these ports, explicitly
+configuration is `AQENO Reference Hardware 1` — the first implementation of these ports, explicitly
 not the only possible one. A second platform must be addable by writing adapters, without touching
 `domain/` or `application/`.
 
