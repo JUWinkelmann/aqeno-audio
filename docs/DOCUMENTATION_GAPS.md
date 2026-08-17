@@ -197,25 +197,23 @@ The slice needs a simulated UID launching one item, so at least identity handlin
 Compatible / Community" are used across documents with slightly varying meaning. `Profile` in
 particular means both a user and a UI configuration depending on the document.
 
-### G23 — No commercialisation or regulatory model — **blocks the licence decision**
-Added 2026-08-17. `PRODUCT_FOUNDATION.md` § 15 sketches trust boundaries but no revenue model, and
-ADR 0004 shows the licence choice cannot be made rationally without one: the price of keeping the
-proprietary path open is only worth paying if that path is actually part of the plan.
+### G23 — No commercialisation or regulatory model — **RESOLVED by ADR 0006, pending acceptance**
+Added and resolved 2026-08-17. The maintainer's governing requirement is no liability, which
+determines the answer: AQENO is a **non-commercial** open-source project under GPL-3.0-or-later, with
+no revenue from any source. ADR 0006 records this, together with the positioning rules that protect
+it — not marketed as a toy, no safety claims, build-at-your-own-risk notices.
 
-Beyond revenue, three regulatory questions are entirely unaddressed and each has real cost:
+Consequences for this document:
+- EU hardware compliance (CE, EMC, RoHS, WEEE/ElektroG, GPSR) does not arise: nothing is placed on
+  the market.
+- Toy Safety Directive 2009/48/EC and EN 71 are avoided by positioning, which is now a binding
+  documentation rule rather than a marketing preference.
+- **GDPR falls out of scope entirely** — without a hosted service AQENO is not a controller, so no
+  DPIA, no Art. 8 child-consent handling, no processing agreements.
+- Residual liability is *not* zero. ADR 0006 § Consequences lists what survives: intent, gross
+  negligence, instruction liability for published build guides, and licence compliance.
 
-- **Whether AQENO is marketed as a toy.** A device marketed for children under 14 may fall under the
-  Toy Safety Directive (2009/48/EC) and EN 71, which is a substantially heavier and more expensive
-  regime than a general consumer electronics device. This is a *positioning* decision with a large
-  compliance consequence, and it should be made before enclosure and marketing work, not after.
-- **Product compliance for selling hardware in the EU:** CE marking, EMC, RoHS, WEEE/ElektroG
-  registration, GPSR, and the EU Product Liability Directive 2024/2853, which explicitly covers
-  software.
-- **GDPR posture**, which only becomes significant if optional cloud services exist — and its cost
-  depends heavily on whether any child data is processed at all.
-
-None of this is documented. It is filed here as a gap rather than answered, because it is a business
-and legal decision, not a technical one.
+The one item that remains open is `LICENSE` itself — see G18.
 
 ### G24 — No packaging, deployment or display-server decision
 Added 2026-08-17. ADR 0002 and ADR 0004 both depend on decisions that do not yet exist: whether the

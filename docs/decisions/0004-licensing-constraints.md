@@ -1,7 +1,13 @@
 # ADR 0004 — Dependency licensing constraints and deferred project licence
 
-**Status:** Proposed
+**Status:** Proposed — **supersession proposed by ADR 0006**
 **Date:** 2026-08-17
+
+> **Read ADR 0006 first.** It proposes a non-commercial posture and GPL-3.0-or-later, which withdraws
+> the interim constraint in § 1 below and lifts the § 5 module and plugin restrictions. This ADR is
+> retained for its Qt/GStreamer module facts (§ 5), its LGPL compliance rules (§ 3, which return the
+> moment anyone distributes hardware), and its five named legal uncertainties — all still valid.
+> It is marked Superseded when ADR 0006 is accepted.
 
 > **This is engineering risk management, not legal advice.** It records the constraints AQENO will
 > work under so that decisions stay reversible. Before any public release under a chosen licence, and
