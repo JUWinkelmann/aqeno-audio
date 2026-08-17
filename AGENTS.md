@@ -38,6 +38,22 @@ Agents should:
 9. leave the repository in a runnable state;
 10. surface uncertainty instead of fabricating APIs, hardware behaviour or licensing facts.
 
+## Code quality
+
+Code follows from AQENO's domain and documented decisions, not from generic patterns or a software
+template.
+
+- Use established domain vocabulary consistently. Prefer a precise AQENO term over generic
+  `Helper`, `Service`, `Handler` or catch-all `Manager` names. `Manager` remains correct where it
+  denotes AQENO's defined user role.
+- Respect the existing architecture before introducing a new pattern or layer.
+- Add an abstraction only for a concrete current need. Do not add speculative extension points.
+- Reuse an existing abstraction when it already expresses the behaviour; do not copy its shape
+  under a new name.
+- Keep refactorings local and changes small enough that their motive remains reviewable.
+- Comments explain why, a constraint, an invariant or a non-obvious decision. They do not restate
+  straightforward code in prose.
+
 ## Authority order
 
 When instructions conflict, use this order:

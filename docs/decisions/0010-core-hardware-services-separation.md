@@ -59,6 +59,15 @@ check, no telemetry, and none is to be added without a specific product decision
 
 ### 4. What makes the boundary hold
 
+Local code is controlled by the device owner: it can be inspected, modified and patched. A local
+claim is therefore never an authorisation decision for an external service. If optional services
+are introduced later, they derive permissions from their own trusted state rather than accepting
+client claims such as `is_premium`, `role` or `subscription_active`.
+
+`DisplayGuards.setup_authorised` is a local UI gate. It keeps an ordinary user out of setup through
+the ordinary interface; it is not tamper resistance and must never become the basis of a
+server-side decision.
+
 The boundary is enforced mechanically where that is cheap, because a documented rule that nothing
 checks is a rule that erodes:
 
