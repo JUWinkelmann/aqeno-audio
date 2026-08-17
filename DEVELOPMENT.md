@@ -70,17 +70,28 @@ docs/
 
 ### Rules the layout enforces
 
-1. **`domain/`, `application/` and `ports/` import only the standard library** and each other. No Qt,
-   no GStreamer, no `gi`, no `board`/`busio`, no `RPi.*`. Enforced by a test (ADR 0008 § 6), not by
-   discipline.
-2. **`__main__.py` is the only module that selects adapters.** Everything else receives its
+1. **`domain/`, `application/`, `ports/` and `config/` import only the standard library** and each
+   other. No Qt, no GStreamer, no `gi`, no `board`/`busio`, no `RPi.*`.
+2. **Only `adapters/` may reach the network.** Nothing else may import `socket`, `http`, `urllib` or
+   any client library. The Core stays fully functional with no network at all (ADR 0010 § 1). A port
+   may *describe* network state — describing it needs no socket.
+3. **`__main__.py` is the only module that selects adapters.** Everything else receives its
    dependencies. This is what makes the fake-backed desktop run target possible without a flag
    scattered through the code.
-3. **`adapters/` may import from `ports/` and `domain/`, never from `ui/` or from each other.**
-4. **`ui/` talks to `application/`, never to `adapters/`.**
+4. **Dependencies point inward.** `adapters/` may import `ports/` and `domain/`, never `ui/`.
+   `ui/` talks to `application/`, never to `adapters/` — that rule is what keeps a future service
+   layer possible without building one today.
 5. **No module reads the wall clock.** The `Clock` port is injected (ADR 0008 § 4).
 6. **No hardcoded timeout, brightness or volume value.** Everything comes from `config/`, which is
    validated against `CONFIGURATION_DEFAULTS.md`.
+7. **Hardware adapters are named for the technology they speak, not the board they were first
+   tested on** — `adapters/input/i2c_seesaw.py`, not `adapters/input/pi.py`. The Raspberry Pi
+   configuration is AQENO Reference Hardware v0, the first implementation of these ports and
+   explicitly not the only possible one (ADR 0010 § 2).
+
+Rules 1, 2 and 4 are enforced by `tests/unit/test_import_boundaries.py`, not by discipline
+(ADR 0008 § 6). Each was verified to actually fail on a real violation — a boundary test that cannot
+fail is worse than none.
 
 ## Running
 
