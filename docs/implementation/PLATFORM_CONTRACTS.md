@@ -13,6 +13,8 @@ Hardware and simulators emit the same semantic events:
 
 No application code should depend on GPIO pin numbers.
 
+Delivery follows ADR 0011: synchronous registration-order delivery, without replay or coalescing.
+
 ## Display contract
 Adapter capabilities:
 - set logical state: OFF / DIM / INTERACTIVE / AMBIENT / SETUP;

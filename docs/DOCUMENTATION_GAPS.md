@@ -15,17 +15,18 @@ The consequence is specific: `FIRST_VERTICAL_SLICE.md` is declared the implement
 it cannot be implemented without inventing decisions that `AGENTS.md` forbids inventing.
 
 **Status 2026-08-17 — the blocking set is clear.** All seven blocking gaps are closed or deferred by
-intent, and two of the seven important gaps are closed.
+intent, and three of the seven important gaps are closed.
 
-- **Closed:** G01 (ADRs 0001–0003, 0005, 0007–0009 accepted), G02, G03, G04, G05, G07, G09, G11.
+- **Closed:** G01 (ADRs 0001–0003, 0005, 0007–0009 accepted), G02, G03, G04, G05, G06, G07, G09,
+  G11.
 - **Deferred by intent:** G18, G23 — personal project, nothing published.
-- **Open and blocking nothing yet:** G06, G08, G12, G13, G14, G24, and the hygiene set.
+- **Open and blocking nothing yet:** G08, G12, G13, G14, G24, and the hygiene set.
 - **The one open item with a deadline quality:** the volume calibration in
   `CONFIGURATION_DEFAULTS.md` § 3.3, which needs a sound-level meter and Reference hardware.
 
-Implementation of `FIRST_VERTICAL_SLICE.md` is no longer blocked. G06 (input bus and simulator) is
-partly answered by `DEVELOPMENT.md`'s keyboard mapping and needs only its delivery semantics settled
-when step 4 is implemented.
+Implementation of `FIRST_VERTICAL_SLICE.md` is no longer blocked. G06 (input bus and simulator) was
+closed by ADR 0011; `DEVELOPMENT.md` contains the keyboard mapping and the ADR fixes delivery
+semantics. Slice step 4 implements that contract.
 
 ---
 
@@ -113,11 +114,12 @@ The documents consistently say "short configurable timeout", "night-time volume 
 `PLATFORM_CONTRACTS.md` gives precise performance targets, which shows the project is willing to
 commit to numbers — these are simply missing.
 
-### G06 — Semantic input bus and simulator are unspecified
+### G06 — Semantic input bus and simulator — **CLOSED 2026-08-17 (by ADR 0011)**
 Slice step 4. `PLATFORM_CONTRACTS.md` defines the seven event types but not the bus: delivery
 semantics, ordering, whether `VolumeDelta` coalesces, whether events are queued while `BOOTING`.
-The simulator has no interface at all — keyboard mapping, CLI, socket, all undefined, though the
-slice requires keyboard emulation of Volume/Play-Pause/Next/Previous and a simulated NFC UID.
+ADR 0011 defines synchronous, registration-order delivery without replay or coalescing.
+`DEVELOPMENT.md` defines the desktop keyboard mapping; the simulator implements the same `InputBus`
+port as hardware controls.
 
 ### G07 — Local API / event channel — **CLOSED 2026-08-17 (by ADR 0002)**
 Slice step 6 was "local API/event channel" with zero further description. ADR 0002 decides that the
@@ -286,9 +288,9 @@ at all, so it must be spiked early despite being nominally a packaging concern.
    as a hardware task.
 5. ~~G01, G03, G09, G11~~ — done. ADRs 0001–0003, 0005, 0007–0009 accepted; `DEVELOPMENT.md` written.
 6. **Implement `FIRST_VERTICAL_SLICE.md`** in its documented order. This is now the top item.
-7. G08, G12, G13, G14, G06 — write each immediately before implementing the slice step that needs it,
-   not all up front. G14 grew with ADR 0009: ingestion must detect content kind, group multi-file
-   works and extract chapters.
+7. G08, G12, G13, G14 — write each immediately before implementing the slice step that needs it, not
+   all up front. G14 grew with ADR 0009: ingestion must detect content kind, group multi-file works
+   and extract chapters.
 8. G24 (packaging and display server) — spike early, decide later; `eglfs` vs Wayland gates the
    display-power story, so it must be tried before the display adapter is considered finished.
 9. G15–G17, G19–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.

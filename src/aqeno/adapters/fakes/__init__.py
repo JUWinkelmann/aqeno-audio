@@ -6,6 +6,7 @@ the same contract test suite, so it cannot silently drift from reality
 """
 
 from aqeno.adapters.fakes.audio import FakeAudioEngine
+from aqeno.adapters.fakes.input import FakeInputBus
 from aqeno.adapters.fakes.persistence import FakeLibrary, FakeSettingsStore
 
-__all__ = ["FakeAudioEngine", "FakeLibrary", "FakeSettingsStore"]
+__all__ = ["FakeAudioEngine", "FakeInputBus", "FakeLibrary", "FakeSettingsStore"]
