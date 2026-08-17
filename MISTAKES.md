@@ -72,6 +72,28 @@ and `AGENTS.md`'s authority order does not resolve it (both are level 3–5).
 **Rule going forward:** `ROADMAP.md` is the single source of truth for *which phase we are in*.
 When implementation docs are created ahead of the roadmap, the roadmap must say so explicitly.
 
+### M-004 — Verification pipeline hid a failing check
+**Date:** 2026-08-17
+**Class:** tooling
+**What happened:** The pre-commit verification was run as
+`ruff check . 2>&1 | tail -2 && mypy ... && pytest ... && git commit && git push`. In a shell
+pipeline the exit status is the *last* command's, so `tail` returning 0 masked ruff's failure. The
+`&&` chain continued, and a commit with a lint error was pushed. It was caught immediately, but only
+because the output was read by eye — the automation had already reported success.
+**Why it was easy to get wrong:** Piping through `tail` to keep output short is a natural habit when
+a command is chatty, and the chain *looks* like it is gated on each step.
+**Consequence:** A green-looking verification that verifies nothing. Worse than no check, because it
+creates confidence rather than absence of it — the same failure mode as a boundary test that cannot
+fail.
+**Rule going forward:** Never pipe a command whose exit status gates the next step. Run the checks
+bare, exactly as `DEVELOPMENT.md` § Before committing lists them, and read the exit codes:
+
+```bash
+ruff check . && ruff format --check . && mypy && pytest
+```
+
+If output needs shortening, capture it to a file and inspect afterwards — never in the gating chain.
+
 ## Architecture
 
 _No entries yet._

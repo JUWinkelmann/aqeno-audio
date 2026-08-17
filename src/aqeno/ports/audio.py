@@ -114,7 +114,7 @@ class AudioEngine(Protocol):
         ...
 
     def set_volume(self, volume: int) -> None:
-        """Logical 0–100, applied inside the pipeline rather than to the system mixer,
+        """Logical 0-100, applied inside the pipeline rather than to the system mixer,
         so nothing outside AQENO can move a ceiling (ADR 0003, ADR 0006 § 6)."""
         ...
 
