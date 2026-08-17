@@ -45,6 +45,9 @@ Language is Python per ADR 0001; licensing constraints come from ADR 0004.
   adapter with no GStreamer installed.
 - **Stream vs seekable capability is reported through the port**, so the application can express
   "radio has no resume position" as a domain fact rather than discovering it as a failure.
+- **Gapless transitions between chapters of one work** are a port-level requirement, implemented via
+  `playbin3`'s `about-to-finish` signal. See ADR 0009 § 4a: CD-ripped audio drama cuts scenes at
+  arbitrary track boundaries, so a gap there is audible and wrong.
 
 ## Alternatives considered
 
