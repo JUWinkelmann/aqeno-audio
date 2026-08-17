@@ -14,12 +14,18 @@ the state machines actually do.
 The consequence is specific: `FIRST_VERTICAL_SLICE.md` is declared the implementation target, but
 it cannot be implemented without inventing decisions that `AGENTS.md` forbids inventing.
 
-Counts: **7 blocking** (2 closed, 1 partially addressed), **7 important**, **8 hygiene**
-(1 partially addressed).
+**Status 2026-08-17 — the blocking set is clear.** All seven blocking gaps are closed or deferred by
+intent, and two of the seven important gaps are closed.
 
-**Update 2026-08-17:** ADRs 0001–0005 now exist as **Proposed** — language/runtime, UI stack, audio
-engine, licensing constraints and internationalisation. They close G07 and partially address G01 and
-G18. Two new gaps arise from them and are recorded below as G23 and G24.
+- **Closed:** G01 (ADRs 0001–0003, 0005, 0007–0009 accepted), G02, G03, G04, G05, G07, G09, G11.
+- **Deferred by intent:** G18, G23 — personal project, nothing published.
+- **Open and blocking nothing yet:** G06, G08, G12, G13, G14, G24, and the hygiene set.
+- **The one open item with a deadline quality:** the volume calibration in
+  `CONFIGURATION_DEFAULTS.md` § 3.3, which needs a sound-level meter and Reference hardware.
+
+Implementation of `FIRST_VERTICAL_SLICE.md` is no longer blocked. G06 (input bus and simulator) is
+partly answered by `DEVELOPMENT.md`'s keyboard mapping and needs only its delivery semantics settled
+when step 4 is implemented.
 
 ---
 
@@ -52,7 +58,12 @@ The directory was not a git repository. Now initialised on `main` with remote
 `git@github.com:JUWinkelmann/aqeno-audio.git`. The nine original documents are committed as a
 single baseline; their pre-repository history is gone. See `MISTAKES.md` M-001.
 
-### G03 — No repository layout, build or run instructions
+### G03 — Repository layout, build and run instructions — **CLOSED 2026-08-17**
+`DEVELOPMENT.md` supplies the toolchain, the layout mirroring `ARCHITECTURE.md`'s layers, six rules
+the layout enforces, run targets including the fake-hardware desktop loop and its keyboard mapping,
+and the test commands. Original gap text follows.
+
+
 No directory structure for the layers in `ARCHITECTURE.md`, no module naming, no dependency
 manifest, no "how do I start it", no "how do I run the tests". `CLI_START.md` asks the agent to
 produce a file/module plan — meaning the layout is currently expected to be improvised per
@@ -127,7 +138,13 @@ each — child-facing representation, whether audio continues, whether the displ
 what is logged. This is also the boundary where a weaker implementer will leak stack traces into
 the UI.
 
-### G09 — Persistence has a requirement but no design
+### G09 — Persistence — **CLOSED 2026-08-17 (by ADR 0007)**
+SQLite in WAL mode with `synchronous=NORMAL` for domain data, a hand-editable TOML file for settings,
+atomic replace with `fsync`, XDG locations with environment overrides for tests, forward-only
+migrations with a pre-migration copy, and defined degraded behaviour for a read-only filesystem or a
+corrupt database. Original gap text follows.
+
+
 `PLATFORM_CONTRACTS.md` requires atomic persistence and "unexpected power loss must not corrupt
 the library". Undefined: file locations, on-disk format, write strategy, schema versioning and
 migration, what is recovered vs discarded after a crash, and behaviour on a read-only or full
@@ -140,7 +157,13 @@ diagnose failures" (slice DoD). Undefined: format, levels, destination, rotation
 and — given `AGENTS.md`'s privacy rules and child-data sensitivity — what must **never** be
 logged. Retention defaults matter here because "default to minimum retention" is a stated rule.
 
-### G11 — No test strategy
+### G11 — Test strategy — **CLOSED 2026-08-17 (by ADR 0008)**
+pytest with four layers, port contract suites run against both fakes and real adapters, an injected
+`Clock` with no `time.sleep()` permitted, a table-driven state-machine suite, the import-boundary
+test, generated audio fixtures, and a mapping from every `AGENTS.md` invariant to a named test — plus
+two safety tests this project needs beyond that list. Original gap text follows.
+
+
 `AGENTS.md` lists eight invariants to protect. Nothing maps them to test layers, says how ports are
 faked, how the dark-room and offline scenarios are automated, where test audio fixtures come from
 (and their licence), or whether CI exists. "Offline smoke test passes" and "dark-room test passes"
@@ -261,12 +284,11 @@ at all, so it must be spiked early despite being nominally a packaging concern.
    published. Revisit only if publication becomes real.
 4. ~~G04, G05 (display state machine + concrete values)~~ — done. Volume calibration (§ 3.3) remains
    as a hardware task.
-5. **G01 remainder** — now the top item: accept ADRs 0001–0003 and 0005, then add the persistence ADR
-   (G09) and test-strategy ADR (G11).
-6. G03 (layout + run/test instructions) — write together with accepting the ADRs.
-7. G24 (packaging and display server) — spike early, decide later; `eglfs` vs Wayland gates the
-   display-power story.
-8. G06 (input bus + simulator) — follows directly from G01.
-9. G08, G12, G13, G14 — write each immediately before implementing the slice step that needs it, not
-   all up front.
-10. G15–G17, G19–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.
+5. ~~G01, G03, G09, G11~~ — done. ADRs 0001–0003, 0005, 0007–0009 accepted; `DEVELOPMENT.md` written.
+6. **Implement `FIRST_VERTICAL_SLICE.md`** in its documented order. This is now the top item.
+7. G08, G12, G13, G14, G06 — write each immediately before implementing the slice step that needs it,
+   not all up front. G14 grew with ADR 0009: ingestion must detect content kind, group multi-file
+   works and extract chapters.
+8. G24 (packaging and display server) — spike early, decide later; `eglfs` vs Wayland gates the
+   display-power story, so it must be tried before the display adapter is considered finished.
+9. G15–G17, G19–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.
