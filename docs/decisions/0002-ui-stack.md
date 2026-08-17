@@ -1,7 +1,8 @@
 # ADR 0002 — UI stack
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-17
+**Accepted:** 2026-08-17
 
 ## Context
 
@@ -28,11 +29,11 @@ here.
   calm transitions are straightforward in QML, and the declarative split maps cleanly onto
   `PRODUCT_FOUNDATION.md`'s capability-driven variation: one component set, profile-driven
   configuration, not a Kids app and an Easy app.
-- **Restricted to LGPLv3 Qt modules only.** Qt Charts, Qt Data Visualization and Qt Virtual
-  Keyboard are believed to be GPLv3-or-commercial in Qt 6 and are therefore **not** to be used
-  without an explicit ADR. Qt Virtual Keyboard is the practical trap: the `SETUP` state needs
-  on-screen text entry for a Wi-Fi password. AQENO implements its own minimal on-screen keyboard
-  for that, scoped to setup only.
+- **No Qt module restriction.** ADR 0004's licence-driven exclusions are on hold: nothing is
+  distributed, so **Qt Virtual Keyboard may be used** for on-screen text entry in `SETUP` (Wi-Fi
+  password), and no custom keyboard needs writing. If AQENO is ever published or distributed, the
+  restriction in ADR 0004 § 5 returns and this decision must be revisited — the on-screen keyboard is
+  the first place that bill comes due.
 - **Qt Multimedia is not used for playback.** Audio goes through the engine in ADR 0003, behind the
   audio port.
 - **The UI runs in-process with the application core.** Communication is via Qt signals and an

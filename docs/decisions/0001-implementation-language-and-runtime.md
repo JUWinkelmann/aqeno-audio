@@ -1,7 +1,8 @@
 # ADR 0001 — Implementation language and runtime
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-17
+**Accepted:** 2026-08-17
 
 ## Context
 
