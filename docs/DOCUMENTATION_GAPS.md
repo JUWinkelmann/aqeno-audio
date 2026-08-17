@@ -14,26 +14,38 @@ the state machines actually do.
 The consequence is specific: `FIRST_VERTICAL_SLICE.md` is declared the implementation target, but
 it cannot be implemented without inventing decisions that `AGENTS.md` forbids inventing.
 
-Counts: **7 blocking** (1 closed), **7 important**, **8 hygiene**.
+Counts: **7 blocking** (2 closed, 1 partially addressed), **7 important**, **8 hygiene**
+(1 partially addressed).
+
+**Update 2026-08-17:** ADRs 0001–0005 now exist as **Proposed** — language/runtime, UI stack, audio
+engine, licensing constraints and internationalisation. They close G07 and partially address G01 and
+G18. Two new gaps arise from them and are recorded below as G23 and G24.
 
 ---
 
 ## Blocking — the vertical slice cannot start until these are closed
 
-### G01 — No technology decisions exist, and no ADRs at all
-`docs/decisions/` contains only the template README. `ARCHITECTURE.md` § "Decision still open"
-lists SBC, frontend framework, playback engine, local database, remote architecture, packaging and
-licence as unlocked. `AGENTS.md` requires an ADR before any of them is fixed.
+### G01 — No technology decisions exist — **PARTIALLY ADDRESSED 2026-08-17, awaiting acceptance**
+`ARCHITECTURE.md` § "Decision still open" lists SBC, frontend framework, playback engine, local
+database, remote architecture, packaging and licence as unlocked. `AGENTS.md` requires an ADR before
+any of them is fixed.
 
-Needed as ADRs before code, at minimum:
-1. implementation language and runtime;
-2. UI stack for the Kids Early surface (and how it runs on the Pi display);
-3. audio playback engine behind the audio port;
-4. local persistence mechanism and its atomicity story;
-5. the local API / event channel between application core and UI;
-6. test framework and how hardware ports are faked.
+Status of the decisions needed before code:
 
-Without these there is no meaningful way to delegate implementation to anyone.
+| # | Decision | Status |
+|---:|---|---|
+| 1 | Implementation language and runtime | ADR 0001 — **Proposed** |
+| 2 | UI stack | ADR 0002 — **Proposed** |
+| 3 | Audio playback engine | ADR 0003 — **Proposed** |
+| 4 | Dependency licensing constraints | ADR 0004 — **Proposed** |
+| 5 | Internationalisation (DE/EN) | ADR 0005 — **Proposed** |
+| 6 | Local persistence mechanism and atomicity | **missing** — see G09 |
+| 7 | Local API / event channel | **resolved by ADR 0002** (in-process) — see G07 |
+| 8 | Test framework and how ports are faked | **missing** — see G11 |
+
+ADRs 0001–0005 are Proposed, not Accepted. Until they are accepted, `ARCHITECTURE.md` § "Decision
+still open" stays as-is and no implementation may rely on them. Gap G01 closes when they are
+accepted and items 6 and 8 exist.
 
 ### G02 — Not a version-controlled repository — **CLOSED 2026-08-17**
 The directory was not a git repository. Now initialised on `main` with remote
@@ -78,11 +90,12 @@ semantics, ordering, whether `VolumeDelta` coalesces, whether events are queued 
 The simulator has no interface at all — keyboard mapping, CLI, socket, all undefined, though the
 slice requires keyboard emulation of Volume/Play-Pause/Next/Previous and a simulated NFC UID.
 
-### G07 — Local API / event channel is unspecified
-Slice step 6 is "local API/event channel" with zero further description. Whether the UI is
-in-process or a separate process is the single most consequential unmade decision after language
-choice: it determines the whole shape of the codebase, and it is also a security boundary
-(`AGENTS.md` forbids unauthenticated management interfaces).
+### G07 — Local API / event channel — **CLOSED 2026-08-17 (by ADR 0002)**
+Slice step 6 was "local API/event channel" with zero further description. ADR 0002 decides that the
+UI runs **in-process** with the application core, communicating via Qt signals and an
+application-level event bus. There is therefore no local API, no serialisation format and no network
+listener — which also removes the unauthenticated-management-interface risk that `AGENTS.md` warns
+about. Slice step 6 should be restated as "application event bus" rather than "local API".
 
 ---
 
@@ -154,11 +167,14 @@ no section 11; the § 16 hypotheses list numbers 1–5 then restarts at 4. Cosme
 is cited by section number in agent instructions, so ambiguous numbering causes real
 misreferences.
 
-### G18 — No licence decision and no LICENSE file
-`PRODUCT_FOUNDATION.md` § 15 defers the open-source/commercial decision, and the dependency policy
-requires checking licence compatibility "for potential commercial distribution" — a check that
-cannot be performed against an undefined target. A provisional stance is enough for now; the file
-is missing entirely.
+### G18 — No licence decision and no LICENSE file — **PARTIALLY ADDRESSED 2026-08-17**
+ADR 0004 supplies the missing constraint: the project licence stays deferred, but all work proceeds
+under a binding interim rule (keep the proprietary-commercial path open; no GPL code linked into the
+application). The dependency policy in `AGENTS.md` is now mechanically checkable.
+
+Still open: AQENO's own licence, and there is still no `LICENSE` file. ADR 0004 § Consequences
+records that keeping the commercial path open has a concrete price in the MVP, so the choice should
+be made deliberately — see also the commercialisation question, which is what actually decides it.
 
 ### G19 — Ambient/photo-frame is over-documented relative to its scope
 `MVP.md` lists photo-frame/Ambient as explicitly **not** MVP, yet it occupies large parts of
@@ -181,15 +197,50 @@ The slice needs a simulated UID launching one item, so at least identity handlin
 Compatible / Community" are used across documents with slightly varying meaning. `Profile` in
 particular means both a user and a UI configuration depending on the document.
 
+### G23 — No commercialisation or regulatory model — **blocks the licence decision**
+Added 2026-08-17. `PRODUCT_FOUNDATION.md` § 15 sketches trust boundaries but no revenue model, and
+ADR 0004 shows the licence choice cannot be made rationally without one: the price of keeping the
+proprietary path open is only worth paying if that path is actually part of the plan.
+
+Beyond revenue, three regulatory questions are entirely unaddressed and each has real cost:
+
+- **Whether AQENO is marketed as a toy.** A device marketed for children under 14 may fall under the
+  Toy Safety Directive (2009/48/EC) and EN 71, which is a substantially heavier and more expensive
+  regime than a general consumer electronics device. This is a *positioning* decision with a large
+  compliance consequence, and it should be made before enclosure and marketing work, not after.
+- **Product compliance for selling hardware in the EU:** CE marking, EMC, RoHS, WEEE/ElektroG
+  registration, GPSR, and the EU Product Liability Directive 2024/2853, which explicitly covers
+  software.
+- **GDPR posture**, which only becomes significant if optional cloud services exist — and its cost
+  depends heavily on whether any child data is processed at all.
+
+None of this is documented. It is filed here as a gap rather than answered, because it is a business
+and legal decision, not a technical one.
+
+### G24 — No packaging, deployment or display-server decision
+Added 2026-08-17. ADR 0002 and ADR 0004 both depend on decisions that do not yet exist: whether the
+app runs under `eglfs` or a Wayland compositor, whether Qt comes from distribution packages or a
+pinned build, how updates are delivered, and how LGPL replaceability is guaranteed on a shipped
+device. The display-server choice in particular determines whether authoritative panel `OFF` works
+at all, so it must be spiked early despite being nominally a packaging concern.
+
 ---
 
 ## Recommended closing order
 
 1. ~~G02 (git)~~ — done.
-2. G01 (technology ADRs) — the actual gate. Nothing else can be delegated first.
-3. G03 (layout + run/test instructions) — write together with the first ADRs.
-4. G04, G05 (display state machine + concrete values) — the largest correctness risk in the slice.
-5. G06, G07 (input bus + event channel) — follow directly from G01.
-6. G08–G14 — write each one immediately before implementing the slice step that needs it, not all
-   up front.
-7. G15–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.
+2. ~~G07 (event channel)~~ — done via ADR 0002.
+3. **G23 (commercialisation and positioning)** — now the real gate. It decides G18 (licence), which
+   decides whether ADR 0004's constraints stand, which decides parts of ADR 0002 and ADR 0003.
+   Accepting the technology ADRs before this is decided risks paying for optionality nobody wants.
+4. G01 remainder — accept ADRs 0001–0005, then add the persistence ADR (G09) and test-strategy ADR
+   (G11).
+5. G03 (layout + run/test instructions) — write together with accepting the ADRs.
+6. G04, G05 (display state machine + concrete values) — the largest correctness risk in the slice,
+   and the highest-value thing to specify before delegating implementation.
+7. G24 (packaging and display server) — spike early, decide later; `eglfs` vs Wayland gates the
+   display-power story.
+8. G06 (input bus + simulator) — follows directly from G01.
+9. G08, G12, G13, G14 — write each immediately before implementing the slice step that needs it, not
+   all up front.
+10. G15–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.
