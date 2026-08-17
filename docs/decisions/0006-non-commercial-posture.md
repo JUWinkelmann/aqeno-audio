@@ -21,6 +21,17 @@
 > public, not after: registering the `AQENO` trademark, and adding `CONTRIBUTING.md` with a
 > contributor agreement. Until then the repository stays private.
 >
+> **One consequence to know before ADR 0002 is accepted** (raised 2026-08-17, on paid plugins): GPL
+> without a linking exception, combined with ADR 0002's in-process coupling, largely forecloses
+> proprietary third-party plugins — an in-process plugin is plausibly a derivative work. The ways out
+> are a linking exception, a permissive licence, or out-of-process plugins over an arm's-length
+> protocol, the last of which reintroduces the IPC and authentication surface ADR 0002 removed. No
+> decision is needed now; it is noted because it is a door that closes quietly. Charging for plugins
+> would additionally contradict `P02 Content, not apps` and `MVP.md`'s explicit exclusion of
+> app-store style plugins, so it would require changing `PRODUCT_FOUNDATION.md`, not only the licence.
+> A plugin *architecture* for content providers and hardware adapters raises none of this — the
+> conflict is only with charging for them.
+>
 > The licence-driven restrictions in ADR 0004 § 5 do **not** apply while nothing is distributed:
 > AAC/M4B, Qt Virtual Keyboard and the fuller GStreamer plugin sets are all available. ADRs 0002 and
 > 0003 keep PySide6 and GStreamer on technical merit regardless.
