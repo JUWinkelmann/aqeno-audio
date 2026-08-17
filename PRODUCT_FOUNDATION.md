@@ -306,6 +306,9 @@ These are hypotheses, not facts:
 
 ## 17. Next discovery work
 
+Unscheduled ideas live in `docs/product/FUTURE_PRODUCT_CONCEPTS.md`. They preserve product options
+without changing Vertical Slice scope, roadmap milestones or current architecture.
+
 ### Journey 01 — three-year-old child
 
 Map the complete experience from unboxing through Guardian setup, first content, independent playback, NFC use, physical controls, discovery, bedtime listening and falling asleep in a completely dark room.
