@@ -86,16 +86,27 @@ The local device owns enough state to play local/downloaded content, resolve NFC
 
 Remote management, synchronisation and cloud backup are optional adapters added later.
 
+## Decisions made
+
+See `docs/decisions/`. Accepted ADRs override this document.
+
+- language and runtime — Python 3.11+ (ADR 0001);
+- UI stack — Qt 6 via PySide6 with QML, in-process with the core (ADR 0002);
+- playback engine — GStreamer via PyGObject (ADR 0003);
+- internationalisation — German and English (ADR 0005);
+- local persistence — SQLite in WAL mode plus a hand-editable TOML settings file (ADR 0007);
+- test strategy (ADR 0008);
+- content kinds and their playback behaviour (ADR 0009).
+
 ## Decision still open
 
 Do not lock these prematurely:
 
 - SBC/reference production hardware;
-- frontend framework;
-- playback engine;
-- local database;
+- packaging/update mechanism and display server — `eglfs` vs Wayland gates the display-power
+  story (gap G24);
 - remote/cloud architecture;
-- packaging/update mechanism;
-- final open-source license.
+- final open-source license — **deferred by intent**, see ADR 0006. AQENO is a personal project;
+  nothing is published or distributed, so no licence is needed yet.
 
 Use feasibility spikes and ADRs before committing.

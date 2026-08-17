@@ -6,7 +6,12 @@ The first focus is **AQENO Kids**; the same core is intended to support **AQENO 
 
 ## Current status
 
-**Product discovery / pre-implementation.** Do not treat technology choices as final yet.
+**Pre-implementation, decisions made.** The technology basis is settled in `docs/decisions/`
+(ADRs 0001–0003, 0005, 0007–0009). The first implementation target is
+[`docs/implementation/FIRST_VERTICAL_SLICE.md`](docs/implementation/FIRST_VERTICAL_SLICE.md).
+
+AQENO is a personal project. Licensing, publication and commercialisation are deferred by intent —
+see [`ADR 0006`](docs/decisions/0006-non-commercial-posture.md).
 
 ## Start here
 
@@ -15,9 +20,10 @@ The first focus is **AQENO Kids**; the same core is intended to support **AQENO 
 3. [`AGENTS.md`](AGENTS.md) — mandatory instructions for AI coding agents and vibe-coding workflow.
 4. [`ARCHITECTURE.md`](ARCHITECTURE.md) — architectural guardrails and open decisions.
 5. [`ROADMAP.md`](ROADMAP.md) — discovery-to-MVP progression.
-6. [`docs/DOCUMENTATION_GAPS.md`](docs/DOCUMENTATION_GAPS.md) — what is not yet decided.
-7. [`MISTAKES.md`](MISTAKES.md) — mistakes already made; do not repeat them.
-8. [`docs/decisions/`](docs/decisions/) — durable architecture/product decisions.
+6. [`DEVELOPMENT.md`](DEVELOPMENT.md) — toolchain, repository layout, how to run and test.
+7. [`docs/DOCUMENTATION_GAPS.md`](docs/DOCUMENTATION_GAPS.md) — what is not yet decided.
+8. [`MISTAKES.md`](MISTAKES.md) — mistakes already made; do not repeat them.
+9. [`docs/decisions/`](docs/decisions/) — durable architecture/product decisions.
 
 ## Core idea
 

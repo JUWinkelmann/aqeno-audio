@@ -1,7 +1,8 @@
 # ADR 0003 — Audio playback engine
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-08-17
+**Accepted:** 2026-08-17
 
 ## Context
 
@@ -31,9 +32,11 @@ Language is Python per ADR 0001; licensing constraints come from ADR 0004.
 - Use the **`playbin3`** element as the default pipeline for both files and network sources, so URI
   handling, demux, decode and sink selection are one code path. Local files and HTTP streams differ
   only in the resolved URI.
-- **Plugin sets restricted to `core`, `base` and `good`** (LGPLv2.1). `gst-plugins-ugly` and
-  `gst-plugins-bad` are **not** permitted without an explicit ADR, on both licence and
-  patent-exposure grounds — see ADR 0004.
+- **Plugin sets: `core`, `base` and `good` by default, plus whatever formats the maintainer's own
+  library needs.** ADR 0004's licence-driven exclusion of `gst-plugins-ugly` and `gst-plugins-bad` is
+  on hold because nothing is distributed, so **AAC / M4A / M4B is supported** — `.m4b` is a common
+  audiobook container and excluding it would have been a real product cost. If AQENO is ever
+  published or distributed, ADR 0004 § 5 and its patent reasoning return.
 - **Volume is applied in the pipeline**, not by changing the system mixer, so the night volume
   ceiling and profile limits are enforced by AQENO rather than by ALSA state that other software
   could change.
@@ -79,14 +82,10 @@ requires the opposite (`USER_JOURNEY_KIDS_EARLY.md` § 8). The adapter must map 
 small, calm, enumerated set of failure states — which is gap G08, and this ADR makes closing it a
 prerequisite for the audio step of the slice rather than a later concern.
 
-**Constrained.** The plugin-set restriction has a real product cost: **`good` does not cover every
-format users will have.** MP3 is fine (patents expired 2017) and Vorbis, Opus, FLAC and WAV are
-unencumbered, but **AAC / M4A / M4B is the gap** — and `.m4b` is a common audiobook container, which
-is close to the centre of AQENO's use case. This is a decision to surface now, not to discover
-during user testing. Options: accept the limitation for the MVP and fail clearly on unsupported
-files; enable AAC decode for the DIY/open path while excluding it from any commercial build; or
-resolve the patent question properly before commercial distribution. Recommend the first for the
-MVP, with the failure state made explicit in G08.
+**Constrained.** Format coverage still needs an explicit failure path. Even with AAC available, some
+file will eventually be unplayable — a broken container, an exotic codec, a DRM-protected file — and
+that must produce a calm, enumerated failure state rather than a GStreamer error string. This is gap
+G08, and it is a prerequisite for the audio step of the slice.
 
 **Open verification (P2 feasibility spike).** On Reference hardware: import and pipeline-construction
 cost against the boot budget; volume-change latency under rapid encoder rotation; seek accuracy and

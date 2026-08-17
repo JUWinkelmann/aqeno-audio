@@ -31,15 +31,18 @@ briefly justified by liability reasoning; the better reason stands on its own.
 
 ## 3. Where the project actually stands
 
-- **Phase:** specifications written, repository initialised, **no code yet**.
-- **Declared next implementation target:** `docs/implementation/FIRST_VERTICAL_SLICE.md`.
-- **Technology basis:** ADRs 0001 (Python), 0002 (PySide6/QML), 0003 (GStreamer),
-  0005 (DE/EN i18n) — all **Proposed**, awaiting acceptance. Because licensing is deferred, their
-  licence-driven restrictions no longer bind: AAC/M4B, Qt Virtual Keyboard and the fuller GStreamer
-  plugin sets are all available.
-- **Still missing before implementation can be delegated:** the display state-machine transition
-  table (gap G04) and concrete configuration values including the volume limits (gap G05). See
-  `docs/DOCUMENTATION_GAPS.md`.
+- **Phase:** specifications and decisions complete, repository initialised, **no code yet**.
+- **Next implementation target:** `docs/implementation/FIRST_VERTICAL_SLICE.md`, in its documented
+  order. It is **no longer blocked**.
+- **Technology basis, all Accepted:** ADR 0001 Python 3.11+ · 0002 PySide6/QML in-process ·
+  0003 GStreamer · 0005 DE/EN i18n · 0007 SQLite WAL + TOML settings · 0008 test strategy ·
+  0009 content kinds.
+- **How to set up, run and test:** `DEVELOPMENT.md`.
+- **Still open, none of it blocking:** failure taxonomy (G08), resume precision (G12), readiness
+  criteria (G13), content ingestion (G14), input-bus delivery semantics (G06), packaging and display
+  server (G24). Write each immediately before the slice step that needs it, not up front.
+- **The one open item that should not stay undone:** volume calibration,
+  `CONFIGURATION_DEFAULTS.md` § 3.3. It needs a sound-level meter and the Reference hardware.
 
 Do not decide a technology by committing code. Writing code first *is* the decision, and it would be
 an undocumented one.
@@ -61,10 +64,11 @@ Do not skim these. They are contracts, not background.
 | 9 | `docs/implementation/DISPLAY_STATE_MACHINE.md` | **Normative** transition table. Do not infer transitions from prose. |
 | 10 | `docs/implementation/CONFIGURATION_DEFAULTS.md` | Every timeout, brightness and volume value. Never invent one. |
 | 11 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | The first thing to build, in order |
-| 12 | `docs/hardware/HARDWARE_REFERENCE.md` | Reference prototype, solderless constraint |
-| 13 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
-| 14 | `docs/DOCUMENTATION_GAPS.md` | What is not yet decided — read before assuming |
-| 15 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
+| 12 | `DEVELOPMENT.md` | Toolchain, layout, how to run and test |
+| 13 | `docs/hardware/HARDWARE_REFERENCE.md` | Reference prototype, solderless constraint |
+| 14 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
+| 15 | `docs/DOCUMENTATION_GAPS.md` | What is not yet decided — read before assuming |
+| 16 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
 
 ## 5. How work is done here
 
