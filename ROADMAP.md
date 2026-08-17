@@ -1,6 +1,9 @@
 # AQENO Roadmap
 
-This roadmap is discovery-led. Dates are intentionally omitted until the MVP is validated.
+This roadmap is discovery-led. Dates are intentionally omitted until the MVP is validated. The
+current validation focus on Kids and Easy describes discovery contexts, not separate product cores;
+the shared platform boundary is defined in `PRODUCT_FOUNDATION.md`. Unscheduled concepts in
+`docs/product/FUTURE_PRODUCT_CONCEPTS.md` do not alter these phases or priorities.
 
 ## P0 — Product foundation — CURRENT
 
@@ -9,7 +12,7 @@ This roadmap is discovery-led. Dates are intentionally omitted until the MVP is 
 - [x] Establish physical-vs-touch interaction principle.
 - [x] Establish dark-room requirement.
 - [x] Establish open NFC and hardware philosophy.
-- [x] Establish Kids + Easy shared-platform direction.
+- [x] Establish one shared platform across Kids, independent and assisted use contexts.
 - [ ] Complete core user journeys.
 - [ ] Identify product risks and open questions.
 

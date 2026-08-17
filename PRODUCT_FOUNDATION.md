@@ -6,11 +6,16 @@
 
 ## 1. Purpose
 
-AQENO is not a cheaper Toniebox clone and not a tablet with a child-friendly skin. It is an **open, adaptive, audio-first player platform** that makes audio exceptionally simple while preserving freedom of hardware, content and interaction.
+AQENO is not a cheaper Toniebox clone and not a tablet with a simplified skin. It is an **open,
+adaptive, audio-first player platform** that makes digital audio understandable through calm,
+physical interaction while preserving freedom of hardware, content and interaction.
 
 > **AQENO adapts to people — people should not have to adapt to the player.**
 
-The first product focus is **AQENO Kids**. The same core should support **AQENO Easy**, a non-stigmatising simplified experience suitable for older users and anyone who benefits from reduced complexity.
+The first product focus is **AQENO Kids**, but children do not define the platform. The same core
+should serve adults, families and people who benefit from reduced interaction complexity, including
+older people and people with motor, cognitive or other disabilities. These are use contexts of one
+product, not reasons to create separate Kids, Senior or Accessibility codebases.
 
 ## 2. Product position
 
@@ -78,11 +83,21 @@ prompt. The local Core must feel complete rather than like a restricted tier.
 The Device UI exposes few concepts, shallow navigation, one clear contextual action and immediate
 understandable feedback. Physical controls carry frequent actions; the display does not imitate a
 tablet or expose technical structure. Detailed rules and the mandatory design-review questions live
-in `docs/product/DEVICE_UI_PRINCIPLES.md`.
+in `docs/product/DEVICE_UI_PRINCIPLES.md`. Presentation translates technical state into human
+meaning: a heart rather than an unread-message counter, or seamless resume rather than persistence
+status.
+
+### P17 — Accessibility through simplicity
+AQENO starts with large and forgiving controls, little required text, shallow navigation, immediate
+feedback and no mandatory precision gesture or routine smartphone use. Concrete accessibility needs
+may require further work, but they refine shared capabilities rather than defaulting to labelled or
+stigmatising special modes.
 
 ## 4. Adaptive experience
 
-AQENO should use a shared capability model rather than separate rigid products for each age.
+AQENO should use a shared capability model rather than separate rigid products for each age,
+ability or setting. `Kids Early`, `Easy` and `Standard` describe experience configurations; they are
+not separate cores or claims that one configuration satisfies every person in a demographic group.
 
 | Stage / mode | Primary UI | Typical navigation | Screen role |
 |---|---|---|---|
@@ -93,6 +108,10 @@ AQENO should use a shared capability model rather than separate rigid products f
 | Standard | Full library UI | Touch + controls | Full interface |
 
 Transitions remain manually controllable. AQENO may suggest a different complexity level but must not silently decide that a child or other user is ready for it.
+
+Needs should be modelled directly where they become real: larger targets, reduced navigation,
+audio feedback, volume boundaries or alternative input. Do not introduce a generic persona, theme,
+“senior mode” or “disability mode” in anticipation.
 
 ## 5. Physical interaction
 
@@ -110,6 +129,10 @@ Reference control set:
 | NFC | Content/action shortcut | Physical, intuitive, optional |
 
 Do not add dedicated Home, Back, Favourite or Menu buttons unless user testing proves them necessary.
+
+Core actions must not depend solely on precise dragging, swiping, double taps, long presses, tightly
+packed controls or short response windows. A touchscreen can extend AQENO, but physical controls
+and tokens are a first-class access path for children and adults alike.
 
 ## 6. Dark-room requirement
 
@@ -145,7 +168,8 @@ For **Kids Early**, the default during audio playback is `OFF` after a short con
 
 ## 7. Open physical media and NFC
 
-AQENO preserves the haptic strength of figure-based systems without requiring proprietary figures. NFC is an open shortcut layer, not the content store.
+AQENO preserves the haptic strength of physical media without requiring proprietary figures. NFC is
+an open shortcut layer, not the content store or a toy-only interaction model.
 
 - A tag may identify an item, collection, profile, scene or action.
 - Tags may live in 3D-printed figures, cards, wooden tokens, stickers, key rings or existing toys.
@@ -157,6 +181,10 @@ AQENO preserves the haptic strength of figure-based systems without requiring pr
 - NFC remains optional; the library never depends on owning physical tokens.
 - Named third-party compatibility or integration is a separate product/legal decision, not implied
   by technically reading a compatible tag.
+
+A story figure, jazz card, radio card or large distinctly shaped token all express the same product
+principle: an understandable physical object can represent an action. The domain does not infer an
+age group, brand or object category from that assignment.
 
 ## 8. Content model
 
@@ -188,7 +216,7 @@ Other candidates: **Travel**, **Morning**, **Quiet time**.
 
 Scenes are transparent and user/Guardian-defined, not driven by opaque recommendation algorithms.
 
-## 10. Guardian / manager model
+## 10. Management and assistance model
 
 Use roles rather than hard-coded parent/child relationships:
 
@@ -196,7 +224,8 @@ Use roles rather than hard-coded parent/child relationships:
 - **Manager** — curates content and experience boundaries.
 - **Owner** — controls device/account ownership and management rights.
 
-This supports both parent → child and family member → AQENO Easy user.
+This supports parent → child, an independent Owner/User and an authorised family member assisting
+another adult without encoding those relationships as core roles.
 
 Possible management capabilities include content curation, UI complexity, volume limits, usage windows, sleep behaviour, NFC assignment, offline preparation and optional remote content delivery.
 
@@ -264,16 +293,25 @@ AQENO differentiates through architecture, not feature accumulation.
 | Standard connectivity | Headphones/speakers and other standard audio paths fit the same content model. |
 | Deliberate ambient mode | Selected photos, artwork or simple information can use the display when explicitly enabled without turning AQENO into a distraction-first device. |
 
-## 14. Product family
+## 14. Use contexts, not product forks
 
-### AQENO Kids
-Autonomous, safe and increasingly capable audio use from early childhood onward.
+The current names are discovery shorthand, not commitments to separate editions:
 
-### AQENO Easy
-A simplified, non-stigmatising audio experience for users who prefer or benefit from reduced complexity. It is not defined solely as a senior product.
+- **Kids** — autonomous and increasingly capable audio use from early childhood onward;
+- **independent simple audio** — radio, music, podcasts or Bluetooth in a kitchen or living room,
+  without requiring a complex app or voice assistant;
+- **assisted use** — a person uses AQENO independently for routine listening while an authorised
+  Manager helps with configuration or content where requested;
+- **family use** — shared content, physical actions and personal audio across ages.
 
-### Shared core
-Both share the player engine, content model, role model, hardware abstraction and adaptive UI primitives. Differences should primarily be configuration and experience, not separate codebases.
+All contexts share the player engine, content model, role model, hardware abstraction and adaptive
+presentation primitives. Differences should arise from capabilities, configuration, content,
+interaction and contextual presentation—not forks of the Core. The product need not look like a toy
+or a clinical aid: its common aesthetic is warm, high-quality, calm and immediately understandable.
+
+AQENO may provide modern connected audio without a permanently active microphone or cloud voice
+assistant. This preserves a product option around privacy, speech accessibility and domestic calm;
+it is not a competitive marketing claim and does not prohibit a future explicitly chosen input.
 
 ## 15. Business and trust boundaries
 
@@ -300,7 +338,8 @@ These are hypotheses, not facts:
 5. A staged boot path can make AQENO feel appliance-like even on commodity SBC hardware.
 4. Adaptive complexity creates meaningful longevity beyond the typical early-childhood audio-box period.
 5. Open physical media retains the haptic benefit of figures without proprietary content lock-in.
-6. One platform can serve Kids and Easy without compromising either experience.
+6. One platform can serve child, independent and assisted listening contexts without compromising
+   their concrete needs.
 7. Managers value remote curation more than detailed monitoring.
 8. A slim USB-C player with optional commodity power bank is preferable to a permanently integrated battery for the reference DIY platform.
 
@@ -326,5 +365,8 @@ Subsequent journeys:
 ## 18. Working definition
 
 > **AQENO is an open, adaptive, audio-first player platform that gives users the simplicity they need without taking away the freedom they may want later.**
+
+AQENO is not simple because one audience is assumed incapable. It is simple because good dedicated
+devices should make their purpose obvious.
 
 This foundation intentionally does **not** commit to a specific SBC, UI framework, audio engine or commercial model before user journeys and feasibility work provide sufficient evidence.

@@ -8,11 +8,11 @@ This catalogue preserves plausible product directions without making them requir
 or architecture work. Nothing here authorises implementation, a dependency, an interface or generic
 infrastructure. YAGNI remains binding.
 
-> AQENO may become internally capable without becoming complicated for a child.
+> AQENO may become internally capable without becoming complicated for the person using it.
 
-AQENO remains a calm, physical and intuitive family audio device. The display supplies context,
-emotion and immediate feedback, then recedes. It is not an invitation to build a tablet, game
-platform or engagement surface.
+AQENO remains a calm, physical and intuitive audio device for individuals and families. The display
+supplies context, emotion and immediate feedback, then recedes. It is not an invitation to build a
+tablet, game platform or engagement surface.
 
 ## Classification
 
@@ -22,7 +22,7 @@ infrastructure could provide substantial value, not that cloud use is required o
 
 | Concept | Classification | Existing foundation |
 |---|---|---|
-| F1 Family Audio Messages | Natural Extension; Service Candidate for remote delivery | personal recordings, Actions, contextual display |
+| F1 Send to AQENO / personal audio messages | Natural Extension; Service Candidate for remote delivery | personal recordings, Actions, contextual display |
 | F2 Digital Family Frame | Product Expansion | explicit Ambient state and visual-source authority |
 | F3 Sleep / Good Night | Natural Extension | Scene, Night policy, sleep timer, physical Actions |
 | F4 Sleep Timer | Natural Extension | configuration contract already defines timer and fade |
@@ -33,7 +33,7 @@ infrastructure could provide substantial value, not that cloud use is required o
 | F9 Bluetooth Speaker | Product Expansion | audio/hardware adapter boundary |
 | F10 External Audio Services | Service Candidate | optional service adapters and Source separation |
 | F11 Ambient Audio | Natural Extension | ordinary local content plus physical assignment |
-| F12 Profiles / Multiple Children | Product Expansion | Profile-scoped policy and resume |
+| F12 Multiple users and contexts | Product Expansion | Profile-scoped policy and resume |
 | F13 Token to Action | Natural Extension | Action/Scene and Trigger are documented domain concepts |
 | F14 Physical Interaction as UI | Natural Extension | physical-first UX and ADR 0013 |
 | F15 Contextual Display | Natural Extension | display state machine and presentation boundary |
@@ -43,17 +43,30 @@ infrastructure could provide substantial value, not that cloud use is required o
 Classification is not implementation order. A concept may move category when a concrete product
 journey reveals different infrastructure or risk.
 
-## F1 — Family Audio Messages
+## F1 — Send to AQENO
 
-**High future product interest.** An authorised family member leaves a short audio message. The
-Kids UI communicates only the emotional meaning — for example one heart — and tapping it plays the
-message. The interaction is messaging without messaging UI: no inbox, chat list, unread counter,
-text conversation or social-media metaphor.
+**High future product interest and likely Service Candidate.** An authorised contact records a
+short audio message for an AQENO device. The recipient sees only the human meaning—for example one
+heart—and tapping it plays the familiar voice. This may connect parent and child, grandchildren and
+grandparents, family and an independently listening or assisted person. It is not a medical,
+emergency, medication or care-monitoring service.
+
+The interaction is messaging without a messenger: no inbox, chat threads, unread counter, text,
+keyboard, read receipt, contact management or social-media metaphor on the recipient Device UI. A
+sender may use a more capable Web or smartphone flow—choose an authorised AQENO, record, send—while
+the recipient only needs to understand: there is a heart, tap it, hear someone they know. This
+asymmetry is intentional.
+
+Remote delivery could justify a paid optional service because authentication, authorised senders,
+storage, encryption, delivery, abuse prevention, privacy and deletion are real operated work. It
+does not justify a local paywall: without the capability, no heart, disabled control, tier badge or
+upgrade surface exists on the device. Sender-side accounts must never become a prerequisite for
+ordinary local Core playback.
 
 Later journeys may consider replay, multiple messages or senders, a physical message token and
-delivery within the home. Remote delivery is a separate optional service candidate. Before that,
-AQENO needs an explicit privacy, authorisation, retention and deletion design; child-related audio
-must not be collected merely because delivery makes it possible.
+delivery within the home. Before any remote implementation, AQENO needs explicit privacy,
+authorisation, retention, deletion and vulnerable-user safeguards. Personal audio must not be
+collected merely because delivery makes it possible.
 
 ## F2 — Digital Family Frame
 
@@ -113,12 +126,14 @@ playback remains independent.
 White noise, rain, forest, sea and other calm sounds can be ordinary approved local content. A
 cloud-shaped token launching rain is a physical assignment, not a reason for a new media subsystem.
 
-## F12 — Profiles / Multiple Children
+## F12 — Multiple users and contexts
 
 Multiple people may eventually have distinct progress, favourites, allowed content, volume limits
-and routines. Existing Profile-scoped rules keep this possible. The product journey must avoid
-routine login and profile-selection screens; physical or contextual selection is preferable when it
-is reliable and understandable. No identity mechanism is chosen here.
+and routines. The same Core may support child, adult, independent and assisted contexts without
+turning those labels into editions or domain roles. Existing Profile-scoped rules keep this
+possible. The product journey must avoid routine login and profile-selection screens; physical or
+contextual selection is preferable when it is reliable and understandable. No identity, persona or
+theme mechanism is chosen here.
 
 ## F13/F14 — Token Actions and physical interaction
 
@@ -128,7 +143,9 @@ playlist, Frame to Frame mode. This extends the existing Trigger/Action/Scene la
 
 No generic Action engine is justified today. Generalisation is reconsidered only after several real
 use cases need shared semantics; until then explicit assignments are preferable. Physical objects
-are part of the UI because they can hide internal complexity behind an action a child understands.
+are part of the UI because they can hide internal complexity behind an action a person understands.
+A story figure, jazz card, news card or large distinctly shaped token differs in context, not in its
+underlying Trigger/Action principle.
 
 ## F15/F16 — Contextual and quiet display
 
@@ -152,7 +169,7 @@ complexity principles; it does not establish a platform direction.
 Before any Device feature enters the roadmap, answer:
 
 1. Does it support audio, family connection or a useful everyday function?
-2. Can a child understand the interaction without explanation?
+2. Can the intended user understand the interaction without explanation?
 3. Can physical interaction make it simpler?
 4. Must it be visible on the display at all?
 5. Can complex configuration move to the Management UI?
@@ -163,6 +180,7 @@ Before any Device feature enters the roadmap, answer:
 10. Is it Core, optional comfort or service functionality?
 11. What new privacy or security obligations does it create?
 12. Is the product and maintenance cost justified?
+13. Does it make digital audio simpler, or merely make AQENO more feature-rich?
 
 Passing this review permits roadmap consideration, not implementation. A roadmap milestone still
 requires an explicit product decision.

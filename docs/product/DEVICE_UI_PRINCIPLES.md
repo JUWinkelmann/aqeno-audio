@@ -9,7 +9,8 @@ AQENO should feel as immediate and self-explanatory as a good dedicated music de
 clear hierarchy, direct feedback and no visible technical complexity. Classic iPod products are a
 reference for that interaction quality, not a visual design to copy.
 
-> AQENO is not a computer a child can operate. It is a device a child should not need to learn first.
+> AQENO is not a computer made easier for a target group. It is a dedicated device whose ordinary
+> use should not need to be learned first.
 
 The quality question is not whether a surface looks modern. It is whether a person understands
 within seconds what they can do, and whether another element can be removed without making that
@@ -42,6 +43,18 @@ harder.
 11. **No unavailable or commercial surfaces.** Product Principle P15 applies without exception on
     the box. An unavailable capability has no control, lock, badge, preview or upgrade prompt.
 
+## Accessible by default
+
+Appliance simplicity is not confined to Kids UI. Large physical controls and touch targets, little
+required text, clear hierarchy, audio feedback and shallow navigation benefit many people. Core
+actions must not rely exclusively on fine motor control, dragging, swiping, double taps, long
+presses, hidden gestures or fast reactions.
+
+This does not claim compliance with every accessibility need. It means concrete needs should improve
+the shared interaction language rather than automatically creating a labelled “senior”, “disabled”
+or other parallel UI. Routine playback must remain possible without a smartphone, account, keyboard
+or voice assistant.
+
 ## Kids Early
 
 The preferred mental model is: present the physical object, AQENO plays. Core listening must not
@@ -65,5 +78,8 @@ the existence of a setting is not sufficient.
 6. Can AQENO make the correct decision from context?
 7. Is this actually administration for the Management UI?
 8. Does this increase a child's cognitive load?
+9. Does this make digital audio simpler, or merely make AQENO more feature-rich?
+10. Does a core path require precision, timing, reading or an external personal device that the
+    user may not have?
 
 If an element can be removed without reducing usability, remove it by default.
