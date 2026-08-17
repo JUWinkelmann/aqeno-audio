@@ -70,9 +70,27 @@ people actually recover their place in a story.
 A folder of forty MP3s that is one audiobook is **one `ContentItem` with forty chapters**, not forty
 items. Kids Early shows very few large tiles; forty tiles for one book destroys that surface.
 
-Chapter sources, in order of trust: embedded chapters (`.m4b`), a playlist/index file, then filename
-and track-number ordering. Ordering is by track metadata first, then natural filename sort — never
-byte sort, which puts `Kapitel 10` before `Kapitel 2` (and see ADR 0005 on collation).
+Chapter sources, in order of trust: embedded chapters (`.m4b`), a **FLAC `CUESHEET` block or an
+external `.cue` file**, a playlist/index file, then filename and track-number ordering. Ordering is by
+track metadata first, then natural filename sort — never byte sort, which puts `Kapitel 10` before
+`Kapitel 2` (and see ADR 0005 on collation).
+
+Tags come in two dialects and both must be read: **ID3** for MP3, **Vorbis comments** for FLAC and
+Ogg, MP4 atoms for `.m4a`/`.m4b`. A ripped CD carries its structure in whichever one the ripper used.
+
+### 4a. Gapless playback is required, not a refinement
+
+A Hörspiel ripped from CD is usually **continuous audio cut into tracks at arbitrary points** — a
+scene runs across a track boundary. A gap or click there is immediately audible and ruins the
+listening experience in a way it never would between two songs.
+
+Therefore: playback between chapters of the same work is **gapless**. GStreamer's `playbin3` supports
+this by preparing the next URI on `about-to-finish` (ADR 0003), but it only happens if it is
+implemented deliberately — the naive "wait for EOS, then load the next file" produces exactly the gap
+this rule forbids.
+
+This applies to every multi-chapter work regardless of format or kind. It does not apply between
+separate items, where stopping is correct anyway (§ 3).
 
 ### 5. Kind detection is a guess, and the Manager overrides it
 
@@ -96,6 +114,10 @@ Not MVP, but the right shape is known: optional loudness normalisation and gentl
 range compression, applied in the pipeline where the volume ceiling already lives (ADR 0003).
 GStreamer provides the elements. Revisit after the first real bedtime use, which will settle it faster
 than analysis.
+
+Where files already carry **ReplayGain** tags — common in FLAC and Ogg via Vorbis comments — the
+normalisation gain is free and needs no analysis pass. Read them during ingestion even before
+normalisation is implemented, so the data is there when it is.
 
 ## Alternatives considered
 
