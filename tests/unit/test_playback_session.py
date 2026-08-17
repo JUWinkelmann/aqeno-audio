@@ -5,7 +5,11 @@ from datetime import timedelta
 import pytest
 
 from aqeno.adapters.fakes import FakeAudioEngine, FakeClock, FakeInputBus, FakeLibrary
-from aqeno.application.playback import PlaybackSession, SourceResolutionRequiredError
+from aqeno.application.playback import (
+    PlaybackSession,
+    PlaybackSnapshot,
+    SourceResolutionRequiredError,
+)
 from aqeno.config.defaults import default_settings
 from aqeno.domain.content import Chapter, ContentId, ContentItem, ContentKind, HttpSource
 from aqeno.domain.profile import (
@@ -15,7 +19,7 @@ from aqeno.domain.profile import (
     Role,
     VolumeLimits,
 )
-from aqeno.ports.audio import AudioCapabilities, TransportState
+from aqeno.ports.audio import AudioCapabilities, FailureCode, TransportState
 from aqeno.ports.input import NfcPresented, TogglePlayback, VolumeDelta
 
 
@@ -324,3 +328,96 @@ def test_alternative_sources_require_resolution_before_playback() -> None:
 
     with pytest.raises(SourceResolutionRequiredError):
         rig.session.start(item, rig.profile)
+
+
+def test_snapshot_starts_empty_and_exposes_only_available_actions() -> None:
+    rig = Rig()
+
+    assert rig.session.snapshot == PlaybackSnapshot(
+        transport=TransportState.IDLE,
+        content_id=None,
+        title=None,
+        chapter_title=None,
+        position=None,
+        duration=None,
+        volume=40,
+        failure_code=None,
+        can_toggle_playback=False,
+        can_skip_forward=False,
+        can_skip_back=False,
+    )
+
+
+def test_listener_receives_future_application_state() -> None:
+    rig = Rig()
+    observed: list[PlaybackSnapshot] = []
+    rig.session.on_changed(observed.append)
+    item = _item()
+
+    assert observed == []
+    rig.start(item)
+
+    current = observed[-1]
+    assert current.transport is TransportState.PLAYING
+    assert current.content_id == item.id
+    assert current.title == item.title
+    assert current.can_toggle_playback
+    assert current.can_skip_forward
+    assert not current.can_skip_back
+
+
+def test_volume_input_publishes_the_clamped_value() -> None:
+    rig = Rig()
+    observed: list[PlaybackSnapshot] = []
+    rig.session.on_changed(observed.append)
+    rig.start(_item())
+
+    rig.inputs.emit(VolumeDelta(1))
+
+    assert observed[-1].volume == 43
+
+
+def test_snapshot_exposes_stable_failure_code_without_technical_detail() -> None:
+    rig = Rig()
+    observed: list[PlaybackSnapshot] = []
+    rig.session.on_changed(observed.append)
+    rig.start(_item())
+
+    rig.audio.simulate_mid_playback_failure(
+        FailureCode.AUDIO_DEVICE_LOST, "ALSA card hw:9 disappeared"
+    )
+
+    failed = observed[-1]
+    assert failed.transport is TransportState.FAILED
+    assert failed.failure_code is FailureCode.AUDIO_DEVICE_LOST
+    assert not hasattr(failed, "detail")
+
+
+def test_chapter_state_changes_with_contextual_navigation() -> None:
+    rig = Rig()
+    item = _item(
+        chapters=(
+            Chapter(0, "One", timedelta(0), timedelta(minutes=5)),
+            Chapter(1, "Two", timedelta(minutes=5), timedelta(minutes=5)),
+        ),
+        duration=timedelta(minutes=10),
+    )
+    rig.start(item)
+
+    assert rig.session.snapshot.chapter_title == "One"
+    assert rig.session.snapshot.can_skip_forward
+    assert not rig.session.snapshot.can_skip_back
+
+    rig.session.next()
+
+    assert rig.session.snapshot.chapter_title == "Two"
+    assert not rig.session.snapshot.can_skip_forward
+    assert rig.session.snapshot.can_skip_back
+
+
+def test_music_does_not_advertise_unimplemented_collection_navigation() -> None:
+    rig = Rig()
+    rig.start(_item(kind=ContentKind.MUSIC_TRACK, duration=timedelta(minutes=3)))
+
+    assert not rig.session.snapshot.can_skip_forward
+    assert not rig.session.snapshot.can_skip_back

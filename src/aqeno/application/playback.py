@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import timedelta
 
 from aqeno.config.defaults import Settings
-from aqeno.domain.content import ContentItem, Source, TransportBehaviour
+from aqeno.domain.content import ContentId, ContentItem, Source, TransportBehaviour
 from aqeno.domain.profile import Profile
-from aqeno.ports.audio import AudioEngine, AudioFailure, TransportState
+from aqeno.ports.audio import AudioEngine, AudioFailure, FailureCode, TransportState
 from aqeno.ports.clock import Clock
 from aqeno.ports.input import (
     InputBus,
@@ -25,6 +27,30 @@ RESUME_PERSIST_INTERVAL = timedelta(seconds=10)
 FINISHED_REMAINING = timedelta(seconds=30)
 FINISHED_FRACTION = 0.98
 MAX_VOLUME_JUMP = 5
+
+
+@dataclass(frozen=True, slots=True)
+class PlaybackSnapshot:
+    """Application-owned state exposed to presentation adapters.
+
+    Failure detail is deliberately absent: child-facing presentation may react to a stable code,
+    while technical text remains available through `PlaybackSession.last_failure` for diagnosis.
+    """
+
+    transport: TransportState
+    content_id: ContentId | None
+    title: str | None
+    chapter_title: str | None
+    position: timedelta | None
+    duration: timedelta | None
+    volume: int
+    failure_code: FailureCode | None
+    can_toggle_playback: bool
+    can_skip_forward: bool
+    can_skip_back: bool
+
+
+PlaybackListener = Callable[[PlaybackSnapshot], None]
 
 
 class SourceResolutionRequiredError(ValueError):
@@ -62,6 +88,7 @@ class PlaybackSession:
         self._headphones = False
         self._volume = settings.volume.first_boot
         self._last_failure: AudioFailure | None = None
+        self._listeners: list[PlaybackListener] = []
 
         audio.on_state(self._on_audio_state)
         audio.on_failure(self._on_audio_failure)
@@ -80,6 +107,36 @@ class PlaybackSession:
     @property
     def last_failure(self) -> AudioFailure | None:
         return self._last_failure
+
+    @property
+    def snapshot(self) -> PlaybackSnapshot:
+        with self._lock:
+            item = self._item
+            position = self._absolute_position() if item is not None else None
+            can_skip_forward, can_skip_back = self._skip_availability(position)
+            return PlaybackSnapshot(
+                transport=self._audio.state,
+                content_id=item.id if item is not None else None,
+                title=item.title if item is not None else None,
+                chapter_title=self._chapter_title(position),
+                position=position,
+                duration=item.duration if item is not None else None,
+                volume=self._volume,
+                failure_code=self._last_failure.code if self._last_failure is not None else None,
+                can_toggle_playback=self._audio.state
+                in (TransportState.PLAYING, TransportState.PAUSED),
+                can_skip_forward=can_skip_forward,
+                can_skip_back=can_skip_back,
+            )
+
+    def on_changed(self, listener: PlaybackListener) -> None:
+        """Register for future snapshots; read `snapshot` once for initial state.
+
+        Delivery is synchronous on the thread that changed playback. A Qt view model must marshal
+        notifications from the audio callback thread onto Qt's object thread (ADR 0012).
+        """
+        with self._lock:
+            self._listeners.append(listener)
 
     def start(self, item: ContentItem, profile: Profile) -> None:
         with self._lock:
@@ -110,6 +167,7 @@ class PlaybackSession:
             self._persist_position()
             self._profile = profile
             self._apply_volume(self._volume)
+            self._notify_changed()
 
     def toggle_playback(self) -> None:
         with self._lock:
@@ -129,17 +187,21 @@ class PlaybackSession:
         with self._lock:
             self._night_active = active
             self._apply_volume(self._volume)
+            self._notify_changed()
 
     def set_headphones(self, present: bool) -> None:
         with self._lock:
             self._headphones = present
             self._apply_volume(self._volume)
+            self._notify_changed()
 
     def handle_input(self, event: InputEvent) -> None:
         if isinstance(event, VolumeDelta):
-            requested = event.delta * self._settings.volume.encoder_step
-            jump = max(-MAX_VOLUME_JUMP, min(requested, MAX_VOLUME_JUMP))
-            self._apply_volume(self._volume + jump)
+            with self._lock:
+                requested = event.delta * self._settings.volume.encoder_step
+                jump = max(-MAX_VOLUME_JUMP, min(requested, MAX_VOLUME_JUMP))
+                self._apply_volume(self._volume + jump)
+                self._notify_changed()
         elif isinstance(event, TogglePlayback):
             self.toggle_playback()
         elif isinstance(event, Next):
@@ -195,10 +257,12 @@ class PlaybackSession:
                 if capabilities is not None and capabilities.seekable:
                     self._audio.seek(self._start_position)
                 self._audio.play()
+                return
             elif state is TransportState.PLAYING:
                 self._schedule_resume_checkpoint()
             elif state in (TransportState.PAUSED, TransportState.STOPPED, TransportState.FAILED):
                 self._cancel_resume_checkpoint()
+            self._notify_changed()
 
     def _on_audio_failure(self, failure: AudioFailure) -> None:
         with self._lock:
@@ -215,6 +279,7 @@ class PlaybackSession:
             capabilities = self._audio.capabilities
             self._resume_enabled = capabilities is not None and capabilities.seekable
             self._prepare_following_source()
+            self._notify_changed()
 
     def _on_finished(self) -> None:
         with self._lock:
@@ -265,6 +330,7 @@ class PlaybackSession:
         local_position = target - self._source_offsets[source_index]
         if source_index == self._source_index:
             self._audio.seek(local_position)
+            self._notify_changed()
             return
 
         self._persist_position()
@@ -322,6 +388,43 @@ class PlaybackSession:
             )
         self._volume = volume
         self._audio.set_volume(volume)
+
+    def _chapter_title(self, position: timedelta | None) -> str | None:
+        item = self._item
+        if item is None or position is None or not item.chapters:
+            return None
+        chapter = max(
+            (chapter for chapter in item.chapters if chapter.start <= position),
+            key=lambda chapter: chapter.start,
+            default=None,
+        )
+        return chapter.title if chapter is not None else None
+
+    def _skip_availability(self, position: timedelta | None) -> tuple[bool, bool]:
+        item = self._item
+        active = self._audio.state in (TransportState.PLAYING, TransportState.PAUSED)
+        if (
+            item is None
+            or position is None
+            or not active
+            or item.policy.transport is not TransportBehaviour.CHAPTER_ELSE_SKIP
+        ):
+            return False, False
+        if item.has_chapters:
+            current = max(
+                (index for index, chapter in enumerate(item.chapters) if chapter.start <= position),
+                default=0,
+            )
+            return current < len(item.chapters) - 1, current > 0
+        can_forward = item.policy.skip_forward is not None and (
+            item.duration is None or position < item.duration
+        )
+        return can_forward, item.policy.skip_back is not None and position > timedelta(0)
+
+    def _notify_changed(self) -> None:
+        snapshot = self.snapshot
+        for listener in tuple(self._listeners):
+            listener(snapshot)
 
 
 def _playback_sources(item: ContentItem) -> tuple[tuple[Source, ...], tuple[timedelta, ...]]:

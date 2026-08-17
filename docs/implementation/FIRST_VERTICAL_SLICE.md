@@ -21,7 +21,7 @@ Prove the end-to-end AQENO architecture with the smallest useful experience.
 3. audio adapter behind interface;
 4. semantic input bus + simulator;
 5. application services;
-6. local API/event channel;
+6. typed in-process application state channel for the Device UI;
 7. Kids Early UI;
 8. display policy;
 9. end-to-end tests;
