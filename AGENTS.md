@@ -83,6 +83,8 @@ If a requested implementation conflicts with levels 2–4, flag the conflict bef
   Unavailable capability means no UI surface; the local Core must feel complete.
 - Guardian functionality must favour care over surveillance.
 - NFC is optional and open; it must not become a proprietary content lock.
+- Treat physical tags as brand-neutral triggers for AQENO-local assignments. Never infer permission
+  or implement proprietary content extraction from a recognised third-party object.
 - Hardware-specific code must be isolated behind platform interfaces.
 
 ## Architecture rules

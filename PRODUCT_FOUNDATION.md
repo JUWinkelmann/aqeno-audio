@@ -149,9 +149,14 @@ AQENO preserves the haptic strength of figure-based systems without requiring pr
 
 - A tag may identify an item, collection, profile, scene or action.
 - Tags may live in 3D-printed figures, cards, wooden tokens, stickers, key rings or existing toys.
+- AQENO treats compatible tags by identifier, not by the object's brand or original product type.
+- A tag launches only an AQENO-local assignment to content or an Action already available to AQENO.
+  Recognition never authorises acquisition, extraction or decryption from another content system.
 - AQENO can publish reference dimensions and printable holders for commodity NFC tags.
 - The same object may evolve with the user: one story at age three, a collection/category later.
 - NFC remains optional; the library never depends on owning physical tokens.
+- Named third-party compatibility or integration is a separate product/legal decision, not implied
+  by technically reading a compatible tag.
 
 ## 8. Content model
 

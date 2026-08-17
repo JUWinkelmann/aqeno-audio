@@ -32,7 +32,9 @@ Semantic command such as PlayContent, OpenCollection, ActivateScene or SwitchPro
 Named bundle of policies/actions such as Sleep or Travel.
 
 ### NFCTag
-Physical UID mapped to an Action. The tag does not own content.
+Brand-neutral NFC identifier mapped to an AQENO-local target. The current slice maps directly to a
+`ContentId`; Actions may become targets when implemented. The tag does not own content and conveys
+nothing about its Source (ADR 0013).
 
 ### DisplayPolicy
 Rules controlling display state transitions, timeouts, brightness/LED behaviour and allowed Ambient behaviour.
@@ -46,6 +48,7 @@ Declared support such as touch, NFC, physical inputs, controllable LEDs, audio o
 ## Invariants
 - playback progress belongs to content/profile context, not to an NFC tag;
 - deleting/replacing a tag must not delete content;
+- recognising a tag never resolves or acquires content outside its AQENO-local assignment;
 - UI representation is derived from Profile + Content metadata;
 - hardware adapters emit semantic inputs and never mutate domain state directly;
 - cloud/provider identifiers may be attached to Sources but must not become AQENO's primary identity.
