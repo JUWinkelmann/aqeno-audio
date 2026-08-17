@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aqeno"
+version = "0.1.0"
+description = "Open, adaptive, audio-first player platform"
+requires-python = ">=3.11"
+dependencies = []
+
+# PySide6 and PyGObject are intentionally absent: they come from system packages.
+# See DEVELOPMENT.md — installing them through pip on Debian/Raspberry Pi OS
+# reliably produces a broken build.
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-m 'not hardware' --strict-markers"
+markers = [
+    "hardware: requires Reference hardware attached; never runs in CI",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/aqeno/domain", "src/aqeno/application", "src/aqeno/ports"]
