@@ -1,0 +1,24 @@
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Local environment and secrets
+.env
+.env.*
+*.local
+
+# Local runtime state (never commit device state or media)
+/var/
+/data/
+/logs/
+*.log
+
+# Build / dependency output — extend when the stack is chosen (ADR pending)
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+dist/
+build/
