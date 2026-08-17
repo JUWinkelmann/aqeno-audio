@@ -110,6 +110,48 @@ With `--fake-hardware`, semantic input events come from the keyboard simulator:
 The simulator is not a debug afterthought — `FIRST_VERTICAL_SLICE.md` requires it, and the dark-room
 and display-state scenarios are exercised through it long before the I2C hardware exists.
 
+## Working against the Reference hardware
+
+**Almost all development happens on the desktop.** Copying to the Pi for every change is not the
+workflow and would make the loop unusable.
+
+| Runs on the desktop | Needs the Pi |
+|---|---|
+| Full Kids Early UI in a window | Real panel power `OFF` and backlight control |
+| Real audio through GStreamer | I2C rotary encoder and NeoKey |
+| Keyboard simulator for all semantic inputs | User-facing LEDs, including true off |
+| Library, persistence, resume, migrations | NFC reader, once it exists |
+| The whole display **state machine**, as logical state | Boot and wake timing against the targets |
+| Every test except `-m hardware` | Volume calibration in dB(A) |
+
+The important asymmetry: on the desktop, `OFF` is a **logical state** that the fake display adapter
+records and tests assert. The window does not go dark. Whether the panel truly stops emitting light is
+the one product requirement the desktop cannot answer — along with the boot budget. Both are
+`-m hardware` territory, and neither should be assumed from a green desktop run.
+
+### Getting code onto the Pi
+
+The Pi is a git clone, not a copy target. Set it up once:
+
+```bash
+# on the Pi
+git clone git@github.com:JUWinkelmann/aqeno-audio.git
+cd aqeno-audio
+python3 -m venv --system-site-packages .venv
+.venv/bin/pip install -e ".[dev]"
+```
+
+Then each time:
+
+```bash
+git pull && .venv/bin/python -m aqeno --profile kids-early
+```
+
+The repository is private, so the Pi needs its own read-only deploy key, or SSH agent forwarding
+(`ssh -A`) when you connect. For uncommitted work in progress, `rsync -av --exclude .venv --exclude
+.git ./ pi:aqeno-audio/` is fine — but prefer committing, since narrow commits are what make an
+AI-assisted change revertible (`MISTAKES.md` M-001).
+
 ## Testing
 
 ```bash
