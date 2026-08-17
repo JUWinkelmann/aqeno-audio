@@ -155,6 +155,8 @@ Before implementation, read:
 - `docs/product/DISPLAY_BEHAVIOR.md`
 - `docs/implementation/DOMAIN_MODEL.md`
 - `docs/implementation/PLATFORM_CONTRACTS.md`
+- `docs/implementation/DISPLAY_STATE_MACHINE.md`
+- `docs/implementation/CONFIGURATION_DEFAULTS.md`
 - `docs/implementation/FIRST_VERTICAL_SLICE.md`
 - `docs/hardware/HARDWARE_REFERENCE.md`
 

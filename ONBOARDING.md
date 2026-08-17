@@ -58,11 +58,13 @@ Do not skim these. They are contracts, not background.
 | 6 | `docs/product/DISPLAY_BEHAVIOR.md` | Display state machine and its rules |
 | 7 | `docs/implementation/DOMAIN_MODEL.md` | Entities and invariants |
 | 8 | `docs/implementation/PLATFORM_CONTRACTS.md` | Ports: input, display, LED, audio, persistence |
-| 9 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | The first thing to build, in order |
-| 10 | `docs/hardware/HARDWARE_REFERENCE.md` | Reference prototype, solderless constraint |
-| 11 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
-| 12 | `docs/DOCUMENTATION_GAPS.md` | What is not yet decided — read before assuming |
-| 13 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
+| 9 | `docs/implementation/DISPLAY_STATE_MACHINE.md` | **Normative** transition table. Do not infer transitions from prose. |
+| 10 | `docs/implementation/CONFIGURATION_DEFAULTS.md` | Every timeout, brightness and volume value. Never invent one. |
+| 11 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | The first thing to build, in order |
+| 12 | `docs/hardware/HARDWARE_REFERENCE.md` | Reference prototype, solderless constraint |
+| 13 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
+| 14 | `docs/DOCUMENTATION_GAPS.md` | What is not yet decided — read before assuming |
+| 15 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
 
 ## 5. How work is done here
 

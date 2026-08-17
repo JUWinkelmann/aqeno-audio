@@ -58,7 +58,14 @@ manifest, no "how do I start it", no "how do I run the tests". `CLI_START.md` as
 produce a file/module plan — meaning the layout is currently expected to be improvised per
 session, which guarantees drift.
 
-### G04 — Display state machine is described but not specified
+### G04 — Display state machine — **CLOSED 2026-08-17**
+Specified as a normative transition table in `docs/implementation/DISPLAY_STATE_MACHINE.md`: five
+states, six event groups, seven named guards, every cell defined, plus wake target, brightness per
+state and ten testable invariants. It also answers two of `DISPLAY_BEHAVIOR.md`'s open questions
+(wake target is Now Playing during playback; NFC does not wake the display) and flags them for user
+testing. Original gap text follows.
+
+
 `DISPLAY_BEHAVIOR.md` lists five states and a set of prose rules. There is no transition table.
 Undefined today:
 - which events cause which transition, and which events are explicitly ignored;
@@ -70,7 +77,18 @@ Undefined today:
 This is the highest-value gap to close: the slice's items 7–9 and its dark-room definition of done
 are all this state machine, and prose rules will be interpreted differently by every implementer.
 
-### G05 — No concrete configuration values anywhere
+### G05 — Concrete configuration values — **CLOSED 2026-08-17, with one open calibration task**
+Specified in `docs/implementation/CONFIGURATION_DEFAULTS.md`: display timeouts per profile,
+brightness, volume ceilings, resume persistence, sleep timer and NFC debounce, each with a default, a
+range and an editability tier.
+
+**One item remains genuinely open and is not a documentation gap:** the volume ceilings are
+conservative placeholders in a logical 0–100 scale, which is not a hearing-safety guarantee because it
+is a percentage of unknown amplifier and speaker hardware. § 3.3 contains a calibration procedure to
+measure actual dB(A) on Reference hardware and replace the placeholders. That is a P2 hardware task,
+and it is the one thing in this document that should not stay undone. Original gap text follows.
+
+
 The documents consistently say "short configurable timeout", "night-time volume ceiling",
 "sleep timer" without a single number. Needed as defaults (with allowed ranges):
 - inactivity timeout to `OFF` per profile;
@@ -241,11 +259,10 @@ at all, so it must be spiked early despite being nominally a packaging concern.
 2. ~~G07 (event channel)~~ — done via ADR 0002.
 3. ~~G18, G23 (licence, commercialisation)~~ — deferred by intent; personal project, nothing
    published. Revisit only if publication becomes real.
-4. **G04, G05 (display state machine + concrete values)** — now the top item. The largest correctness
-   risk in the slice and the highest-value thing to specify before delegating implementation. G05
-   includes the volume limits, which are a hearing-protection requirement.
-5. G01 remainder — accept ADRs 0001–0003 and 0005, then add the persistence ADR (G09) and
-   test-strategy ADR (G11).
+4. ~~G04, G05 (display state machine + concrete values)~~ — done. Volume calibration (§ 3.3) remains
+   as a hardware task.
+5. **G01 remainder** — now the top item: accept ADRs 0001–0003 and 0005, then add the persistence ADR
+   (G09) and test-strategy ADR (G11).
 6. G03 (layout + run/test instructions) — write together with accepting the ADRs.
 7. G24 (packaging and display server) — spike early, decide later; `eglfs` vs Wayland gates the
    display-power story.
