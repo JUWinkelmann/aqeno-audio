@@ -1,8 +1,29 @@
 # ADR 0006 — Non-commercial project posture, GPLv3, and liability minimisation
 
-**Status:** Proposed
+**Status:** Proposed — **ON HOLD**
 **Date:** 2026-08-17
-**Supersedes:** ADR 0004
+**Supersedes:** ADR 0004 (also on hold)
+
+> **On hold as of 2026-08-17.** The maintainer has clarified the project's purpose: AQENO is being
+> built for his own son. Nothing is distributed, published or sold, so neither product liability nor
+> licence choice is a live question, and deciding either now would be premature. This ADR and
+> ADR 0004 are retained as a record of the reasoning, to be revisited if publication or distribution
+> ever becomes real.
+>
+> **Two things from this ADR remain in force**, because they stand without the legal argument:
+> - **§ 6 volume limiting** — hearing protection for an actual child, now the primary reason rather
+>   than a liability mitigation. The concrete values (gap G05) are still a prerequisite for the audio
+>   step of the first vertical slice.
+> - **§ 7 provenance discipline** — honest commit authorship and co-authorship trailers, which cost
+>   nothing to maintain and are unrecoverable if neglected.
+>
+> **Two things become urgent only at publication**, and must be done *before* the repository is made
+> public, not after: registering the `AQENO` trademark, and adding `CONTRIBUTING.md` with a
+> contributor agreement. Until then the repository stays private.
+>
+> The licence-driven restrictions in ADR 0004 § 5 do **not** apply while nothing is distributed:
+> AAC/M4B, Qt Virtual Keyboard and the fuller GStreamer plugin sets are all available. ADRs 0002 and
+> 0003 keep PySide6 and GStreamer on technical merit regardless.
 
 > **Not legal advice.** This records the project's chosen posture and the engineering rules that
 > follow from it, so that decisions stay consistent. The residual risks in § 6 and the uncertainties

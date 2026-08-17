@@ -9,17 +9,42 @@ three-year-old must be able to operate it without reading); the same core must b
 **AQENO Easy** later. Audio playback and visual output are architecturally independent — the
 device must be fully usable in a completely dark room with display and all LEDs off.
 
-## 2. Where the project actually stands
+## 2. What this project is for
 
-- **Phase:** documentation complete enough to start, **no code, no version control, no ADRs.**
+**AQENO is a personal project. The maintainer is building it for his son.**
+
+That is the actual purpose, and it decides what matters. The product vision in
+`PRODUCT_FOUNDATION.md` is real and worth building toward, but nobody is waiting on a release, and
+there is no business behind it.
+
+**Deferred by intent — do not treat these as live constraints:**
+
+- licensing (`ADR 0004`, `ADR 0006` — both **on hold**, retained as a record of the reasoning);
+- commercialisation, trademark, regulatory compliance, GDPR;
+- publication of the repository, and therefore contributor agreements.
+
+If work would only make sense for a released product, it is out of scope. Ask before doing it.
+
+**One thing survives that deferral and is not negotiable:** volume limiting for child profiles is a
+real hearing-protection requirement, because the device is for an actual three-year-old. It was
+briefly justified by liability reasoning; the better reason stands on its own.
+
+## 3. Where the project actually stands
+
+- **Phase:** specifications written, repository initialised, **no code yet**.
 - **Declared next implementation target:** `docs/implementation/FIRST_VERTICAL_SLICE.md`.
-- **But it is blocked:** no language/runtime, UI stack, audio engine, persistence or local
-  event-channel decision exists. See `docs/DOCUMENTATION_GAPS.md` for the blocking list.
+- **Technology basis:** ADRs 0001 (Python), 0002 (PySide6/QML), 0003 (GStreamer),
+  0005 (DE/EN i18n) — all **Proposed**, awaiting acceptance. Because licensing is deferred, their
+  licence-driven restrictions no longer bind: AAC/M4B, Qt Virtual Keyboard and the fuller GStreamer
+  plugin sets are all available.
+- **Still missing before implementation can be delegated:** the display state-machine transition
+  table (gap G04) and concrete configuration values including the volume limits (gap G05). See
+  `docs/DOCUMENTATION_GAPS.md`.
 
-Do not start writing production code until the blocking gaps are closed by ADRs. Writing code
-first *is* the decision — and it would be an undocumented one.
+Do not decide a technology by committing code. Writing code first *is* the decision, and it would be
+an undocumented one.
 
-## 3. Reading order
+## 4. Reading order
 
 Do not skim these. They are contracts, not background.
 
@@ -39,7 +64,7 @@ Do not skim these. They are contracts, not background.
 | 12 | `docs/DOCUMENTATION_GAPS.md` | What is not yet decided — read before assuming |
 | 13 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
 
-## 4. How work is done here
+## 5. How work is done here
 
 **Productive work only.** No bells and whistles that do not advance the project. This is a
 project rule, not a style preference — see `AGENTS.md` § "Productive work only".
@@ -61,7 +86,7 @@ boundary, a platform contract or a product rule: stop, propose an ADR
 rules. An honest "this is undecided, here are the two credible options" is worth more than a
 plausible-looking guess.
 
-## 5. Non-negotiables you will be tempted to break
+## 6. Non-negotiables you will be tempted to break
 
 These come from `AGENTS.md` and `PRODUCT_FOUNDATION.md`. Listed here because they are the ones
 an assistant most often breaks by accident:
@@ -79,7 +104,7 @@ an assistant most often breaks by accident:
 9. **One adaptive core, not a Kids app and an Easy app.** Variation is capability configuration.
 10. **No engagement mechanics.** No streaks, badges, autoplay-forever, notifications, ads.
 
-## 6. Conventions
+## 7. Conventions
 
 - **Documentation and code are English.** Conversation with the maintainer may be German.
 - **Root docs are UPPERCASE.md**; `docs/` is grouped by `product/`, `implementation/`,
@@ -87,7 +112,7 @@ an assistant most often breaks by accident:
 - **ADRs:** `docs/decisions/NNNN-short-title.md`, template in `docs/decisions/README.md`.
 - **Timestamps in docs are absolute dates**, never "today" or "last week".
 
-## 7. Before you report finished
+## 8. Before you report finished
 
 Check `AGENTS.md` § "Definition of done", plus:
 
