@@ -69,6 +69,11 @@ AQENO should become usable quickly after power-on or wake, and should be able to
 ### P14 — Ambient display is explicit, not default
 The display may support useful ambient experiences such as a digital photo frame, clock or artwork, but these modes must never emerge merely because the device is idle. They are explicitly enabled by the person authorised for the active experience profile.
 
+### P15 — Show capability, never absence
+AQENO presents only functions that are currently usable on the device. An unavailable optional
+capability has no device UI surface; it is not shown disabled, locked, badged or as an upgrade
+prompt. The local Core must feel complete rather than like a restricted tier.
+
 ## 4. Adaptive experience
 
 AQENO should use a shared capability model rather than separate rigid products for each age.
@@ -263,6 +268,10 @@ Both share the player engine, content model, role model, hardware abstraction an
 
 - Core local playback must not require a subscription.
 - No advertising or paid placement in the child-facing interface.
+- The device UI contains no locked controls, paid-tier badges, upgrade prompts or previews of
+  unavailable functions. Unavailable capability means no UI surface.
+- Any future commercial information belongs outside the device experience and outside every
+  child-facing surface. Optional services extend the local product; they do not complete it.
 - Optional cloud services may later finance remote sync, backups or family management.
 - If AQENO cloud services disappear, local content and core playback continue working.
 - Commercial streaming integrations are added only where licensing and technical terms permit them.

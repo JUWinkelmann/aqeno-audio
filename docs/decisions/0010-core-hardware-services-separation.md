@@ -57,6 +57,13 @@ free or open — services may later sit above the Core, on the Core's terms.
 **Nothing in this layer is implemented. There is no service layer, no API, no account, no licence
 check, no telemetry, and none is to be added without a specific product decision.**
 
+Optionality is structural in the device UI: an unavailable capability contributes no navigation,
+action or settings surface. The device never represents absence with a disabled control, lock,
+paid-tier badge, preview or upgrade prompt. Presentation derives what exists from the available
+product capabilities; it does not decorate a catalogue of hypothetical features with payment
+state. This applies to Manager surfaces on the box as well as child-facing UI, and requires no
+entitlement model today.
+
 ### 4. What makes the boundary hold
 
 Local code is controlled by the device owner: it can be inspected, modified and patched. A local
@@ -123,6 +130,7 @@ independence being true rather than claimed.
 
 **Constrained.** Nothing outside `adapters/` may open a socket. Hardware adapters are named for their
 technology. The Core may not require a service to function — not now, and not once a service exists.
+Unavailable optional capabilities leave no device UI surface rather than a disabled or locked one.
 
 **Not constrained.** This ADR places no obligation on future functionality to be local, free or open.
 That question is deliberately left where ADR 0006 left it.

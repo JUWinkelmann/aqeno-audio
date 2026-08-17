@@ -79,6 +79,8 @@ If a requested implementation conflicts with levels 2–4, flag the conflict bef
 - Frequent playback actions must remain physically operable.
 - The child-facing experience must not optimise for engagement time.
 - No ads or paid placements in child-facing UI.
+- The device must never present unavailable capabilities as locked, disabled or purchasable.
+  Unavailable capability means no UI surface; the local Core must feel complete.
 - Guardian functionality must favour care over surveillance.
 - NFC is optional and open; it must not become a proprietary content lock.
 - Hardware-specific code must be isolated behind platform interfaces.
@@ -126,6 +128,8 @@ Record consequential dependency choices in an ADR.
 - For Kids profiles, default inactivity behaviour during playback is visual quiet/off, not ambient animation.
 - Treat Ambient as a first-class display state with explicit authorisation and approved content sources.
 - Accessibility and reduced-complexity modes are product architecture, not cosmetic themes.
+- Build navigation and actions from available capabilities. Do not render locked controls,
+  premium badges, upgrade prompts or other on-device upsell surfaces.
 
 ## Testing expectations
 
