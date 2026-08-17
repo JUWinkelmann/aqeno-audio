@@ -47,7 +47,7 @@ Status of the decisions needed before code:
 | 4 | Dependency licensing constraints | ADR 0004 — **Proposed** |
 | 5 | Internationalisation (DE/EN) | ADR 0005 — **Proposed** |
 | 6 | Local persistence mechanism and atomicity | **missing** — see G09 |
-| 7 | Local API / event channel | **resolved by ADR 0002** (in-process) — see G07 |
+| 7 | Local API / event channel | **resolved by ADRs 0002 and 0012** — see G07 |
 | 8 | Test framework and how ports are faked | **missing** — see G11 |
 
 ADRs 0001–0005 are Proposed, not Accepted. Until they are accepted, `ARCHITECTURE.md` § "Decision
@@ -121,12 +121,13 @@ ADR 0011 defines synchronous, registration-order delivery without replay or coal
 `DEVELOPMENT.md` defines the desktop keyboard mapping; the simulator implements the same `InputBus`
 port as hardware controls.
 
-### G07 — Local API / event channel — **CLOSED 2026-08-17 (by ADR 0002)**
+### G07 — Local API / event channel — **CLOSED 2026-08-17 (by ADRs 0002 and 0012)**
 Slice step 6 was "local API/event channel" with zero further description. ADR 0002 decides that the
 UI runs **in-process** with the application core, communicating via Qt signals and an
-application-level event bus. There is therefore no local API, no serialisation format and no network
-listener — which also removes the unauthenticated-management-interface risk that `AGENTS.md` warns
-about. Slice step 6 should be restated as "application event bus" rather than "local API".
+application-level event bus. There is therefore no local API, serialisation format or network
+listener in the vertical slice. ADR 0012 permits a later authenticated Management API as a separate
+presentation adapter when an adult management journey requires it; it does not add one now. Slice
+step 6 should be restated as "application event bus" rather than "local API".
 
 ---
 

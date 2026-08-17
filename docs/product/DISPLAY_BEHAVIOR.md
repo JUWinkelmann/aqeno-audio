@@ -27,7 +27,7 @@ AQENO has a display, but must not become a display-centric device. The screen pr
 | DIM | Minimal, deliberately reduced output | Yes | Optional clock/progress where permitted |
 | INTERACTIVE | Full active UI | Yes | Browse, choose, search, configure |
 | AMBIENT | Passive approved visual content | Optional | Photo frame, artwork, simple information |
-| SETUP | Onboarding/admin state | Yes | Pairing, network, maintenance |
+| SETUP | Bounded appliance setup | Yes | Pairing, recovery, simple choices |
 
 Transitions are explicit application behaviour and must not be delegated blindly to desktop-environment defaults.
 

@@ -74,6 +74,12 @@ AQENO presents only functions that are currently usable on the device. An unavai
 capability has no device UI surface; it is not shown disabled, locked, badged or as an upgrade
 prompt. The local Core must feel complete rather than like a restricted tier.
 
+### P16 — Appliance simplicity
+The Device UI exposes few concepts, shallow navigation, one clear contextual action and immediate
+understandable feedback. Physical controls carry frequent actions; the display does not imitate a
+tablet or expose technical structure. Detailed rules and the mandatory design-review questions live
+in `docs/product/DEVICE_UI_PRINCIPLES.md`.
+
 ## 4. Adaptive experience
 
 AQENO should use a shared capability model rather than separate rigid products for each age.
@@ -131,7 +137,7 @@ AQENO treats the display as an explicit state machine rather than a generic alwa
 - **DIM** — minimal low-luminance information where explicitly useful;
 - **INTERACTIVE** — active touch/navigation interface;
 - **AMBIENT** — deliberately enabled passive visual mode such as selected photos or artwork;
-- **SETUP** — installation, onboarding or administrative configuration.
+- **SETUP** — bounded on-device pairing, onboarding and recovery; not general administration.
 
 For **Kids Early**, the default during audio playback is `OFF` after a short configurable interaction timeout. Playback changes, buffering and chapter transitions must not wake the display unless the user explicitly requests visual interaction.
 

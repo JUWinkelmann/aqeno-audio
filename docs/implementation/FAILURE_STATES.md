@@ -89,5 +89,6 @@ towards the UI.
 
 ## Deliberately not covered
 
-Network configuration failures during `SETUP` are a Manager-facing flow with its own affordances, and
-belong with the setup screens rather than here. Nothing in this document depends on them.
+Pairing and recovery failures during on-device `SETUP` are Manager-facing flows with their own
+affordances. Network configuration in a future Management UI is likewise outside this playback
+failure contract (ADR 0012). Nothing in this document depends on either surface.

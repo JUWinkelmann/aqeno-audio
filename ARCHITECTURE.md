@@ -9,8 +9,12 @@ AQENO must remain portable across supported Linux-capable hardware while sharing
 ## Proposed logical boundaries
 
 ```text
-UI / Presentation
-      |
+Device UI          Future Management UI
+Qt Quick/QML       responsive client
+      |                    |
+Python view models   Management API adapter
+      +---------+----------+
+                |
 Application / Use Cases
       |
 Domain
@@ -79,6 +83,11 @@ See `docs/product/DISPLAY_BEHAVIOR.md`.
 ## UI architecture
 
 Kids, Easy and Standard should share components and domain state. Variation is driven by an experience/capability profile: text level, tile density, navigation depth, available actions, settings visibility and accessibility needs.
+
+The Qt Quick/QML Device UI is an appliance presentation, not an administration application. QML
+renders application state and emits intentions through concrete Python view models; product rules
+stay in Core/Application. Complex adult administration belongs to a separate future Management UI
+and authenticated presentation adapter (ADR 0012). No Management API technology is selected yet.
 
 ## Local-first boundary
 

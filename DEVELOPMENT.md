@@ -57,8 +57,8 @@ src/aqeno/
     network/
     fakes/         # used by tests and by the desktop run target
   ui/
-    qml/           # QML views
-    models/        # view models, Python side
+    qml/           # appliance views: presentation and user intentions only
+    models/        # concrete Python/QML boundary; calls application use cases
     i18n/          # .ts sources, compiled .qm  (ADR 0005)
   config/          # defaults, validation against CONFIGURATION_DEFAULTS.md
   __main__.py      # composition root: the only place adapters are chosen

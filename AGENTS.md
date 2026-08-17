@@ -95,6 +95,8 @@ If a requested implementation conflicts with levels 2–4, flag the conflict bef
 - Model Actions and Scenes as first-class domain concepts when implemented.
 - External/cloud integrations are adapters, never prerequisites for core domain operation.
 - Prefer explicit interfaces at hardware boundaries: audio, display power, controls, NFC, connectivity, storage and power state.
+- Keep the in-process Qt Quick/QML Device UI separate from a future Management UI. QML presents
+  application state and emits intentions; it does not contain product rules or call adapters.
 
 ## Dependency policy
 
@@ -130,6 +132,10 @@ Record consequential dependency choices in an ADR.
 - Accessibility and reduced-complexity modes are product architecture, not cosmetic themes.
 - Build navigation and actions from available capabilities. Do not render locked controls,
   premium badges, upgrade prompts or other on-device upsell surfaces.
+- Keep complex administration and free-text entry off the appliance UI. Do not add Qt Virtual
+  Keyboard or a replacement keyboard without a new, explicit product decision.
+- Apply `docs/product/DEVICE_UI_PRINCIPLES.md` before adding a Device UI element: prefer physical
+  interaction, shallow navigation, one contextual primary action and removal of unnecessary UI.
 
 ## Testing expectations
 
@@ -173,6 +179,7 @@ Before implementation, read:
 - `docs/product/MVP.md`
 - `docs/product/USER_JOURNEY_KIDS_EARLY.md`
 - `docs/product/DISPLAY_BEHAVIOR.md`
+- `docs/product/DEVICE_UI_PRINCIPLES.md`
 - `docs/implementation/DOMAIN_MODEL.md`
 - `docs/implementation/PLATFORM_CONTRACTS.md`
 - `docs/implementation/DISPLAY_STATE_MACHINE.md`

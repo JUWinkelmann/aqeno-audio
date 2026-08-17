@@ -29,15 +29,14 @@ here.
   calm transitions are straightforward in QML, and the declarative split maps cleanly onto
   `PRODUCT_FOUNDATION.md`'s capability-driven variation: one component set, profile-driven
   configuration, not a Kids app and an Easy app.
-- **No Qt module restriction.** ADR 0004's licence-driven exclusions are on hold: nothing is
-  distributed, so **Qt Virtual Keyboard may be used** for on-screen text entry in `SETUP` (Wi-Fi
-  password), and no custom keyboard needs writing. If AQENO is ever published or distributed, the
-  restriction in ADR 0004 § 5 returns and this decision must be revisited — the on-screen keyboard is
-  the first place that bill comes due.
+- **Qt Virtual Keyboard is excluded.** ADR 0012 keeps complex text entry and administration off the
+  appliance UI; no replacement keyboard is built without a concrete local-entry requirement. This
+  also avoids the module's GPLv3/commercial licensing constraint.
 - **Qt Multimedia is not used for playback.** Audio goes through the engine in ADR 0003, behind the
   audio port.
-- **The UI runs in-process with the application core.** Communication is via Qt signals and an
-  application-level event bus, not IPC.
+- **The Device UI runs in-process with the application core.** Concrete Python view models expose
+  application state and intentions to QML through Qt properties/signals, not IPC. ADR 0012 separates
+  this from a possible future Management API.
 
 ## Alternatives considered
 
@@ -67,8 +66,8 @@ the product.
 **Easier.** Display state becomes ownable: Qt can run without a desktop environment (`eglfs`), so
 the application controls the surface and can coordinate panel power with backlight control in the
 display adapter. Adaptive UI variation is configuration over one component set. The in-process
-decision collapses gap G07 — no local API, no serialisation, no authentication surface, and
-therefore no unauthenticated management interface to get wrong.
+decision collapses gap G07 for the Device UI — no local API, serialisation or authentication surface
+is introduced by the first vertical slice.
 
 **Harder.** Qt plus QML import and scene-graph warm-up is the largest single item in the cold-boot
 budget, which reinforces the staged-readiness requirement from ADR 0001: input and audio adapters

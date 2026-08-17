@@ -184,9 +184,9 @@ One settings store, per the persistence contract, with three tiers:
 
 1. **Fixed** — constants in code, not in the settings file. Changing them is a code change and an ADR
    where a contract is affected.
-2. **Manager** — in the settings file, editable through the local Manager surface, validated against
-   the ranges above on read *and* on write. An out-of-range persisted value is clamped and logged, not
-   honoured.
+2. **Manager** — in the settings file, editable through an authorised management surface, validated
+   against the ranges above on read *and* on write. An out-of-range persisted value is clamped and
+   logged, not honoured. ADR 0012 does not require that surface to live on the box.
 3. **Derived** — calibration results from § 3.3, stored with the measurement date so a stale
    calibration is visible.
 

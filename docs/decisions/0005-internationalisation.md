@@ -15,7 +15,7 @@ file":
   content strings to a third party. There is no acceptable version of this.
 - **Kids Early requires no reading at all** (`USER_JOURNEY_KIDS_EARLY.md`). So the child-facing
   surface is nearly textless by design, and almost all translatable text lives in the
-  Manager/Owner surfaces — setup, library management, NFC assignment, scenes, policies.
+  adult-facing surfaces — bounded device setup and, later, the separate Management UI from ADR 0012.
 
 That asymmetry is useful: the strings that need the most care are read by adults, and the surface
 read by a three-year-old should stay free of text rather than be translated well.
@@ -30,8 +30,10 @@ UI stack is Qt/QML per ADR 0002; licensing constraints per ADR 0004.
 
 ### 1. Mechanism
 
-**Qt's own translation system**: `tr()` in Python, `qsTr()` in QML, `.ts` source files, compiled to
-`.qm` and shipped with the application. No additional i18n dependency.
+**Qt's own translation system for the Device UI**: `tr()` in Python, `qsTr()` in QML, `.ts` source
+files, compiled to `.qm` and shipped with the application. No additional Device UI i18n dependency.
+A future Management UI chooses its matching mechanism with its technology; it shares terminology
+and authored wording, not Qt runtime objects.
 
 `lupdate` and `lrelease` are build-time Qt tools. They are used, not distributed, so their licence
 does not affect AQENO's — the same relationship as a compiler to its output. Noted explicitly

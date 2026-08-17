@@ -14,6 +14,9 @@
 > Retained as reference material that stays valid: the Qt/GStreamer module facts (§ 5), the LGPL
 > compliance rules (§ 3, which return the moment anyone distributes hardware), and the five named
 > legal uncertainties at the end.
+>
+> **Later product decision:** ADR 0012 excludes Qt Virtual Keyboard regardless of this ADR's on-hold
+> status and does not replace it with a custom keyboard.
 
 > **This is engineering risk management, not legal advice.** It records the constraints AQENO will
 > work under so that decisions stay reversible. Before any public release under a chosen licence, and
@@ -92,8 +95,8 @@ distribution-mechanism decision, and it belongs in the packaging ADR.
 ### 5. Module and plugin restrictions that follow
 
 - **Qt:** LGPLv3 modules only. Qt Charts, Qt Data Visualization and Qt Virtual Keyboard are
-  understood to be GPLv3-or-commercial in Qt 6 and are excluded. Consequence: AQENO implements its
-  own minimal on-screen keyboard for the `SETUP` state (Wi-Fi entry).
+  understood to be GPLv3-or-commercial in Qt 6 and are excluded. ADR 0012 avoids complex on-device
+  text entry; AQENO does not implement a replacement keyboard without a real product need.
 - **PySide6, never PyQt6.** PyQt6 is GPLv3-or-commercial from Riverbank and would defeat § 1
   outright.
 - **GStreamer:** `core`, `base` and `good` only. `ugly` and `bad` are excluded on licence and patent
@@ -139,7 +142,7 @@ rather than a preference.
 **Harder — and this is the point to weigh.** Keeping the commercial-proprietary path open has a
 measurable price, paid in the MVP:
 
-- a custom on-screen keyboard must be written instead of using Qt Virtual Keyboard;
+- complex on-device text entry must be avoided or separately justified;
 - MPV, a genuinely good fit for the audio port, is unavailable;
 - AAC/M4B audiobook support is absent, in an audiobook-centric product;
 - packaging must guarantee LGPL replaceability, which rules out a locked device image and adds real
@@ -147,8 +150,7 @@ measurable price, paid in the MVP:
 
 **If the proprietary path is not actually wanted, all four costs disappear.** This is a product and
 business question, not a technical one, and it is worth answering deliberately rather than by
-default. Revisit this ADR before implementing the on-screen keyboard, since that is where the first
-concrete bill comes due.
+default. Revisit this ADR before introducing any on-device free-text entry.
 
 **Constrained.** No dependency enters the project without a recorded licence. Device images cannot be
 locked down. Codec coverage is narrower than users will expect.

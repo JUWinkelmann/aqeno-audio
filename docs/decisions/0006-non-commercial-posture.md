@@ -35,6 +35,9 @@
 > The licence-driven restrictions in ADR 0004 § 5 do **not** apply while nothing is distributed:
 > AAC/M4B, Qt Virtual Keyboard and the fuller GStreamer plugin sets are all available. ADRs 0002 and
 > 0003 keep PySide6 and GStreamer on technical merit regardless.
+>
+> **Later product decision:** ADR 0012 nevertheless excludes Qt Virtual Keyboard and avoids complex
+> on-device text entry. Its availability under this historical posture is no longer a UI decision.
 
 > **Not legal advice.** This records the project's chosen posture and the engineering rules that
 > follow from it, so that decisions stay consistent. The residual risks in § 6 and the uncertainties

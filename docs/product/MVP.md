@@ -14,11 +14,13 @@ Prove the AQENO product architecture with one coherent vertical slice before exp
 - implement display states `OFF`, `INTERACTIVE`, `SETUP`; `DIM` and `AMBIENT` may be stubbed;
 - continue audio with display fully off;
 - implement a Night/Dark-Room policy;
-- provide a minimal local Manager configuration surface;
+- provide only the bounded on-device setup/recovery controls required by the slice, without complex
+  free-text entry;
 - provide structured local logs without telemetry.
 
 ## Explicitly not MVP
 - cloud accounts or remote management;
+- Management Web UI or Management API;
 - commercial streaming services;
 - recommendations/AI;
 - multi-device follow-me;
