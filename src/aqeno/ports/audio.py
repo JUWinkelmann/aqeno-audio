@@ -141,6 +141,10 @@ class AudioEngine(Protocol):
 
     def on_failure(self, callback: Callable[[AudioFailure], None]) -> None: ...
 
+    def on_source_changed(self, callback: Callable[[Source], None]) -> None:
+        """A source prepared for gapless playback became active."""
+        ...
+
     def on_finished(self, callback: Callable[[], None]) -> None:
         """The loaded source reached its end and no prepared next source took over."""
         ...

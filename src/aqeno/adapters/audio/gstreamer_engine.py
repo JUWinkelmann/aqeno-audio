@@ -98,6 +98,7 @@ class GStreamerAudioEngine:
 
         self._state_callback: Callable[[TransportState], None] | None = None
         self._failure_callback: Callable[[AudioFailure], None] | None = None
+        self._source_changed_callback: Callable[[Source], None] | None = None
         self._finished_callback: Callable[[], None] | None = None
 
         self._stop_event = threading.Event()
@@ -188,6 +189,9 @@ class GStreamerAudioEngine:
 
     def on_failure(self, callback: Callable[[AudioFailure], None]) -> None:
         self._failure_callback = callback
+
+    def on_source_changed(self, callback: Callable[[Source], None]) -> None:
+        self._source_changed_callback = callback
 
     def on_finished(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback
@@ -322,3 +326,5 @@ class GStreamerAudioEngine:
             self._current_source = self._pending_gapless_source
             self._pending_gapless_source = None
         self._capabilities = self._query_capabilities()
+        if self._current_source is not None and self._source_changed_callback is not None:
+            self._source_changed_callback(self._current_source)

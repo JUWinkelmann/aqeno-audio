@@ -56,6 +56,7 @@ class FakeAudioEngine:
 
         self._state_callback: Callable[[TransportState], None] | None = None
         self._failure_callback: Callable[[AudioFailure], None] | None = None
+        self._source_changed_callback: Callable[[Source], None] | None = None
         self._finished_callback: Callable[[], None] | None = None
 
         self._forced_load_failure: AudioFailure | None = None
@@ -135,6 +136,9 @@ class FakeAudioEngine:
     def on_failure(self, callback: Callable[[AudioFailure], None]) -> None:
         self._failure_callback = callback
 
+    def on_source_changed(self, callback: Callable[[Source], None]) -> None:
+        self._source_changed_callback = callback
+
     def on_finished(self, callback: Callable[[], None]) -> None:
         self._finished_callback = callback
 
@@ -171,6 +175,8 @@ class FakeAudioEngine:
             if self._forced_capabilities is not None:
                 self._capabilities = self._forced_capabilities
                 self._forced_capabilities = None
+            if self._source_changed_callback is not None:
+                self._source_changed_callback(self._current_source)
             return
         self._capabilities = None
         self._current_source = None

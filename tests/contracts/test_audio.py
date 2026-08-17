@@ -35,7 +35,7 @@ from gi.repository import Gst
 
 from aqeno.adapters.audio import GStreamerAudioEngine, gain_for_volume
 from aqeno.adapters.fakes.audio import FakeAudioEngine
-from aqeno.domain.content import HttpSource, LocalFileSource
+from aqeno.domain.content import HttpSource, LocalFileSource, Source
 from aqeno.ports.audio import (
     AudioCapabilities,
     AudioEngine,
@@ -162,10 +162,12 @@ class Recorder:
     def __init__(self, engine: AudioEngine) -> None:
         self.states: list[TransportState] = []
         self.failures: list[AudioFailure] = []
+        self.source_changes: list[Source] = []
         self.finished_count = 0
         self._event = threading.Event()
         engine.on_state(self._on_state)
         engine.on_failure(self._on_failure)
+        engine.on_source_changed(self._on_source_changed)
         engine.on_finished(self._on_finished)
 
     def _on_state(self, state: TransportState) -> None:
@@ -174,6 +176,10 @@ class Recorder:
 
     def _on_failure(self, failure: AudioFailure) -> None:
         self.failures.append(failure)
+        self._event.set()
+
+    def _on_source_changed(self, source: Source) -> None:
+        self.source_changes.append(source)
         self._event.set()
 
     def _on_finished(self) -> None:
@@ -273,6 +279,7 @@ class TestTransportStates:
             recorder.wait_until(lambda: engine.state == TransportState.STOPPED, timeout=8)
 
         assert recorder.finished_count == 1
+        assert recorder.source_changes == []
         assert engine.state == TransportState.STOPPED
 
 
@@ -613,6 +620,7 @@ def test_prepared_next_transitions_gaplessly(impl: str, audio_fixtures: AudioFix
             recorder.wait_until(lambda: engine.state == TransportState.STOPPED, timeout=10)
 
         assert recorder.finished_count == 1
+        assert recorder.source_changes == [LocalFileSource(path=audio_fixtures.gapless_second)]
 
         non_playing = [state for state in recorder.states if state is not TransportState.PLAYING]
         # STOPPED appears only once both clips are exhausted — nothing at the

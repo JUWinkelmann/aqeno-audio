@@ -7,6 +7,7 @@ so a 30-second timeout is tested in microseconds and deterministically.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Protocol
 
@@ -16,7 +17,7 @@ class Clock(Protocol):
         """Monotonic seconds. Only differences are meaningful."""
         ...
 
-    def schedule(self, delay: timedelta, callback: object) -> object:
+    def schedule(self, delay: timedelta, callback: Callable[[], None]) -> object:
         """Run `callback` after `delay`. Returns a handle that can be cancelled."""
         ...
 

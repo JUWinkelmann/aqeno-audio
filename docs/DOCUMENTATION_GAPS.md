@@ -20,7 +20,7 @@ intent, and three of the seven important gaps are closed.
 - **Closed:** G01 (ADRs 0001–0003, 0005, 0007–0009 accepted), G02, G03, G04, G05, G06, G07, G09,
   G11.
 - **Deferred by intent:** G18, G23 — personal project, nothing published.
-- **Open and blocking nothing yet:** G08, G12, G13, G14, G24, and the hygiene set.
+- **Open and blocking nothing yet:** G08, G13, G14, G24, and the hygiene set.
 - **The one open item with a deadline quality:** the volume calibration in
   `CONFIGURATION_DEFAULTS.md` § 3.3, which needs a sound-level meter and Reference hardware.
 
@@ -172,11 +172,11 @@ faked, how the dark-room and offline scenarios are automated, where test audio f
 (and their licence), or whether CI exists. "Offline smoke test passes" and "dark-room test passes"
 are DoD items with no defined mechanism.
 
-### G12 — Resume semantics are imprecise
-Reliable resume is a headline capability. Undefined: whether resume is per ContentItem or per
-ContentItem+Profile; tolerance in seconds; behaviour for streams and live radio, which have no
-meaningful position; when an item counts as finished; what happens when the same content is
-reachable through two Sources; and how position survives a hard power cut.
+### G12 — Resume semantics — **CLOSED 2026-08-17**
+`RESUME_BEHAVIOR.md` fixes resume to `(ContentItem, Profile)` across launch methods and Sources,
+defines seekability and finished-item behaviour, and binds periodic/immediate writes to the
+10-second interval and 12-second power-loss tolerance already accepted by configuration and ADR
+0007. Source selection remains correctly separated under G14.
 
 ### G13 — Readiness states lack entry/exit criteria
 Six states in `PLATFORM_CONTRACTS.md`, plus "later states may not unnecessarily block earlier local
@@ -289,9 +289,9 @@ at all, so it must be spiked early despite being nominally a packaging concern.
    as a hardware task.
 5. ~~G01, G03, G09, G11~~ — done. ADRs 0001–0003, 0005, 0007–0009 accepted; `DEVELOPMENT.md` written.
 6. **Implement `FIRST_VERTICAL_SLICE.md`** in its documented order. This is now the top item.
-7. G08, G12, G13, G14 — write each immediately before implementing the slice step that needs it, not
-   all up front. G14 grew with ADR 0009: ingestion must detect content kind, group multi-file works
-   and extract chapters.
+7. G08, G13, G14 — write each immediately before implementing the slice step that needs it, not all
+   up front. G14 grew with ADR 0009: ingestion must detect content kind, group multi-file works and
+   extract chapters.
 8. G24 (packaging and display server) — spike early, decide later; `eglfs` vs Wayland gates the
    display-power story, so it must be tried before the display adapter is considered finished.
 9. G15–G17, G19–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.
