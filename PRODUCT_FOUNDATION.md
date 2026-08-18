@@ -41,12 +41,37 @@ quality, reliability, feel, price, scope, integration and preference. A capabili
 is not a reason to leave it out — and not a reason to include it either. The decision order in
 `AGENTS.md` § "Deciding what to build" applies.
 
-## 1. Purpose
+## 1. Purpose and identity
 
-AQENO is an **open, adaptive, audio-first player platform** that makes digital audio understandable
-through calm, physical interaction while preserving freedom of hardware, content and interaction.
+**Canonical product identity. Decided in ADR 0023.**
+
+> **AQENO is a calm everyday companion for audio, time and personal connection.**
+
+AQENO is an **open, adaptive, audio-first platform** that makes digital audio understandable through
+calm, physical interaction while preserving freedom of hardware, content and interaction. Audio is
+the primary pillar. Time and personal connection are the other two, and they are part of the
+product rather than additions to it.
 
 > **AQENO adapts to people — people should not have to adapt to the player.**
+
+Depending on user and configuration, one AQENO may be an audio, audiobook, music or podcast player,
+an internet radio, a clock, an alarm clock, a modern radio alarm, a visual timer, a routine helper,
+or the recipient of selected personal content and messages.
+
+**The three pillars are the first test for any capability:**
+
+> **AUDIO · TIME · PERSONAL CONNECTION**
+
+A capability that supports none of them is out of scope, whatever else can be said for it. One that
+supports a pillar still has to pass the decision order in `AGENTS.md` § "Deciding what to build".
+
+**AQENO is not** a smartphone, tablet, smart display, Alexa/Google-Home-class smart speaker, game
+platform, social device, news portal or general information dashboard. There is no development
+toward a news feed, weather dashboard, browser, app store, games, social feed, advertising,
+engagement mechanics or arbitrary notifications.
+
+Time and personal connection are identity, not schedule: clock, alarm, timer and `Send to AQENO`
+remain future work under ADR 0023 § 6 and ADR 0025 § 3, with no surface on the device today.
 
 The first product focus is **AQENO Kids**, but children do not define the platform. The same core
 should serve adults, families and people who benefit from reduced interaction complexity, including
@@ -62,7 +87,8 @@ AQENO sits between intuitive but closed audio systems and flexible but distracti
 - Audio-first, not screen-first.
 - Open content, not proprietary media objects.
 - Adaptive interaction, not a fixed age-specific UI.
-- Physical controls for frequent actions; touch for context and selection.
+- Physical-first, display-assisted, touch-optional: everyday use never requires touching the screen
+  (ADR 0024).
 - Local-first operation; connected services are optional enhancements.
 - No product mechanics designed to maximise listening time.
 
@@ -84,10 +110,14 @@ AQENO does not own or lock in the user's media. Standard formats, feeds and stre
 Where practical, AQENO uses open standards and replaceable commodity components: USB-C power, external power banks, supported SBCs, standard audio interfaces and printable enclosures.
 
 ### P06 — Frequent actions are physical
-High-frequency actions should work through touch and muscle memory without screen navigation.
+High-frequency actions work through physical controls and muscle memory, without screen navigation.
+Since ADR 0024 this extends to navigation itself: no function, and no path to a function, may
+require touching the panel. Touch remains available and welcome; it is never the only way.
 
 ### P07 — Screen when useful, screenless when possible
-The display adds context, discovery and configuration, but is not required for fundamental playback actions.
+The display adds orientation, artwork, status, selection, feedback and — later — time, timer and
+alarm presentation. It is not required for fundamental playback actions, and its presence, size and
+technology are a platform capability rather than a product dependency (ADR 0025).
 
 ### P08 — Care, not surveillance
 Guardian/manager functionality supports boundaries and assistance without unnecessary behavioural tracking.
@@ -140,6 +170,14 @@ device into a speculative modular platform.
 
 > **AQENO is assembled, not sealed.**
 
+### P19 — AQENO does not compete for attention
+**ADR 0023.** Smart, in AQENO, means the device takes work off a person — not that it creates as
+many interactions as possible. AQENO may present information and may draw attention to a genuinely
+relevant event. It may not pursue attention: no engagement loops, artificial badges, unnecessary
+animation, permanently changing content, recommendations that exist to raise usage time, "discover
+more" mechanics or unnecessary notifications. When AQENO is not needed, it recedes visually and
+acoustically. P12 forbids the mechanics; this principle states the posture they follow from.
+
 ## 4. Adaptive experience
 
 AQENO should use a shared capability model rather than separate rigid products for each age,
@@ -164,18 +202,34 @@ audio feedback, volume boundaries or alternative input. Do not introduce a gener
 
 > **Frequent actions are physical. Contextual actions are visual.**
 
-Reference control set:
+> **Physical-first, display-assisted, touch-optional** (ADR 0024).
 
-| Control | Primary action | Reason |
-|---|---|---|
-| Rotary encoder | Volume | Fast, eyes-free, continuous |
-| Encoder press | Play / pause | Central and usable in darkness |
-| Previous button | Previous / contextual rewind | Frequent playback action |
-| Next button | Next / contextual skip | Frequent playback action |
-| Touchscreen | Library, selection, search, settings | Context-dependent interaction |
-| NFC | Content/action shortcut | Physical, intuitive, optional |
+Target control set. Two rotary controls with distinct, permanent roles, plus one transport rocker:
 
-Do not add dedicated Home, Back, Favourite or Menu buttons unless user testing proves them necessary.
+| Control | Rotation | Short press | Reason |
+|---|---|---|---|
+| **NAV** rotary encoder | move focus / navigate | activate the focused item | eyes-free selection without a panel |
+| **VOL** rotary encoder | volume down / up | play / pause | the two most frequent actions, always in the same place |
+| **Transport rocker**, momentary centre-off | — | left: previous, right: next in the current context | one part instead of two loose buttons |
+| Touchscreen | — | optional convenience for the same actions | never the only path |
+| NFC | — | content/action shortcut | physical, intuitive, optional |
+
+> **Volume stays volume. Play/Pause stays Play/Pause.**
+
+A VOL control never becomes contextual navigation. Eyes-free operation depends on a control meaning
+the same thing in every state.
+
+Back-navigation is deliberately not fixed to an extra button. Long press on NAV is a candidate; the
+answer must come from testing with children, adults and seniors, and the rule must be simple and
+predictable. Do not add dedicated Home, Back, Favourite or Menu buttons unless testing proves them
+necessary.
+
+Controls belong on the top or an angled upper surface rather than on a vertical front face that
+pushes the device backwards when pressed; pressure should act towards the standing surface. The
+front stays visually calm and belongs to the display. Enclosure design itself is out of scope.
+
+RH1's assembled Cherry MX and Qwiic controls are prototype input hardware. They exercise the same
+semantic boundary and define nothing about the target layout (ADR 0024 § 4).
 
 Core actions must not depend solely on precise dragging, swiping, double taps, long presses, tightly
 packed controls or short response windows. A touchscreen can extend AQENO, but physical controls

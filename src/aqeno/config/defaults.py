@@ -214,6 +214,12 @@ class ControlSettings:
         "primary_encoder|long_press|",
         "primary_right|short_press|playback.next",
         "primary_right|long_press|",
+        # ADR 0024. No RH1 adapter reports a navigation encoder, so these
+        # defaults stay inert until hardware that has one is connected.
+        "navigation_encoder|rotate_left|navigation.focus_previous",
+        "navigation_encoder|rotate_right|navigation.focus_next",
+        "navigation_encoder|short_press|navigation.select",
+        "navigation_encoder|long_press|navigation.back",
     )
     illumination: str = "subtle"
 

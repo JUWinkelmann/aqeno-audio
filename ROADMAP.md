@@ -45,7 +45,9 @@ but unchecked historic spike items do not mean the implemented slice is absent.
 - [ ] NFC spike.
 - [ ] Podcast/RSS + local file content spike.
 - [ ] Power-bank compatibility constraints.
-- [ ] Alternative SBC evaluation.
+- [ ] Alternative SBC evaluation, including whether PySide6/QML performs acceptably on a
+      Raspberry Pi Zero 2 W class board (risk to ADR 0002).
+- [ ] Compact high-contrast panel spike: 4–5", AMOLED/OLED preferred, no touch required (ADR 0025).
 - [ ] Licensing/commercial-distribution review of candidate dependencies.
 
 ## P3 — MVP definition
@@ -77,6 +79,8 @@ Expected MVP themes:
 - [x] Content domain and storage.
 - [x] Playback application layer.
 - [x] Bounded Kids Early Device UI over adaptive architecture.
+- [x] Physical navigation vocabulary and encoder-first focus model; automated touch-free journey.
+- [ ] Physical touch-free journey on RH1 — blocked until a navigation control exists on the box.
 - [x] Versioned local Management API and OpenAPI handover.
 - [ ] Local Management Web client integration and RH1 validation.
 - [ ] NFC Actions.

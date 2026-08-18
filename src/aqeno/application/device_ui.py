@@ -18,6 +18,7 @@ from aqeno.application.playback import PlaybackSession, PlaybackSnapshot
 from aqeno.domain.content import ContentId
 from aqeno.domain.profile import Profile
 from aqeno.ports.audio import TransportState
+from aqeno.ports.input import Back, FocusNext, FocusPrevious, InputEvent, Select
 from aqeno.ports.persistence import ContentQuery, Library
 
 
@@ -39,6 +40,9 @@ class DeviceUiSnapshot:
     tiles: tuple[LibraryTile, ...]
     playback: PlaybackSnapshot
     display: DisplaySnapshot
+    focused_content_id: ContentId | None = None
+    """Which tile a navigation press would activate (ADR 0024). Only Home offers
+    a choice, so this is `None` on every other surface and on an empty library."""
 
 
 DeviceUiListener = Callable[[DeviceUiSnapshot], None]
@@ -64,6 +68,7 @@ class DeviceUiState:
         self._playback_snapshot = playback.snapshot
         self._display_snapshot = display.snapshot
         self._surface = DeviceSurface(self._display_snapshot.wake_target)
+        self._focus_index = 0
         self._listeners: list[DeviceUiListener] = []
 
         playback.on_changed(self._playback_changed)
@@ -90,8 +95,55 @@ class DeviceUiState:
             tiles = self._read_tiles()
             if tiles == self._tiles:
                 return
+            focused = self._focused_id()
             self._tiles = tiles
+            # A scan must not move the selection out from under a person's hand:
+            # keep focus on the same content while it is still there.
+            self._focus_index = next(
+                (index for index, tile in enumerate(tiles) if tile.content_id == focused), 0
+            )
             self._notify_changed()
+
+    # -- navigation (ADR 0024) ----------------------------------------------
+
+    def handle_navigation(self, event: InputEvent) -> None:
+        """Registered with `DisplayService.on_navigation`, never with the raw bus.
+
+        The display owns the wake decision, so an input that only woke a dark
+        panel never arrives here (`DISPLAY_STATE_MACHINE.md` note 15).
+        """
+        if isinstance(event, FocusPrevious):
+            self._move_focus(-1)
+        elif isinstance(event, FocusNext):
+            self._move_focus(1)
+        elif isinstance(event, Select):
+            self.activate_focus()
+        elif isinstance(event, Back):
+            self.show_home()
+
+    def activate_focus(self) -> bool:
+        """Start the focused tile, exactly as tapping it would."""
+        with self._lock:
+            focused = self._focused_id()
+        if focused is None:
+            return False
+        return self.select_content(focused)
+
+    def _move_focus(self, step: int) -> None:
+        with self._lock:
+            # Only Home offers a choice. An endless encoder wraps rather than
+            # hitting an invisible wall — easier to explain, and there is no
+            # end of the list to discover in the dark.
+            if self._surface is not DeviceSurface.HOME or not self._tiles:
+                return
+            self._focus_index = (self._focus_index + step) % len(self._tiles)
+            self._notify_changed()
+
+    def _focused_id(self) -> ContentId | None:
+        if self._surface is not DeviceSurface.HOME or not self._tiles:
+            return None
+        index = min(self._focus_index, len(self._tiles) - 1)
+        return self._tiles[index].content_id
 
     def select_content(self, content_id: ContentId) -> bool:
         """Start an available tile immediately; stale or unavailable IDs are ignored."""
@@ -150,6 +202,7 @@ class DeviceUiState:
             tiles=self._tiles,
             playback=self._playback_snapshot,
             display=self._display_snapshot,
+            focused_content_id=self._focused_id(),
         )
 
     def _notify_changed(self) -> None:

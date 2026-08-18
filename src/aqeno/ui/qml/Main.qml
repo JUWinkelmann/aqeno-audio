@@ -74,12 +74,28 @@ Window {
                 model: deviceUi.tiles
 
                 delegate: Item {
+                    id: tile
                     width: libraryGrid.cellWidth
                     height: libraryGrid.cellHeight
                     scale: tileTap.pressed ? 0.975 : 1.0
+                    readonly property bool focused: contentId === deviceUi.focusedContentId
 
                     Behavior on scale {
                         NumberAnimation { duration: 90 }
+                    }
+
+                    // Physical navigation focus (ADR 0024). A ring outside the
+                    // card, not a border on it: the playing marker already uses
+                    // the card edge, and focus must read from across the room
+                    // through shape and contrast rather than colour alone.
+                    Rectangle {
+                        anchors.fill: card
+                        anchors.margins: -10
+                        radius: card.radius + 10
+                        visible: tile.focused
+                        color: "transparent"
+                        border.width: 8
+                        border.color: window.ink
                     }
 
                     Rectangle {

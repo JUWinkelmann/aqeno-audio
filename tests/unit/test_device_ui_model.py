@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 import uuid
+from dataclasses import replace
 from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication
@@ -110,6 +111,28 @@ def test_kids_early_qml_has_visible_home_empty_failure_and_playback_feedback() -
     assert "deviceUi.hasPlaybackFailure" in qml
     assert "deviceUi.playing" in qml
     assert "deviceUi.nowPlayingContentId" in qml
+
+
+def test_focus_is_rendered_so_navigation_is_operable_without_touch() -> None:
+    """ADR 0024: an encoder-first surface must show what a press would activate."""
+    qml = Path("src/aqeno/ui/qml/Main.qml").read_text()
+
+    assert "deviceUi.focusedContentId" in qml
+    assert "visible: tile.focused" in qml
+
+
+def test_model_exposes_the_focused_tile() -> None:
+    _app()
+    snapshot = _snapshot()
+    focused = replace(snapshot, focused_content_id=snapshot.tiles[0].content_id)
+    state = _State(focused)
+    model = DeviceUiModel(state)
+
+    assert model.focusedContentId == str(snapshot.tiles[0].content_id.value)
+
+    unfocused = DeviceUiModel(_State(replace(focused, focused_content_id=None)))
+
+    assert unfocused.focusedContentId == ""
 
 
 def test_ui_runtime_marks_readiness_without_automatically_waking_display(monkeypatch) -> None:

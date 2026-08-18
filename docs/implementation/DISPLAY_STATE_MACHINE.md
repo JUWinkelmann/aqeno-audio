@@ -1,6 +1,7 @@
 # Display State Machine
 
 **Date:** 2026-08-17
+**Amended:** 2026-08-18 by ADR 0024 — Group G, physical navigation
 **Closes:** gap G04
 **Authority:** implements `docs/product/DISPLAY_BEHAVIOR.md`. Where this document and the prose
 conflict, the prose is the product intent and this document is the defect.
@@ -19,7 +20,8 @@ so any of those states would mean a lit panel with nothing on it.
 
 Two different outcomes, deliberately:
 
-- A `WakeRequest` or `TouchOnPanel` arriving earlier is **queued, not discarded**, and applied when
+- A `WakeRequest`, `TouchOnPanel` or Group G navigation input arriving earlier is **queued, not
+  discarded**, and applied when
   `UI_READY` is reached — one pending wake, however many times it is requested.
 - `AmbientRequested`, `AmbientScheduleStart` and `SetupRequested` are **blocked** with reason
   `ui_not_ready`, not queued. Setup is adult-initiated and retried in a second; an Ambient schedule
@@ -60,6 +62,11 @@ Referenced by name in the table. All are read at transition time, never cached.
 
 **Group F — policy.** `NightActivated`, `NightDeactivated`
 
+**Group G — physical navigation.** `Navigate` — one input from a navigation control: focus movement,
+activation of the focused item, or back. ADR 0024 makes navigation physical, and physical navigation
+is the replacement for the panel touch it must not require. It therefore takes touch's display
+semantics, not the transport rule.
+
 ## Transition table
 
 `—` means **no transition and no timer reset**: the event is handled elsewhere in the application and
@@ -69,6 +76,7 @@ the display is not involved. This is a decision, not an omission.
 |---|---|---|---|---|---|
 | `WakeRequest` | → `INTERACTIVE` ¹ | → `INTERACTIVE` | reset timer | → `INTERACTIVE` | reset timer |
 | `TouchOnPanel` | → `INTERACTIVE` ¹ ² | → `INTERACTIVE` ² | reset timer ³ | → `INTERACTIVE` ² | reset timer ³ |
+| **Group G** `Navigate` | → `INTERACTIVE` ¹ ¹⁵ | → `INTERACTIVE` ¹⁵ | reset timer ¹⁶ | → `INTERACTIVE` ¹⁵ | reset timer ¹⁶ |
 | `ContentSelected` | n/a | n/a | reset timer | n/a | reset timer |
 | `AmbientRequested` | → `AMBIENT` ⁴ | → `AMBIENT` ⁴ | → `AMBIENT` ⁴ | reset schedule | — |
 | `AmbientExited` | — | — | — | → `INTERACTIVE` | — |
@@ -118,7 +126,12 @@ the display is not involved. This is a decision, not an omission.
     and `SetupIdleElapsed` shortens to the night value.
 14. **Night ending never wakes the display.** Nothing in this machine transitions *out* of `OFF`
     automatically — every path out requires an explicit human request or an authorised Ambient
-    schedule.
+    schedule. A Group G navigation input is an explicit human request; a scheduled alarm would be a
+    third class and needs its own amendment here before it exists (ADR 0025 § 3).
+15. **The navigation input that wakes is consumed**, for the reason in note 2. Rotating a knob or
+    pressing NAV in a dark room must not also move focus or start content the person cannot see.
+    Wake first, act on the next input.
+16. Delivered to the UI normally. In `SETUP` it belongs to the setup flow, like a touch.
 
 ## Wake target
 
@@ -156,11 +169,14 @@ Each of these is a test, not a guideline. They are the invariants `AGENTS.md` re
 2. **No Group D event produces any transition.** Buffering, chapter change, metadata arrival, stream
    errors and background service readiness are invisible.
 3. **Group B events behave identically in all five states**, and are fully functional in `OFF`.
+   Group G is deliberately *not* Group B: navigation is the one input class whose entire purpose is
+   looking at something.
 4. **No automatic transition leaves `OFF`.** Only an explicit human request or an authorised Ambient
    schedule does.
 5. **Entering `OFF` produces no flash, fade-up or farewell animation.**
 6. **Leaving `OFF` shows no partially painted frame.** The first visible frame is complete.
-7. **A wake touch is consumed** and never activates an underlying control.
+7. **A wake touch is consumed** and never activates an underlying control. The same holds for a
+   waking navigation input (note 15).
 8. **`night_active` forces every user-facing LED to true off**, and `AMBIENT` is unreachable while it
    holds.
 9. **`OFF` means no intended visible output**, per `PLATFORM_CONTRACTS.md`.

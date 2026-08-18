@@ -4,7 +4,9 @@
 
 Concrete hardware first emits a normalized `ControlInput(logical_control, event)` through
 `PhysicalInputSource`. Stable RH1 logical controls are `primary_left`, `primary_encoder` and
-`primary_right`; they are not NeoKey channels, I2C addresses or GPIO pins. Available controls and
+`primary_right`; they are not NeoKey channels, I2C addresses or GPIO pins. `navigation_encoder` is
+the fourth defined logical control (ADR 0024 § 4). No RH1 adapter reports it today, so its mappings
+exist and are unavailable — the same honest state as any other absent hardware. Available controls and
 events come from the source's capabilities rather than being assumed by the Administration.
 
 Buttons expose `short_press` and `long_press`. A rotary control may additionally expose
@@ -20,7 +22,18 @@ registry, locally and without HTTP/network involvement. Defaults are:
 | `primary_encoder.rotate_left` / `rotate_right` | `volume.down` / `volume.up` |
 | `primary_encoder.short_press` | `playback.play_pause` |
 | `primary_right.short_press` | `playback.next` |
-| every current long press | unassigned |
+| `navigation_encoder.rotate_left` / `rotate_right` | `navigation.focus_previous` / `focus_next` |
+| `navigation_encoder.short_press` | `navigation.select` |
+| `navigation_encoder.long_press` | `navigation.back` — provisional, see ADR 0024 § 2 |
+| every other current long press | unassigned |
+
+Navigation actions (`navigation.focus_previous`, `navigation.focus_next`, `navigation.select`,
+`navigation.back`) are ordinary entries in the controlled action registry and may be bound to any
+control a source reports, including a spare button. **Volume and playback actions must not be
+rebound to navigation on the same control that carries volume**: the product rule is that a volume
+control stays a volume control (ADR 0024 § 2). The registry does not enforce that — it is a
+Management-UI and review responsibility, because forbidding a mapping mechanically would also
+forbid legitimate hardware AQENO does not know about yet.
 
 Allowed actions are fixed product actions, never shell commands, URLs, scripts or arbitrary API
 calls. Mappings are persistent device settings, not profile settings. Missing hardware leaves a
@@ -34,8 +47,14 @@ After mapping, Application listeners receive the existing semantic events:
 - `Next`
 - `Previous`
 - `WakeRequest`
+- `FocusPrevious`, `FocusNext`, `Select`, `Back` — navigation, deliberately named apart from
+  transport `Previous`/`Next` so no reader or mapping confuses the two
 - `NfcPresented(tag_id)`
 - `NfcRemoved(tag_id)` where supported
+
+Navigation events are routed through the display service, which owns the wake decision and consumes
+the input that woke the panel (`DISPLAY_STATE_MACHINE.md` Group G, note 15) before the Device UI
+sees it. Transport and NFC keep their existing route and never wake anything.
 
 No application code should depend on GPIO pin numbers.
 
@@ -55,6 +74,8 @@ Adapter capabilities:
 - set panel power on/off;
 - set brightness 0–100 where supported;
 - report touch events, delivered to the display service rather than to the UI;
+- report whether the panel has touch at all. Touch is an optional capability: a panel without it is
+  fully supported, and a panel with it never makes touch a required path (ADR 0024 § 1);
 - report whether it can achieve **authoritative off** — no intended visible output — rather than only
   zero backlight;
 - user-facing LEDs through the LED contract below, under the same visual policy.

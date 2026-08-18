@@ -120,7 +120,10 @@ See `docs/decisions/`. Accepted ADRs override this document.
 - local content ingestion and identity (ADR 0014);
 - excellence-first personal-project posture (ADR 0015);
 - application authority over display power policy (ADR 0016);
-- display as an optional capability without a capability framework (ADR 0017).
+- display as an optional capability without a capability framework (ADR 0017);
+- product identity, three pillars and the attention principle (ADR 0023);
+- physical-first interaction with touch as an optional capability (ADR 0024);
+- device output direction and the time pillar (ADR 0025).
 - replaceable SYSTEM, classified Data and portable backup (ADR 0020);
 - capability-oriented platform, Reference Platform 1 and installer/image boundary (ADR 0021).
 
@@ -128,7 +131,9 @@ See `docs/decisions/`. Accepted ADRs override this document.
 
 Do not lock these prematurely:
 
-- production hardware beyond the acquired RH1 prototype;
+- production hardware beyond the acquired RH1 prototype, including the target SBC class and the
+  target display; ADR 0025 records a preference, not a dependency;
+- back-navigation semantics and the transport rocker's contextual meaning (ADR 0024 § 2);
 - final Reference Platform package manifest and display server — `eglfs` vs Wayland gates the
   display-power story (gap G24); packaging/install boundaries are decided by ADR 0021;
 - remote/cloud architecture;

@@ -4,7 +4,9 @@ This file is the primary operating contract for AI coding agents working in this
 
 ## Mission
 
-Build AQENO as an **open, adaptive, audio-first player platform**. The first focus is AQENO Kids; AQENO Easy must remain possible from the same core.
+Build AQENO as **a calm everyday companion for audio, time and personal connection** (ADR 0023) on
+an open, adaptive, audio-first platform. The first focus is AQENO Kids; AQENO Easy must remain
+possible from the same core.
 
 Read `PRODUCT_FOUNDATION.md` before proposing or implementing product behaviour.
 
@@ -32,6 +34,11 @@ with the companion test: **does it make AQENO better, or merely bigger?** "Optim
 maximal" — the section above still governs, and a capability that adds scope without adding value,
 better interaction or a genuinely new possibility is declined or recorded in
 `docs/product/FUTURE_PRODUCT_CONCEPTS.md`.
+
+**First gate — the three pillars (ADR 0023).** A capability qualifies for consideration only if it
+supports **AUDIO**, **TIME** or **PERSONAL CONNECTION**, and is compatible with a calm,
+non-distracting device. One that supports none of them is declined without further analysis, and
+passing the gate grants consideration rather than implementation.
 
 When a product or feature question needs deciding, work through these in order:
 
@@ -119,6 +126,14 @@ If a requested implementation conflicts with levels 2–4, flag the conflict bef
 - Treat physical tags as brand-neutral triggers for AQENO-local assignments. Never infer permission
   or implement proprietary content extraction from a recognised third-party object.
 - Hardware-specific code must be isolated behind platform interfaces.
+- **No function and no navigation path may require touch** (ADR 0024). Touch is an optional
+  capability; `touch = true` never means "use touch as the primary UI".
+- Volume stays volume and Play/Pause stays Play/Pause: a volume control must never become
+  contextual navigation.
+- AQENO does not compete for attention (`PRODUCT_FOUNDATION.md` P19). No engagement loop, artificial
+  badge, permanently changing content or unnecessary notification.
+- No development toward a news feed, weather dashboard, browser, app store, games, social feed,
+  advertising or a general information dashboard.
 
 ## Architecture rules
 
@@ -171,6 +186,8 @@ Record consequential dependency choices in an ADR.
   Keyboard or a replacement keyboard without a new, explicit product decision.
 - Apply `docs/product/DEVICE_UI_PRINCIPLES.md` before adding a Device UI element: prefer physical
   interaction, shallow navigation, one contextual primary action and removal of unnecessary UI.
+- Design encoder-first, never touch-first with encoder support bolted on. Every state must make
+  visible where focus is, what rotation does and what a press does, at normal viewing distance.
 
 ## Testing expectations
 
@@ -181,6 +198,7 @@ At minimum, protect these invariants when the relevant modules exist:
 - physical volume/playback commands work with display off;
 - content resume is independent of launch method;
 - unsupported hardware fails clearly rather than partially pretending to work;
+- the whole everyday journey is operable without a single touch event;
 - role/Guardian boundaries cannot be bypassed through ordinary UI flows;
 - display remains off through routine playback transitions when policy requires it;
 - startup/wake timing can be measured on Reference hardware and regressions are surfaced.

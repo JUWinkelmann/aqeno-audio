@@ -10,6 +10,8 @@ Prove the AQENO product architecture with one coherent vertical slice before exp
 - support HTTP audio stream and one podcast/RSS path behind the same content abstraction;
 - persist playback/resume state;
 - accept semantic Play/Pause, Next, Previous and Volume inputs;
+- accept semantic navigation inputs — move focus, activate, back — so the everyday journey is
+  operable without touching the panel (ADR 0024);
 - support simulated NFC before physical NFC is required;
 - implement display states `OFF`, `INTERACTIVE`, `SETUP`; `DIM` and `AMBIENT` may be stubbed;
 - continue audio with display fully off;
@@ -32,4 +34,7 @@ Prove the AQENO product architecture with one coherent vertical slice before exp
 - app-store style plugins.
 
 ## Exit criteria
-The MVP is complete when the first vertical slice works on desktop Linux and Reference Hardware, automated core tests pass, and the dark-room and offline scenarios can be demonstrated without special developer intervention.
+The MVP is complete when the first vertical slice works on desktop Linux and Reference Hardware,
+automated core tests pass, and the dark-room, offline and touch-free scenarios can be demonstrated
+without special developer intervention. The touch-free scenario is automated today and is a physical
+RH1 acceptance item once a navigation control exists on the box.

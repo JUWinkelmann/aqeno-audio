@@ -35,21 +35,28 @@ harder.
    Management UI unless it is necessary for immediate use, pairing or recovery at the box.
 4. **One clear primary action.** A state should present the action relevant to its context rather
    than a matrix of equally weighted controls.
-5. **Physical first.** Volume, play/pause and physical-media launch use the physical controls where
-   available. Touch complements those paths; it does not duplicate every one of them.
-6. **Display is not a tablet.** Available area need not be filled. Whitespace, artwork, a title,
+5. **Physical first, touch optional.** Volume, play/pause, transport and physical-media launch use
+   the physical controls where available, and since ADR 0024 so does navigation: focus movement and
+   selection have their own physical vocabulary. No function and no path to a function may require
+   touching the panel. Touch complements those paths; it does not duplicate every one of them and it
+   is never the only way in.
+6. **Encoder-first information architecture.** Design for a rotating, pressing control first and let
+   touch ride along — never the reverse. Every state answers four questions without instruction:
+   where am I, what is selected, what will rotation do, what will a press do. Focus must be
+   unmistakable from normal viewing distance, and never carried by colour alone.
+7. **Display is not a tablet.** Available area need not be filled. Whitespace, artwork, a title,
    optional chapter/track and restrained progress may be the complete playback surface. The display
    may then become quiet or turn off.
-7. **Progressive disclosure.** An action appears only when the current context needs it. Technical
+8. **Progressive disclosure.** An action appears only when the current context needs it. Technical
    availability alone does not earn permanent screen space.
-8. **Reduction is product quality.** If two of ten possible functions matter now, show those two.
-9. **Immediate, understandable feedback.** Touch and physical intentions visibly or audibly confirm
+9. **Reduction is product quality.** If two of ten possible functions matter now, show those two.
+10. **Immediate, understandable feedback.** Touch and physical intentions visibly or audibly confirm
    recognition and outcome when policy permits. Feedback uses user meaning — starting, paused,
    volume changed, object not recognised — never backend terminology.
-10. **Calm failures.** Technical detail belongs in local logs and adult diagnosis. Failure feedback
+11. **Calm failures.** Technical detail belongs in local logs and adult diagnosis. Failure feedback
     obeys `FAILURE_STATES.md`: it never wakes a dark display, and Night policy may intentionally make
     it silent.
-11. **No unavailable or commercial surfaces.** Product Principle P15 applies without exception on
+12. **No unavailable or commercial surfaces.** Product Principle P15 applies without exception on
     the box. An unavailable capability has no control, lock, badge, preview or upgrade prompt.
 
 ## Accessible by default
@@ -57,7 +64,9 @@ harder.
 Appliance simplicity is not confined to Kids UI. Large physical controls and touch targets, little
 required text, clear hierarchy, audio feedback and shallow navigation benefit many people. Core
 actions must not rely exclusively on fine motor control, dragging, swiping, double taps, long
-presses, hidden gestures or fast reactions.
+presses, hidden gestures or fast reactions. This constrains ADR 0024's open back-navigation
+question: if long press on NAV becomes Back, a second path back that needs no timing must exist, or
+the rule does not survive this paragraph. That is a testing question, not a preference.
 
 This does not claim compliance with every accessibility need. It means concrete needs should improve
 the shared interaction language rather than automatically creating a labelled “senior”, “disabled”
@@ -90,5 +99,6 @@ the existence of a setting is not sufficient.
 9. Does this make digital audio simpler, or merely make AQENO more feature-rich?
 10. Does a core path require precision, timing, reading or an external personal device that the
     user may not have?
+11. Is every part of this reachable and operable with no touch at all (ADR 0024)?
 
 If an element can be removed without reducing usability, remove it by default.

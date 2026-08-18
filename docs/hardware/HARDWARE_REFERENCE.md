@@ -16,6 +16,11 @@ mapping permanent Core requirements.
 
 > Reference Hardware proves AQENO. It does not define AQENO.
 
+Since ADR 0024 that statement is binding for the controls as well: the Cherry MX keys, the single
+Qwiic encoder and the touch panel are **prototype input hardware**. They do not describe the target
+product layout, and the software is developed against the target vocabulary (NAV, VOL, transport
+rocker) rather than against what happens to be plugged in.
+
 Future hardware may omit the screen, use different controls or provide a more display-oriented
 experience. Domain and application code consume user intentions and product state; adapters own
 boards, buses, addresses, pins and physical mappings. No generic hardware-profile or persona system
@@ -158,6 +163,56 @@ before anything above the adapter sees left/right.
 
 `PrimaryAction` and `Acknowledge` are plausible future intentions but are not Vertical Slice events.
 They must not be added merely to occupy reserve keys or anticipate alternative hardware.
+
+## Target control direction
+
+Recorded so software and UI can be built against it. **This is not a purchase list and not a
+component decision.**
+
+| Control | Role | Semantics |
+|---|---|---|
+| NAV rotary encoder with press | navigation | rotate: move focus; short press: activate focused item; back semantics open |
+| VOL rotary encoder with press | volume and playback | rotate: volume; short press: play/pause — permanently, never contextual |
+| Transport rocker, momentary, centre-off | transport | left: previous, right: next in the current playback context |
+
+Quality expectations, without fixing parts: the target device does not use controls that feel like
+maker components. High-grade encoders of the Bourns PEC11R or Alps Alpine EC11 class are plausible
+candidates, and NAV and VOL should ideally be the **same** electrical and mechanical encoder type,
+with different knobs supplying different haptics — fewer spare-part variants, simpler procurement,
+simpler carrier PCB, easier repair. The rocker must be a quality momentary centre-off part, never a
+latching mains-style switch.
+
+Ergonomics: controls belong on the top surface or an angled upper face, not on a vertical front that
+pushes the device backwards when pressed. Pressure should act towards the standing surface. The
+front stays visually calm and belongs to the display. Enclosure design is explicitly out of scope
+here; only the requirement is recorded.
+
+RH1's three logical controls cannot represent NAV and VOL simultaneously, so RH1 cannot demonstrate
+the touch-free journey physically. Emulating it needs either a second Qwiic encoder at a distinct
+I²C address or the two unused NeoKey positions exposed by the adapter. Neither is decided; the
+address-jumper question in particular must be checked against Adafruit's documentation before
+anything is bought, because bridging solder jumpers would collide with the no-solder acceptance gate
+below.
+
+## Target display and light direction
+
+ADR 0025 records the direction: a compact panel of roughly 4–5 inches, high contrast, excellent
+black level, controllable brightness, true pixel-off preferred, touch not required. AMOLED/OLED is
+preferred and is explicitly not an architectural dependency — LCD/IPS, OLED, AMOLED and no display
+at all must all stay modellable.
+
+No separate status or RGB LED is planned for the target device; the display carries status. RH1's
+existing illumination remains prototype hardware behind the `StatusLeds` port, and no code may
+assume user-facing light exists.
+
+The intended later computer is a low-cost Linux SBC of roughly Raspberry Pi Zero 2 W class. That is
+a direction, not a decision: **PySide6/QML performance on that class is unverified and is a real
+risk to ADR 0002** (`ROADMAP.md` P2). No board, panel or SoC choice is wired into Core.
+
+For a later internally pre-assembled carrier PCB, soldered components are acceptable. "No soldering
+required" remains the rule for RH1 and for anything an end user assembles. The durable requirement
+is ADR/P18 repairability: a defective standard module should be replaceable without discarding the
+device.
 
 ## Feedback channels
 

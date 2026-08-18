@@ -4,10 +4,12 @@ Read this first. It takes you from zero to productive without re-deriving the pr
 
 ## 1. What AQENO is, in three sentences
 
-AQENO is an open, adaptive, audio-first player platform. First focus is **AQENO Kids** (a
-three-year-old must be able to operate it without reading); the same core must be able to serve
-**AQENO Easy** later. Audio playback and visual output are architecturally independent — the
-device must be fully usable in a completely dark room with display and all LEDs off.
+AQENO is a calm everyday companion for **audio, time and personal connection** (ADR 0023), built on
+an open, adaptive, audio-first platform. First focus is **AQENO Kids** (a three-year-old must be able
+to operate it without reading); the same core must be able to serve **AQENO Easy** later. Audio
+playback and visual output are architecturally independent — the device must be fully usable in a
+completely dark room with display and all LEDs off, and since ADR 0024 the whole everyday journey
+must also be operable without touching the screen.
 
 ## 2. What this project is for
 
@@ -133,6 +135,11 @@ an assistant most often breaks by accident:
 8. **Roles are User / Manager / Owner** in domain code, never Parent / Child.
 9. **One adaptive core, not a Kids app and an Easy app.** Variation is capability configuration.
 10. **No engagement mechanics.** No streaks, badges, autoplay-forever, notifications, ads.
+11. **Nothing may require touch.** No function, no navigation path, no hidden gesture. Touch is an
+    optional capability, never the only way in (ADR 0024).
+12. **Volume stays volume.** A volume control never becomes contextual navigation.
+13. **Time and personal connection are identity, not schedule.** Clock, alarm, timer and Send to
+    AQENO are decided as direction (ADR 0023, ADR 0025) and have no surface on the device today.
 
 ## 7. Conventions
 

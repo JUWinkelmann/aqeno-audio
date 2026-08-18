@@ -66,6 +66,9 @@ class DisplayEvent(StrEnum):
     NIGHT_ACTIVATED = auto()
     NIGHT_DEACTIVATED = auto()
 
+    # Group G — physical navigation (ADR 0024)
+    NAVIGATE = auto()
+
 
 TRANSPORT_EVENTS = frozenset(
     {
@@ -124,8 +127,9 @@ class DisplayGuards:
 class DisplayTransition:
     state: DisplayState
     reset_inactivity_timer: bool = False
-    consume_touch: bool = False
-    """Note 2: the touch that wakes the panel must not reach the control beneath it."""
+    consume_wake_input: bool = False
+    """Notes 2 and 15: the touch — or navigation input — that wakes the panel must
+    not also reach the control beneath it."""
     defer_until_ready: bool = False
     """Note 1: a wake before UI_READY is queued by the caller, never discarded."""
     blocked_reason: str | None = None
@@ -140,14 +144,14 @@ def _reset(state: DisplayState) -> DisplayTransition:
     return DisplayTransition(state=state, reset_inactivity_timer=True)
 
 
-def _wake(current: DisplayState, guards: DisplayGuards, *, by_touch: bool) -> DisplayTransition:
+def _wake(current: DisplayState, guards: DisplayGuards, *, consumed: bool) -> DisplayTransition:
     """Enter INTERACTIVE from OFF, DIM or AMBIENT."""
     if not guards.ui_ready:
         return DisplayTransition(state=current, defer_until_ready=True)
     return DisplayTransition(
         state=DisplayState.INTERACTIVE,
         reset_inactivity_timer=True,
-        consume_touch=by_touch,
+        consume_wake_input=consumed,
     )
 
 
@@ -177,12 +181,15 @@ def resolve(current: DisplayState, event: DisplayEvent, guards: DisplayGuards) -
     match event:
         case DisplayEvent.WAKE_REQUEST:
             if current in (DisplayState.OFF, DisplayState.DIM, DisplayState.AMBIENT):
-                return _wake(current, guards, by_touch=False)
+                return _wake(current, guards, consumed=False)
             return _reset(current)
 
-        case DisplayEvent.TOUCH_ON_PANEL:
+        case DisplayEvent.TOUCH_ON_PANEL | DisplayEvent.NAVIGATE:
+            # Note 15: navigation is the replacement for the touch AQENO must not
+            # require, so it takes touch's display semantics — including being
+            # swallowed when it is the input that woke a dark panel.
             if current in (DisplayState.OFF, DisplayState.DIM, DisplayState.AMBIENT):
-                return _wake(current, guards, by_touch=True)
+                return _wake(current, guards, consumed=True)
             return _reset(current)
 
         case DisplayEvent.CONTENT_SELECTED:

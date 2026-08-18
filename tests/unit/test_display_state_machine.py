@@ -59,11 +59,11 @@ class TestExplicitWake:
         """Invariant 7. A child tapping a dark panel must not trigger the control
         beneath their finger, which they cannot see."""
         transition = resolve(DisplayState.OFF, DisplayEvent.TOUCH_ON_PANEL, READY)
-        assert transition.consume_touch is True
+        assert transition.consume_wake_input is True
 
     def test_touch_while_interactive_reaches_the_ui(self) -> None:
         transition = resolve(DisplayState.INTERACTIVE, DisplayEvent.TOUCH_ON_PANEL, READY)
-        assert transition.consume_touch is False
+        assert transition.consume_wake_input is False
         assert transition.reset_inactivity_timer
 
     def test_wake_before_ui_ready_is_deferred_not_discarded(self) -> None:
@@ -99,7 +99,34 @@ class TestTransportEventsAreInvisible:
         night = DisplayGuards(ui_ready=True, night_active=True, playback_active=True)
         transition = resolve(DisplayState.OFF, DisplayEvent.VOLUME_DELTA, night)
         assert transition.state is DisplayState.OFF
-        assert transition.consume_touch is False
+        assert transition.consume_wake_input is False
+
+
+class TestGroupGNavigation:
+    """Group G, notes 15-16. Navigation replaces the touch AQENO must not require,
+    so it wakes like a touch — and never like transport."""
+
+    @pytest.mark.parametrize("start", [DisplayState.OFF, DisplayState.DIM, DisplayState.AMBIENT])
+    def test_navigation_wakes_and_is_consumed(self, start: DisplayState) -> None:
+        transition = resolve(start, DisplayEvent.NAVIGATE, READY)
+        assert transition.state is DisplayState.INTERACTIVE
+        assert transition.consume_wake_input is True
+
+    def test_navigation_while_interactive_reaches_the_ui(self) -> None:
+        transition = resolve(DisplayState.INTERACTIVE, DisplayEvent.NAVIGATE, READY)
+        assert transition.state is DisplayState.INTERACTIVE
+        assert transition.consume_wake_input is False
+        assert transition.reset_inactivity_timer
+
+    def test_navigation_before_ui_ready_is_deferred(self) -> None:
+        transition = resolve(DisplayState.OFF, DisplayEvent.NAVIGATE, DisplayGuards(ui_ready=False))
+        assert transition.state is DisplayState.OFF
+        assert transition.defer_until_ready is True
+
+    def test_navigation_is_not_a_transport_event(self) -> None:
+        """If NAVIGATE ever joins Group B, the dark room stays dark and the device
+        becomes unusable without touch. Both properties are load-bearing."""
+        assert DisplayEvent.NAVIGATE not in TRANSPORT_EVENTS
 
 
 class TestGroupDIsInvisible:
@@ -284,6 +311,9 @@ EXPLICIT_WAKE_EVENTS = frozenset(
     {
         DisplayEvent.WAKE_REQUEST,
         DisplayEvent.TOUCH_ON_PANEL,
+        # Group G is a human hand on a physical control, so invariant 4 holds:
+        # nothing here leaves OFF without a person asking for it.
+        DisplayEvent.NAVIGATE,
         DisplayEvent.SETUP_REQUESTED,
         DisplayEvent.AMBIENT_REQUESTED,
         DisplayEvent.AMBIENT_SCHEDULE_START,

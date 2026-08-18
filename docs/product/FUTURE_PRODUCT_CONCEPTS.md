@@ -45,7 +45,9 @@ infrastructure could provide substantial value, not that cloud use is required o
 | F14 Physical Interaction as UI | Natural Extension | physical-first UX and ADR 0013 |
 | F15 Contextual Display | Natural Extension | display state machine and presentation boundary |
 | F16 Quiet Display / Attention Policy | Natural Extension | existing DisplayPolicy and dark-room invariants |
-| F17 Games/tablet/platform direction | Explicit Non-Goal | audio-first product principles |
+| F17 Games/tablet/platform direction | Explicit Non-Goal | product identity, ADR 0023 § 3 |
+| F18 Visual timer and timer presets | Natural Extension | time pillar, ADR 0025 § 3 |
+| F19 Clock, alarms and radio-alarm behaviour | Product Expansion | time pillar, ADR 0025 § 3 |
 
 Classification is not implementation order. A concept may move category when a concrete product
 journey reveals different infrastructure or risk.
@@ -171,11 +173,39 @@ general child tablet. Raspberry Pi and touch capability do not create a product 
 future interactive exception requires its own review against the audio-first, attention and child
 complexity principles; it does not establish a platform direction.
 
+## F18 — Visual timer and timer presets
+
+A timer is a natural AQENO time function and is configurable locally as well as through
+administration. Local interaction may be as small as: choose timer, rotate NAV to set the duration,
+press NAV to start. Remaining time is shown graphically — a total area or circle whose visible share
+decreases — so a person who cannot read a numeric time still understands it. The general principle
+is used; no protected product design is copied.
+
+Presets are prepared in the web client — name, duration, optional artwork, optional completion
+sound, optional profile assignment — and reuse the existing profile and content-assignment
+mechanisms including bulk assignment. No new user or permission architecture.
+
+A timer may run while audio plays. The UI must show that a timer is active without permanently
+displacing Now Playing, and completion must resolve against audio deliberately rather than as a
+second uncoordinated source. ADR 0025 § 3 holds the binding constraints.
+
+## F19 — Clock, alarms and radio-alarm behaviour
+
+AQENO may work as a modern radio alarm: clock, alarms, recurring alarms, audio as the alarm source,
+configurable alarm volume with gradual increase, and a display wake-up visualisation — dark, slowly
+rising brightness, visual sunrise, then audio. A small panel is not a room wake-up light and must
+not be presented as one; real indirect lighting stays a possible optional hardware capability.
+
+Two constraints are already binding (ADR 0025 § 3): a network-sourced alarm needs a local fallback,
+and a scheduled alarm is a third path out of `OFF` that requires an explicit amendment to
+`DISPLAY_STATE_MACHINE.md` invariant 4 before any scheduler exists. Where the configured mode
+demands complete darkness, complete darkness wins.
+
 ## Feature review gate
 
 Before any Device feature enters the roadmap, answer:
 
-1. Does it support audio, family connection or a useful everyday function?
+1. Does it support at least one pillar — audio, time or personal connection (ADR 0023)?
 2. Can the intended user understand the interaction without explanation?
 3. Can physical interaction make it simpler?
 4. Must it be visible on the display at all?

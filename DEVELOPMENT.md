@@ -140,9 +140,17 @@ With `--fake-hardware`, semantic input events come from the keyboard simulator:
 | `Space` | `TogglePlayback` |
 | `→` / `←` | `Next` / `Previous` |
 | `w` | `WakeRequest` |
+| `a` / `d` | `FocusPrevious` / `FocusNext` — NAV rotation |
+| `s` | `Select` — NAV press, activates the focused tile |
+| `b` | `Back` |
 | `1`–`9` | `NfcPresented` with a fixed test UID |
 | `0` | `NfcRemoved` |
 | `n` | toggle `night_active` |
+
+The four navigation keys stand in for the NAV encoder that RH1 does not have (ADR 0024). They are
+how the touch-free journey is actually driven today: the everyday path must work with the mouse
+untouched. Like a waking touch, a navigation key that wakes a dark panel is consumed and selects
+nothing.
 
 The simulator is not a debug afterthought — `FIRST_VERTICAL_SLICE.md` requires it, and the dark-room
 and display-state scenarios are exercised through it long before the I2C hardware exists.

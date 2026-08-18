@@ -119,6 +119,12 @@ class DeviceUiModel(QObject):
         return _artwork_url(tile)
 
     @Property(str, notify=stateChanged)
+    def focusedContentId(self) -> str:
+        """Which tile physical navigation would activate (ADR 0024)."""
+        focused = self._snapshot.focused_content_id
+        return str(focused.value) if focused is not None else ""
+
+    @Property(str, notify=stateChanged)
     def nowPlayingContentId(self) -> str:
         content_id = self._snapshot.playback.content_id
         return str(content_id.value) if content_id is not None else ""

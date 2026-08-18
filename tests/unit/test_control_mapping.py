@@ -6,13 +6,17 @@ from aqeno.adapters.fakes.persistence import FakeSettingsStore
 from aqeno.application.control_mapping import MappedInputBus
 from aqeno.config.defaults import ControlSettings, default_settings
 from aqeno.ports.input import (
+    Back,
     ControlCapability,
     ControlEventType,
     ControlInput,
     ControlType,
+    FocusNext,
+    FocusPrevious,
     LogicalControl,
     Next,
     Previous,
+    Select,
     TogglePlayback,
     VolumeDelta,
 )
@@ -184,3 +188,64 @@ def test_unknown_restored_bindings_are_preserved_but_current_defaults_remain_saf
         == "playback.play_pause"
     )
     assert store.load().controls.bindings == ("future_dial|triple_press|future.action",)
+
+
+class NavigationSource(PhysicalSource):
+    """Hardware that reports a NAV encoder — the target control set, not RH1."""
+
+    @property
+    def controls(self) -> tuple[ControlCapability, ...]:
+        return (
+            *super().controls,
+            ControlCapability(
+                LogicalControl.NAVIGATION_ENCODER,
+                ControlType.ROTARY_ENCODER,
+                "Navigationsknopf",
+                (
+                    ControlEventType.ROTATE_LEFT,
+                    ControlEventType.ROTATE_RIGHT,
+                    ControlEventType.SHORT_PRESS,
+                    ControlEventType.LONG_PRESS,
+                ),
+                False,
+            ),
+        )
+
+
+def test_navigation_encoder_defaults_map_to_navigation_intentions() -> None:
+    source = NavigationSource()
+    bus = MappedInputBus(source, FakeSettingsStore())
+    received = []
+    bus.on_input(received.append)
+
+    source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.ROTATE_LEFT)
+    source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.ROTATE_RIGHT)
+    source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.LONG_PRESS)
+
+    assert received == [FocusPrevious(), FocusNext(), Select(), Back()]
+
+
+def test_volume_encoder_keeps_its_meaning_when_navigation_hardware_exists() -> None:
+    """ADR 0024 § 2: volume stays volume. Adding a NAV control must not change
+    what the VOL control does in any state."""
+    source = NavigationSource()
+    bus = MappedInputBus(source, FakeSettingsStore())
+    received = []
+    bus.on_input(received.append)
+
+    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_RIGHT)
+    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.SHORT_PRESS)
+
+    assert received == [VolumeDelta(1), TogglePlayback()]
+
+
+def test_rh1_reports_no_navigation_control_and_stays_operable() -> None:
+    """RH1 has three controls. Its navigation bindings exist in settings and are
+    simply not offered — the same honest state as any other absent hardware."""
+    bus = MappedInputBus(PhysicalSource(), FakeSettingsStore())
+
+    bound = {(item.control, item.event) for item in bus.bindings()}
+
+    assert LogicalControl.NAVIGATION_ENCODER not in {control for control, _ in bound}
+    assert "navigation.select" in {action.id for action in bus.actions}

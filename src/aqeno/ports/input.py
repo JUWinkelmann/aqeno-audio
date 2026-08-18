@@ -18,6 +18,7 @@ class LogicalControl(StrEnum):
     PRIMARY_LEFT = "primary_left"
     PRIMARY_ENCODER = "primary_encoder"
     PRIMARY_RIGHT = "primary_right"
+    NAVIGATION_ENCODER = "navigation_encoder"
 
 
 class ControlEventType(StrEnum):
@@ -101,6 +102,32 @@ class WakeRequest:
     pass
 
 
+# Navigation (ADR 0024). Deliberately named apart from the transport `Previous`
+# and `Next` above: a person operating AQENO without looking must be able to
+# rely on transport and navigation never trading places, and a reader of this
+# file should not have to work out which `Next` is meant.
+
+
+@dataclass(frozen=True, slots=True)
+class FocusPrevious:
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class FocusNext:
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class Select:
+    pass
+
+
+@dataclass(frozen=True, slots=True)
+class Back:
+    pass
+
+
 @dataclass(frozen=True, slots=True)
 class NfcPresented:
     tag_id: str
@@ -120,9 +147,17 @@ InputEvent: TypeAlias = (
     | Pause
     | Stop
     | WakeRequest
+    | FocusPrevious
+    | FocusNext
+    | Select
+    | Back
     | NfcPresented
     | NfcRemoved
 )
+
+NAVIGATION_EVENTS: tuple[type, ...] = (FocusPrevious, FocusNext, Select, Back)
+"""Group G in `DISPLAY_STATE_MACHINE.md`: these wake the display like a touch,
+and the one that wakes it is consumed. Transport never does either."""
 InputListener: TypeAlias = Callable[[InputEvent], None]
 
 

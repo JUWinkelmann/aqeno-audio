@@ -35,6 +35,18 @@ on hand. Selection never counts as electrical or acoustic validation.
 - battery/power bank: test stationary first; later validate common power banks.
 - expensive custom arcade switches: wait until Kids Early physical-control testing tells us button size/force.
 
+## Target control direction — do not buy yet
+
+ADR 0024 fixes the target vocabulary (NAV encoder, VOL encoder, momentary centre-off transport
+rocker) and `docs/hardware/HARDWARE_REFERENCE.md` records the quality expectations. No component is
+selected, and nothing here is ordered while RH1 validation is the active work.
+
+One purchase would become useful earlier than the rest: a **second Qwiic rotary encoder** so RH1 can
+emulate NAV and VOL separately and the touch-free journey can be tested on real hardware instead of
+the simulator. Verify first whether the Adafruit 5880's I²C address can be changed without bridging
+solder jumpers — if it cannot, that conflicts with the no-solder gate and the decision is yours to
+make, not the adapter's.
+
 ## Recommended control layout for prototype
 
 `[ Previous ]   [ illuminated rotary: Volume / press Play-Pause ]   [ Next ]`

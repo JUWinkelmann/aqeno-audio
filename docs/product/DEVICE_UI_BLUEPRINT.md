@@ -2,6 +2,7 @@
 
 **Status:** Product/UX contract
 **Date:** 2026-08-18
+**Amended:** 2026-08-18 by ADR 0024 — navigation is physical; touch is optional
 **Applies to:** AQENO Device UI, beginning with Kids Early on Reference Hardware 1
 
 ## Purpose and authority
@@ -17,6 +18,8 @@ repository contracts.
 
 Five shorthand principles describe the direction:
 
+> **Physical-first, display-assisted, touch-optional.**
+>
 > **Content first. Controls second. Technology invisible.**
 >
 > **Same AQENO. Same visual language. Different interaction models.**
@@ -83,11 +86,11 @@ No unavailable capability appears disabled, locked, premium, purchasable or teas
 The current Kids Early graph is deliberately tiny:
 
 ```text
-explicit wake, idle playback ──> Home ──select artwork──> Now Playing
-                                  ^                          |
-                                  └──── clear Home action ───┘
+explicit wake, idle playback ──> Home ──activate focused tile──> Now Playing
+                                  ^          (NAV press or tap)      |
+                                  └──── back to Home (NAV or tap) ───┘
 
-explicit wake during playback ────────────────────────> Now Playing
+explicit wake during playback ──────────────────────────────> Now Playing
 ```
 
 - Startup renders nothing until `UI_READY`; it does not play a branded intro.
@@ -96,13 +99,33 @@ explicit wake during playback ────────────────�
   applications.
 - Selecting artwork starts immediately and opens Now Playing. There is no confirmation.
 - Now Playing has one clear, large Home action. Returning Home does not stop playback.
-- Physical Previous, Play/Pause, Next and Volume do not navigate and do not wake the display.
+- Physical Previous, Play/Pause, Next and Volume do not navigate and do not wake the display. That
+  rule is unchanged and is what keeps the dark room dark.
+- **Navigation itself is physical** (ADR 0024). A NAV control moves focus, its press activates the
+  focused item, and going back reaches Home. Touch does the same things and is never required for
+  any of them.
 - There is no Back stack, drawer, tab bar, modal flow or hidden swipe in Kids Early.
 
 When a real library requires more than the bounded Home surface, one shallow content-browsing level
 may be added over existing content/collection concepts. Its entry is content language (“Stories”),
 not provider language, and it has one obvious return path. This blueprint does not implement or
 define that collection model.
+
+## Focus model
+
+Encoder-first means the surface has a focus, not merely tappable areas.
+
+- Exactly one element is focused on a surface that offers a choice. Home focuses a tile; Now Playing
+  currently offers no choice and therefore no focus ring.
+- Focus is visible from normal viewing distance: a heavy ring or clear elevation change plus a
+  non-colour cue. A 1 px outline or a colour shift alone does not qualify.
+- Rotation moves focus one item per detent and **wraps** at both ends. An endless knob must not run
+  into an invisible wall, and a wrap is easier to explain to a child than a limit.
+- Focus is a presentation state. It starts nothing, changes no audio and is not persisted.
+- Touch selection does not move focus onto the tapped item and then require a second press. A tap
+  activates directly, exactly as before.
+- **The navigation input that wakes the display is consumed** and activates nothing, for the same
+  reason a waking touch is consumed: nobody may trigger something they cannot see.
 
 ## Actual UI surfaces
 
@@ -145,6 +168,10 @@ screen. Playback, volume and transport remain physically operable.
 
 RH1 is designed at its real viewport first, not scaled down from a desktop composition.
 
+This layout is RH1's, not AQENO's. The preferred later panel is roughly 4–5 inches (ADR 0025 § 1),
+so information density must stay defensible on a substantially smaller surface: fewer simultaneous
+items, larger focus treatment, no reliance on a 7-inch reading distance.
+
 ### Shared constraints
 
 - fullscreen application surface; no title bar, taskbar, pointer or operating-system chrome;
@@ -185,6 +212,12 @@ RH1 is designed at its real viewport first, not scaled down from a desktop compo
 | encoder rotation | relative volume | never wakes display by default |
 | encoder press | Play/Pause | never wakes display by default; UI reflects the result only when already visible |
 | Next MX key | `Next` | never acts as Forward navigation and never wakes display by default |
+| NAV rotation *(target hardware)* | move focus | wakes from `OFF`/`DIM`; the waking input is consumed |
+| NAV press *(target hardware)* | activate focused item | wakes from `OFF`/`DIM`; the waking input is consumed |
+
+RH1 has no NAV control. Its navigation actions exist in the mapping registry, report as unavailable
+and can be bound to any control a future adapter reports. Until then the touch-free journey is
+exercised through the desktop simulator (`DEVELOPMENT.md`), not claimed for the assembled box.
 
 These are safe device-wide defaults, not properties of the boards. The controlled mapping contract
 in `PLATFORM_CONTRACTS.md` may assign another available AQENO action; hardware drivers still emit

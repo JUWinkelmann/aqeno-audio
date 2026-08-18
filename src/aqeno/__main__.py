@@ -284,6 +284,10 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str] | None) ->
             display=display,
             profile=profile,
         )
+        # Navigation reaches the UI through the display service, which consumes
+        # the input that woke a dark panel before it can select anything
+        # (ADR 0024 § 3, DISPLAY_STATE_MACHINE.md note 15).
+        display.on_navigation(device_ui.handle_navigation)
 
         # Scanning off this thread means it never blocks PLAYBACK_READY below.
         # Its only presentation effect is an explicit refresh of the typed read

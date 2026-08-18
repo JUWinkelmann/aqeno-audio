@@ -37,6 +37,7 @@ from aqeno.ports.audio import TransportState
 from aqeno.ports.clock import Clock
 from aqeno.ports.display import DisplayPanel
 from aqeno.ports.input import (
+    NAVIGATION_EVENTS,
     InputEvent,
     Next,
     NfcPresented,
@@ -89,6 +90,7 @@ class DisplaySnapshot:
 
 DisplayListener = Callable[[DisplaySnapshot], None]
 UiTouchListener = Callable[[], None]
+NavigationListener = Callable[[InputEvent], None]
 
 
 class DisplayService:
@@ -121,6 +123,7 @@ class DisplayService:
         self._timer_handle: object | None = None
         self._listeners: list[DisplayListener] = []
         self._ui_touch_listener: UiTouchListener | None = None
+        self._navigation_listener: NavigationListener | None = None
         self._smoothed_lux: float | None = None
         self._ambient_dark = False
         self._illumination_preference = settings.controls.illumination
@@ -170,20 +173,40 @@ class DisplayService:
         with self._lock:
             self._ui_touch_listener = listener
 
+    def on_navigation(self, listener: NavigationListener) -> None:
+        """Register the UI's navigation handler (ADR 0024 § 3).
+
+        Navigation reaches the UI through this service rather than straight off
+        the `InputBus`, for the same reason touch does: only the display knows
+        whether this particular input was the one that woke a dark panel, and a
+        waking input must not also act (note 15).
+        """
+        with self._lock:
+            self._navigation_listener = listener
+
     # -- input ---------------------------------------------------------------
 
     def handle_input(self, event: InputEvent) -> None:
         """Subscribed to the `InputBus`, alongside `PlaybackSession.handle_input`."""
+        if isinstance(event, NAVIGATION_EVENTS):
+            self._handle_navigation(event)
+            return
         display_event = _INPUT_EVENT_MAP.get(type(event))
         if display_event is not None:
             self.handle_event(display_event)
+
+    def _handle_navigation(self, event: InputEvent) -> None:
+        with self._lock:
+            transition = self.handle_event(DisplayEvent.NAVIGATE)
+            if not transition.consume_wake_input and self._navigation_listener is not None:
+                self._navigation_listener(event)
 
     def handle_touch(self) -> None:
         """Registered as the panel's touch listener. Swallows a wake touch; forwards
         any other touch to the UI listener, if one is registered."""
         with self._lock:
             transition = self.handle_event(DisplayEvent.TOUCH_ON_PANEL)
-            if not transition.consume_touch and self._ui_touch_listener is not None:
+            if not transition.consume_wake_input and self._ui_touch_listener is not None:
                 self._ui_touch_listener()
 
     def handle_playback_changed(self, snapshot: PlaybackSnapshot) -> None:

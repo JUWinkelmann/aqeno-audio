@@ -4,11 +4,15 @@ import pytest
 
 from aqeno.adapters.input import KeyboardSimulator
 from aqeno.ports.input import (
+    Back,
+    FocusNext,
+    FocusPrevious,
     InputEvent,
     Next,
     NfcPresented,
     NfcRemoved,
     Previous,
+    Select,
     TogglePlayback,
     VolumeDelta,
     WakeRequest,
@@ -24,6 +28,10 @@ from aqeno.ports.input import (
         ("right", Next()),
         ("left", Previous()),
         ("w", WakeRequest()),
+        ("a", FocusPrevious()),
+        ("d", FocusNext()),
+        ("s", Select()),
+        ("b", Back()),
         ("1", NfcPresented("AQENO-TEST-1")),
         ("9", NfcPresented("AQENO-TEST-9")),
     ],

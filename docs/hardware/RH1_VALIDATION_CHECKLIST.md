@@ -32,9 +32,25 @@ from desktop simulation alone.
 - encoder/NeoKey feedback is restrained, semantic and completely off in Bedtime;
 - controls retain meaning while the display is OFF and do not wake it routinely.
 
+## Touch-free operation (ADR 0024)
+
+Run the everyday journey with touch disabled or ignored. Administration is explicitly not part of
+this test.
+
+- start AQENO, reach a usable profile context, open the library, choose a category where one
+  exists, choose a medium, start playback;
+- pause, resume, change volume, use previous/next, navigate back, return to playback;
+- later, when they exist: choose radio, choose a podcast, set and start a timer, cancel a timer;
+- verify no step required a touch, and that the input which woke the display did not also select
+  anything;
+- **currently blocked physically:** RH1's three controls cannot carry NAV and VOL at once. Until a
+  NAV control exists on the box, this test runs on the desktop simulator only, and that limitation
+  is recorded rather than worked around.
+
 ## Display and touch
 
 - actual output is 800×480 at 60 Hz, touch targets remain reliable at edges;
+- focus states are unmistakable from normal seated viewing distance, not only close up;
 - INTERACTIVE, DIM, OFF, SETUP and permitted AMBIENT transitions follow policy;
 - playback continues in OFF; routine metadata/playback events do not wake the display;
 - Dark Room reaches fully black display and LEDs; wake and return paths have no dead ends.

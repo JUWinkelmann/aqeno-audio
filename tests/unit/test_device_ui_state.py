@@ -20,6 +20,7 @@ from aqeno.domain.content import ContentId, ContentItem, ContentKind, HttpSource
 from aqeno.domain.display import DisplayEvent, DisplayState
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
 from aqeno.ports.audio import TransportState
+from aqeno.ports.input import Back, FocusNext, FocusPrevious, Select
 
 
 def _profile() -> Profile:
@@ -172,3 +173,93 @@ def test_display_and_playback_changes_publish_one_immutable_shape() -> None:
     assert received[-1].surface is DeviceSurface.NOW_PLAYING
     assert received[-1].display.state is DisplayState.DIM
     assert received[-1].playback.content_id == item.id
+
+
+class TestPhysicalNavigation:
+    """ADR 0024: everything Home offers must be reachable without touch."""
+
+    def test_focus_starts_on_the_first_tile(self) -> None:
+        state, library, _, _ = _state()
+        first = _item("First")
+        library.save_content(first)
+        library.save_content(_item("Second"))
+        state.refresh_library()
+
+        assert state.snapshot.focused_content_id == state.snapshot.tiles[0].content_id
+
+    def test_rotation_moves_focus_and_wraps_in_both_directions(self) -> None:
+        state, library, _, _ = _state()
+        for title in ("One", "Two", "Three"):
+            library.save_content(_item(title))
+        state.refresh_library()
+        tiles = state.snapshot.tiles
+
+        state.handle_navigation(FocusNext())
+        assert state.snapshot.focused_content_id == tiles[1].content_id
+
+        state.handle_navigation(FocusPrevious())
+        state.handle_navigation(FocusPrevious())
+        assert state.snapshot.focused_content_id == tiles[-1].content_id
+
+        state.handle_navigation(FocusNext())
+        assert state.snapshot.focused_content_id == tiles[0].content_id
+
+    def test_select_starts_the_focused_tile(self) -> None:
+        state, library, _, _ = _state()
+        for title in ("One", "Two"):
+            library.save_content(_item(title))
+        state.refresh_library()
+        second = state.snapshot.tiles[1].content_id
+
+        state.handle_navigation(FocusNext())
+        state.handle_navigation(Select())
+
+        assert state.snapshot.surface is DeviceSurface.NOW_PLAYING
+        assert state.snapshot.playback.content_id == second
+        assert state.snapshot.playback.transport is TransportState.PLAYING
+
+    def test_back_returns_home_without_stopping_audio(self) -> None:
+        state, library, _, _ = _state()
+        library.save_content(_item("Story"))
+        state.refresh_library()
+        state.handle_navigation(Select())
+
+        state.handle_navigation(Back())
+
+        assert state.snapshot.surface is DeviceSurface.HOME
+        assert state.snapshot.playback.transport is TransportState.PLAYING
+
+    def test_now_playing_offers_no_focus(self) -> None:
+        state, library, _, _ = _state()
+        library.save_content(_item("Story"))
+        state.refresh_library()
+        state.handle_navigation(Select())
+
+        state.handle_navigation(FocusNext())
+
+        assert state.snapshot.focused_content_id is None
+        assert state.snapshot.surface is DeviceSurface.NOW_PLAYING
+
+    def test_navigation_on_an_empty_library_is_harmless(self) -> None:
+        state, _, _, _ = _state()
+
+        state.handle_navigation(FocusNext())
+        state.handle_navigation(Select())
+
+        assert state.snapshot.focused_content_id is None
+        assert state.snapshot.playback.content_id is None
+
+    def test_a_scan_does_not_move_focus_off_the_chosen_item(self) -> None:
+        """A background scan finishing must not silently change what a press
+        would start (ADR 0014 § 5 runs it off the interaction thread)."""
+        state, library, _, _ = _state()
+        for title in ("One", "Two"):
+            library.save_content(_item(title))
+        state.refresh_library()
+        chosen = state.snapshot.tiles[1].content_id
+        state.handle_navigation(FocusNext())
+
+        library.save_content(_item("Three"))
+        state.refresh_library()
+
+        assert state.snapshot.focused_content_id == chosen

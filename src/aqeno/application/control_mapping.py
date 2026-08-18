@@ -11,9 +11,12 @@ from dataclasses import dataclass, replace
 
 from aqeno.config.defaults import ControlSettings, Settings
 from aqeno.ports.input import (
+    Back,
     ControlCapability,
     ControlEventType,
     ControlInput,
+    FocusNext,
+    FocusPrevious,
     InputEvent,
     InputListener,
     LogicalControl,
@@ -22,6 +25,7 @@ from aqeno.ports.input import (
     PhysicalInputSource,
     Play,
     Previous,
+    Select,
     Stop,
     TogglePlayback,
     VolumeDelta,
@@ -59,6 +63,17 @@ CONTROL_ACTIONS: tuple[ControlAction, ...] = (
     ControlAction("volume.down", "Leiser", "volume", _ROTATE_EVENTS + _PRESS_EVENTS),
     ControlAction("volume.up", "Lauter", "volume", _ROTATE_EVENTS + _PRESS_EVENTS),
     ControlAction("display.wake", "Display aktivieren", "display", _PRESS_EVENTS),
+    # Navigation (ADR 0024). Rotation moves focus; a press activates it. These
+    # are ordinary registry entries, so a Manager may bind them to any control
+    # a source reports — but never onto the control that carries volume.
+    ControlAction(
+        "navigation.focus_previous", "Auswahl zurück", "navigation", _ROTATE_EVENTS + _PRESS_EVENTS
+    ),
+    ControlAction(
+        "navigation.focus_next", "Auswahl weiter", "navigation", _ROTATE_EVENTS + _PRESS_EVENTS
+    ),
+    ControlAction("navigation.select", "Auswählen", "navigation", _PRESS_EVENTS),
+    ControlAction("navigation.back", "Zurück", "navigation", _PRESS_EVENTS),
 )
 _ACTIONS_BY_ID = {action.id: action for action in CONTROL_ACTIONS}
 
@@ -275,4 +290,12 @@ def _semantic_event(action_id: str) -> InputEvent | None:
         return VolumeDelta(1)
     if action_id == "display.wake":
         return WakeRequest()
+    if action_id == "navigation.focus_previous":
+        return FocusPrevious()
+    if action_id == "navigation.focus_next":
+        return FocusNext()
+    if action_id == "navigation.select":
+        return Select()
+    if action_id == "navigation.back":
+        return Back()
     return None

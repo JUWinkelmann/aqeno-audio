@@ -20,9 +20,14 @@ Remaining Step 10 work requires physical RH1 evidence or unselected hardware and
 rather than guessed.
 
 The current software slice adds configurable logical physical controls, bounded RH1 remote deployment,
-the HiFiBerry MiniAmp platform path and a fail-closed Plymouth handover. Verification is green:
-**1083 passed, 1 hardware test deselected**; canonical mypy, Ruff, Admin checks/build and all five
-browser E2E tests pass. The physical RH1 acceptance boundary below remains open.
+the HiFiBerry MiniAmp platform path, a fail-closed Plymouth handover and — since 2026-08-18 — the
+physical navigation vocabulary that makes the everyday journey operable without touch. Verification is
+green: **1122 passed, 1 hardware test deselected**; canonical mypy, Ruff, Admin check/build and all
+five browser E2E tests pass. The physical RH1 acceptance boundary below remains open.
+
+The step log below stops at Step 10 / `851898c`. The management API, Admin foundation and RH1
+platform integration that followed (`5c3108f` … `fc41de0`) are recorded in git history and in the
+contracts they changed, not here; that gap is known rather than an indication they are missing.
 
 | Slice step | State |
 |---|---|
@@ -118,6 +123,28 @@ browser E2E tests pass. The physical RH1 acceptance boundary below remains open.
 - Final desktop result: 959 tests passed, 1 hardware test deselected; ruff, format and mypy passed.
 - Committed as `851898c connect RH1 controls without coupling the core` with honest AI co-authorship.
 
+### 2026-08-18 — product identity, physical-first interaction and the touch-free slice
+
+- Audited the product, UI, platform and hardware contracts against a sharpened product definition
+  and recorded three ADRs: **0023** identity, three pillars (audio, time, personal connection) and
+  the attention principle; **0024** physical-first / display-assisted / touch-optional, NAV-vs-VOL
+  separation, the transport rocker and RH1 as prototype input; **0025** display class preference
+  without dependency, no required status LED, and the time pillar's binding constraints.
+- Named the one hard conflict: the implemented Kids Early surface could only be operated by touch —
+  selection and Home were `TapHandler`s — and `DEVICE_UI_BLUEPRINT.md` stated that rule deliberately.
+  ADR 0024 overturns it; the blueprint, principles, `PLATFORM_CONTRACTS.md`, `MVP.md` and
+  `DISPLAY_STATE_MACHINE.md` were updated rather than left to contradict it.
+- Implemented the smallest testable slice: semantic `FocusPrevious`/`FocusNext`/`Select`/`Back`
+  events named apart from transport, a `navigation_encoder` logical control with registry actions and
+  inert defaults, display-machine **Group G** (navigation wakes like touch and the waking input is
+  consumed), a wrapping focus model in `DeviceUiState`, a visible QML focus ring, and simulator keys
+  `a`/`d`/`s`/`b`.
+- Added `tests/scenarios/test_touch_free_operation.py`: the whole everyday journey driven without a
+  single touch, with a touch probe that is proven able to fail. Verification after the change:
+  1122 passed, 1 deselected; Ruff, format, mypy, Admin check/build and five E2E tests green.
+- Rejected on purpose: a capability framework (ADR 0017 § 1 already refused one; ports already report
+  what hardware exists), any clock/timer/alarm implementation, and removing touch from RH1.
+
 ### External verification boundary
 
 - Install the optional `rh1` dependencies on the Raspberry Pi and verify both boards coexist on the
@@ -138,6 +165,10 @@ browser E2E tests pass. The physical RH1 acceptance boundary below remains open.
   asset or false successful handover is installed.
 - Hardware-only boot/wake timing, full-dark output and child-safe calibrated volume remain physical
   measurements. The single deselected test is intentionally in that class.
+- **RH1 cannot demonstrate the touch-free journey physically.** Three controls cannot carry NAV and
+  VOL at once, so that acceptance item runs on the desktop simulator until either a second Qwiic
+  encoder exists (check the address-jumper question against the no-solder gate first) or the adapter
+  exposes the two unused NeoKey positions. Neither is decided.
 
 ## Accepted display and hardware decisions already in the repository
 
@@ -157,6 +188,11 @@ browser E2E tests pass. The physical RH1 acceptance boundary below remains open.
    acceptance sequence and record measured evidence.
 2. Supply the canonical AQENO SVG and resolve G24's real DSI adapter before enabling the Plymouth
    presentation and measuring splash-to-first-frame handover.
+3. Decide how RH1 gets a NAV control, or accept that the touch-free acceptance stays simulated for
+   now. Both are legitimate; leaving it unstated is not.
+4. Open UX questions that only real use can answer: back-navigation semantics, the rocker's
+   contextual meaning (item, chapter or seek), and whether focus wrapping reads as helpful or
+   confusing to a three-year-old.
 
 ## Standing reminders
 

@@ -45,9 +45,13 @@
 		rotate_left: 'Nach links drehen',
 		rotate_right: 'Nach rechts drehen'
 	};
+	// Categories are listed rather than derived so their order stays deliberate.
+	// Anything the API reports outside this list would silently disappear from
+	// the select, so a new AQENO action category has to be added here too.
 	const actionCategories = [
 		{ id: 'playback', label: 'Wiedergabe' },
 		{ id: 'volume', label: 'Lautstärke' },
+		{ id: 'navigation', label: 'Navigation' },
 		{ id: 'display', label: 'Display' }
 	];
 

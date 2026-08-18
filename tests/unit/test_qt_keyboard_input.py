@@ -38,7 +38,7 @@ def test_qt_keyboard_source_ignores_unmapped_and_release_events() -> None:
 
     assert not source.eventFilter(
         app,
-        QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_A, Qt.KeyboardModifier.NoModifier),
+        QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Q, Qt.KeyboardModifier.NoModifier),
     )
     assert not source.eventFilter(
         app,

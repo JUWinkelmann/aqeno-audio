@@ -21,6 +21,7 @@ from aqeno.domain.display import DisplayEvent, DisplayState
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
 from aqeno.ports.ambient_light import AmbientLight
 from aqeno.ports.audio import TransportState
+from aqeno.ports.input import Back, FocusNext, Select, VolumeDelta
 
 INTERACTIVE_BRIGHTNESS = 70
 DIM_BRIGHTNESS = 10
@@ -527,3 +528,50 @@ class TestListeners:
         service.handle_event(DisplayEvent.WAKE_REQUEST)
 
         assert received[-1] is DisplayState.INTERACTIVE
+
+
+class TestNavigationRouting:
+    """ADR 0024 § 3. The service, not the UI, decides whether a navigation input
+    was merely the one that woke a dark panel."""
+
+    def test_navigation_wakes_without_reaching_the_ui(self) -> None:
+        service, panel, _, _, _ = _service()
+        delivered: list[object] = []
+        service.on_navigation(delivered.append)
+
+        service.handle_input(FocusNext())
+
+        assert service.snapshot.state is DisplayState.INTERACTIVE
+        assert panel.power_on is True
+        assert delivered == []
+
+    def test_navigation_while_awake_reaches_the_ui(self) -> None:
+        service, _, _, _, _ = _service()
+        delivered: list[object] = []
+        service.on_navigation(delivered.append)
+        service.handle_event(DisplayEvent.WAKE_REQUEST)
+
+        event = Select()
+        service.handle_input(event)
+
+        assert delivered == [event]
+
+    def test_navigation_without_a_listener_is_harmless(self) -> None:
+        service, _, _, _, _ = _service()
+        service.handle_event(DisplayEvent.WAKE_REQUEST)
+
+        service.handle_input(Back())
+
+        assert service.snapshot.state is DisplayState.INTERACTIVE
+
+    def test_transport_still_never_wakes(self) -> None:
+        """The dark-room invariant is unchanged by navigation existing."""
+        service, panel, _, _, _ = _service()
+        delivered: list[object] = []
+        service.on_navigation(delivered.append)
+
+        service.handle_input(VolumeDelta(1))
+
+        assert service.snapshot.state is DisplayState.OFF
+        assert panel.power_on is False
+        assert delivered == []
