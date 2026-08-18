@@ -131,6 +131,33 @@ def test_stale_or_unavailable_selection_is_ignored() -> None:
     assert state.snapshot.surface is DeviceSurface.HOME
 
 
+def test_now_playing_has_an_explicit_return_to_home_without_stopping_audio() -> None:
+    state, library, playback, _ = _state()
+    item = _item("Story")
+    library.save_content(item)
+    state.refresh_library()
+    state.select_content(item.id)
+
+    state.show_home()
+
+    assert state.snapshot.surface is DeviceSurface.HOME
+    assert playback.snapshot.transport is TransportState.PLAYING
+
+
+def test_waking_during_playback_returns_to_now_playing() -> None:
+    state, library, _, display = _state()
+    item = _item("Story")
+    library.save_content(item)
+    state.refresh_library()
+    state.select_content(item.id)
+    state.show_home()
+    display.handle_event(DisplayEvent.INACTIVITY_ELAPSED)
+
+    display.handle_event(DisplayEvent.WAKE_REQUEST)
+
+    assert state.snapshot.surface is DeviceSurface.NOW_PLAYING
+
+
 def test_display_and_playback_changes_publish_one_immutable_shape() -> None:
     state, library, _, display = _state()
     item = _item("Story")

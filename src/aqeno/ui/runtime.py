@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Protocol
 
-from PySide6.QtCore import QCoreApplication, QUrl
+from PySide6.QtCore import QCoreApplication, QObject, QUrl
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
@@ -31,6 +31,7 @@ class DeviceUiRuntime:
         self._process = process
         self._app = QGuiApplication.instance() or QGuiApplication(argv or [])
         self._engine = QQmlApplicationEngine()
+        self._event_filters: list[QObject] = []
         self._model = DeviceUiModel(process.device_ui)
         self._engine.rootContext().setContextProperty("deviceUi", self._model)
         qml_path = Path(__file__).with_name("qml") / "Main.qml"
@@ -39,7 +40,9 @@ class DeviceUiRuntime:
             raise RuntimeError(f"Device UI failed to load: {qml_path}")
         if not process.readiness.has_reached(ReadinessState.UI_READY):
             process.readiness.advance(ReadinessState.UI_READY)
-        self._engine.rootObjects()[0].setProperty("visible", True)
+        root = self._engine.rootObjects()[0]
+        root.setProperty("visible", True)
+        root.requestActivate()
 
     @property
     def app(self) -> QCoreApplication:
@@ -47,6 +50,11 @@ class DeviceUiRuntime:
 
     def exec(self) -> int:
         return self._app.exec()
+
+    def install_event_filter(self, event_filter: QObject) -> None:
+        """Install and retain a desktop input source for the runtime lifetime."""
+        self._event_filters.append(event_filter)
+        self._app.installEventFilter(event_filter)
 
     def close(self) -> None:
         self._engine.deleteLater()

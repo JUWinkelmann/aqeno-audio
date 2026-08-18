@@ -28,6 +28,7 @@ from aqeno.application.playback import PlaybackSession
 from aqeno.application.readiness import Readiness, ReadinessState
 from aqeno.config.defaults import Settings
 from aqeno.config.paths import artwork_dir
+from aqeno.domain.display import DisplayState
 from aqeno.domain.profile import (
     DisplayPolicy,
     ExperienceLevel,
@@ -353,7 +354,26 @@ def _start_device_ui(process: AqenoProcess) -> _DeviceUiRuntime:
     # below composition and only called when a panel was selected.
     from aqeno.ui.runtime import start_device_ui
 
-    return start_device_ui(process)
+    runtime = start_device_ui(process)
+    if isinstance(process.inputs, KeyboardSimulator):
+        from aqeno.adapters.input.desktop_qt import QtDesktopInputSource
+
+        def _handle_desktop_touch() -> bool:
+            consume = process.display.snapshot.state in {
+                DisplayState.OFF,
+                DisplayState.DIM,
+                DisplayState.AMBIENT,
+            }
+            process.display.handle_touch()
+            return consume
+
+        desktop_input = QtDesktopInputSource(
+            handle_key=process.inputs.handle_key,
+            handle_touch=_handle_desktop_touch,
+            parent=runtime.app,
+        )
+        runtime.install_event_filter(desktop_input)
+    return runtime
 
 
 def main(argv: Sequence[str] | None = None) -> int:

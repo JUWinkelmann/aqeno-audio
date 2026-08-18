@@ -118,6 +118,27 @@ class DeviceUiModel(QObject):
         )
         return _artwork_url(tile)
 
+    @Property(str, notify=stateChanged)
+    def nowPlayingContentId(self) -> str:
+        content_id = self._snapshot.playback.content_id
+        return str(content_id.value) if content_id is not None else ""
+
+    @Property(float, notify=stateChanged)
+    def progress(self) -> float:
+        position = self._snapshot.playback.position
+        duration = self._snapshot.playback.duration
+        if position is None or duration is None or duration.total_seconds() <= 0:
+            return 0.0
+        return max(0.0, min(position / duration, 1.0))
+
+    @Property(bool, notify=stateChanged)
+    def hasPlaybackFailure(self) -> bool:
+        return self._snapshot.playback.failure_code is not None
+
+    @Property(bool, notify=stateChanged)
+    def libraryEmpty(self) -> bool:
+        return not self._snapshot.tiles
+
     @Property(bool, notify=stateChanged)
     def playing(self) -> bool:
         return self._snapshot.playback.transport.value == "playing"
@@ -129,6 +150,10 @@ class DeviceUiModel(QObject):
         except (ValueError, AttributeError):
             return
         self._state.select_content(parsed)
+
+    @Slot()
+    def showHome(self) -> None:
+        self._state.show_home()
 
     def _snapshot_changed(self, snapshot: DeviceUiSnapshot) -> None:
         # Source callbacks may be audio or scan threads.  Signal delivery is

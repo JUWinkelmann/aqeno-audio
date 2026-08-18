@@ -102,6 +102,16 @@ def test_off_surface_cannot_receive_the_touch_that_wakes_the_panel() -> None:
     assert 'visible: deviceUi.displayState === "interactive" && deviceUi.surface === "home"' in qml
 
 
+def test_kids_early_qml_has_visible_home_empty_failure_and_playback_feedback() -> None:
+    qml = Path("src/aqeno/ui/qml/Main.qml").read_text()
+
+    assert "onTapped: deviceUi.showHome()" in qml
+    assert "visible: deviceUi.libraryEmpty" in qml
+    assert "deviceUi.hasPlaybackFailure" in qml
+    assert "deviceUi.playing" in qml
+    assert "deviceUi.nowPlayingContentId" in qml
+
+
 def test_ui_runtime_marks_readiness_without_automatically_waking_display(monkeypatch) -> None:
     from aqeno.ui import runtime
 
@@ -116,10 +126,14 @@ def test_ui_runtime_marks_readiness_without_automatically_waking_display(monkeyp
     class Root:
         def __init__(self) -> None:
             self.visible = False
+            self.activated = False
 
         def setProperty(self, name: str, value: object) -> None:  # noqa: N802
             assert name == "visible"
             self.visible = bool(value)
+
+        def requestActivate(self) -> None:  # noqa: N802
+            self.activated = True
 
     class Context:
         def setContextProperty(self, name: str, value: object) -> None:  # noqa: N802
@@ -161,3 +175,4 @@ def test_ui_runtime_marks_readiness_without_automatically_waking_display(monkeyp
 
     assert Process.readiness.advanced == [runtime.ReadinessState.UI_READY]
     assert ui._engine.root.visible is True
+    assert ui._engine.root.activated is True

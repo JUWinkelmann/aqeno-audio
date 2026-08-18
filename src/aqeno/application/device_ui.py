@@ -17,6 +17,7 @@ from aqeno.application.display import DisplayService, DisplaySnapshot
 from aqeno.application.playback import PlaybackSession, PlaybackSnapshot
 from aqeno.domain.content import ContentId
 from aqeno.domain.profile import Profile
+from aqeno.ports.audio import TransportState
 from aqeno.ports.persistence import Library
 
 
@@ -62,6 +63,7 @@ class DeviceUiState:
         self._tiles = self._read_tiles()
         self._playback_snapshot = playback.snapshot
         self._display_snapshot = display.snapshot
+        self._surface = DeviceSurface(self._display_snapshot.wake_target)
         self._listeners: list[DeviceUiListener] = []
 
         playback.on_changed(self._playback_changed)
@@ -96,17 +98,37 @@ class DeviceUiState:
         item = self._library.get_content(content_id)
         if item is None or not item.available:
             return False
+        with self._lock:
+            self._surface = DeviceSurface.NOW_PLAYING
         self._playback.start(item, self._profile)
         return True
+
+    def show_home(self) -> None:
+        """Return from playback context to the shallow Kids Early library."""
+        with self._lock:
+            if self._surface is DeviceSurface.HOME:
+                return
+            self._surface = DeviceSurface.HOME
+            self._notify_changed()
 
     def _playback_changed(self, snapshot: PlaybackSnapshot) -> None:
         with self._lock:
             self._playback_snapshot = snapshot
+            if snapshot.content_id is None or (
+                snapshot.transport is TransportState.STOPPED and snapshot.failure_code is None
+            ):
+                self._surface = DeviceSurface.HOME
             self._notify_changed()
 
     def _display_changed(self, snapshot: DisplaySnapshot) -> None:
         with self._lock:
+            entering_interactive = (
+                self._display_snapshot.state.value != "interactive"
+                and snapshot.state.value == "interactive"
+            )
             self._display_snapshot = snapshot
+            if entering_interactive:
+                self._surface = DeviceSurface(snapshot.wake_target)
             self._notify_changed()
 
     def _read_tiles(self) -> tuple[LibraryTile, ...]:
@@ -117,12 +139,8 @@ class DeviceUiState:
         )
 
     def _snapshot(self) -> DeviceUiSnapshot:
-        # Display policy already owns the Home/Now Playing decision. Reusing it
-        # avoids a second definition drifting when a stopped session still has
-        # an item for resume/history purposes.
-        surface = DeviceSurface(self._display_snapshot.wake_target)
         return DeviceUiSnapshot(
-            surface=surface,
+            surface=self._surface,
             tiles=self._tiles,
             playback=self._playback_snapshot,
             display=self._display_snapshot,
