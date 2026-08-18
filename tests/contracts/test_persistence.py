@@ -9,6 +9,7 @@ actually do — a fixture is parametrised, not the assertions duplicated.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
@@ -101,6 +102,20 @@ class TestContent:
         assert got.title == "Renamed"
         assert got.chapters == ()
         assert got.sources == item.sources[:1]
+
+
+def test_resume_access_from_adapter_callback_thread(library: Library) -> None:
+    item = _content("Threaded resume")
+    profile = _profile("threaded-profile")
+    library.save_content(item)
+    library.save_profile(profile)
+
+    def write_and_read() -> timedelta | None:
+        library.set_resume(item.id, profile.name, timedelta(seconds=42))
+        return library.get_resume(item.id, profile.name)
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        assert executor.submit(write_and_read).result(timeout=2) == timedelta(seconds=42)
 
 
 class TestTagMappings:

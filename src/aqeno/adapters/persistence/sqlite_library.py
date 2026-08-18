@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+import threading
 import uuid
 from collections.abc import Callable
 from datetime import timedelta
@@ -127,6 +128,7 @@ class SqliteLibrary:
     def __init__(self, conn: sqlite3.Connection, *, health: DatabaseHealth) -> None:
         self._conn = conn
         self._health = health
+        self._lock = threading.RLock()
 
     # -- lifecycle -----------------------------------------------------------
 
@@ -134,7 +136,8 @@ class SqliteLibrary:
         return self._health
 
     def close(self) -> None:
-        self._conn.close()
+        with self._lock:
+            self._conn.close()
 
     # -- content -------------------------------------------------------------
 
@@ -199,14 +202,16 @@ class SqliteLibrary:
             )
 
     def get_content(self, content_id: ContentId) -> ContentItem | None:
-        row = self._conn.execute(
-            "SELECT * FROM content WHERE id = ?", (str(content_id.value),)
-        ).fetchone()
-        return _content_row_to_item(self._conn, row) if row is not None else None
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM content WHERE id = ?", (str(content_id.value),)
+            ).fetchone()
+            return _content_row_to_item(self._conn, row) if row is not None else None
 
     def list_content(self) -> tuple[ContentItem, ...]:
-        rows = self._conn.execute("SELECT * FROM content ORDER BY title").fetchall()
-        return tuple(_content_row_to_item(self._conn, row) for row in rows)
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM content ORDER BY title").fetchall()
+            return tuple(_content_row_to_item(self._conn, row) for row in rows)
 
     def remove_content(self, content_id: ContentId) -> None:
         self._write(
@@ -229,20 +234,24 @@ class SqliteLibrary:
         self._write(do)
 
     def resolve_tag(self, uid: str) -> ContentId | None:
-        row = self._conn.execute(
-            "SELECT content_id FROM tag_mapping WHERE uid = ?", (uid,)
-        ).fetchone()
-        return ContentId(uuid.UUID(row["content_id"])) if row is not None else None
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT content_id FROM tag_mapping WHERE uid = ?", (uid,)
+            ).fetchone()
+            return ContentId(uuid.UUID(row["content_id"])) if row is not None else None
 
     def unmap_tag(self, uid: str) -> None:
         self._write(lambda: self._conn.execute("DELETE FROM tag_mapping WHERE uid = ?", (uid,)))
 
     def list_tags(self) -> tuple[TagMapping, ...]:
-        rows = self._conn.execute("SELECT uid, content_id FROM tag_mapping ORDER BY uid").fetchall()
-        return tuple(
-            TagMapping(uid=row["uid"], content_id=ContentId(uuid.UUID(row["content_id"])))
-            for row in rows
-        )
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT uid, content_id FROM tag_mapping ORDER BY uid"
+            ).fetchall()
+            return tuple(
+                TagMapping(uid=row["uid"], content_id=ContentId(uuid.UUID(row["content_id"])))
+                for row in rows
+            )
 
     # -- profiles ------------------------------------------------------------
 
@@ -302,22 +311,25 @@ class SqliteLibrary:
         self._write(do)
 
     def get_profile(self, name: str) -> Profile | None:
-        row = self._conn.execute("SELECT * FROM profile WHERE name = ?", (name,)).fetchone()
-        return _profile_row_to_profile(row) if row is not None else None
+        with self._lock:
+            row = self._conn.execute("SELECT * FROM profile WHERE name = ?", (name,)).fetchone()
+            return _profile_row_to_profile(row) if row is not None else None
 
     def list_profiles(self) -> tuple[Profile, ...]:
-        rows = self._conn.execute("SELECT * FROM profile ORDER BY name").fetchall()
-        return tuple(_profile_row_to_profile(row) for row in rows)
+        with self._lock:
+            rows = self._conn.execute("SELECT * FROM profile ORDER BY name").fetchall()
+            return tuple(_profile_row_to_profile(row) for row in rows)
 
     # -- resume ----------------------------------------------------------------
 
     def get_resume(self, content_id: ContentId, profile_name: str) -> timedelta | None:
-        row = self._conn.execute(
-            "SELECT position_seconds FROM resume_position "
-            "WHERE content_id = ? AND profile_name = ?",
-            (str(content_id.value), profile_name),
-        ).fetchone()
-        return timedelta(seconds=row["position_seconds"]) if row is not None else None
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT position_seconds FROM resume_position "
+                "WHERE content_id = ? AND profile_name = ?",
+                (str(content_id.value), profile_name),
+            ).fetchone()
+            return timedelta(seconds=row["position_seconds"]) if row is not None else None
 
     def set_resume(self, content_id: ContentId, profile_name: str, position: timedelta) -> None:
         def do() -> None:
@@ -354,17 +366,18 @@ class SqliteLibrary:
         than raised: local playback must keep working even though nothing
         persists (ADR 0007 § "Degraded operation").
         """
-        if self._health is DatabaseHealth.DEGRADED_READ_ONLY:
-            logger.warning("persistence is degraded (read-only filesystem); write discarded")
-            return
-        self._conn.execute("BEGIN IMMEDIATE")
-        try:
-            fn()
-        except BaseException:
-            self._conn.execute("ROLLBACK")
-            raise
-        else:
-            self._conn.execute("COMMIT")
+        with self._lock:
+            if self._health is DatabaseHealth.DEGRADED_READ_ONLY:
+                logger.warning("persistence is degraded (read-only filesystem); write discarded")
+                return
+            self._conn.execute("BEGIN IMMEDIATE")
+            try:
+                fn()
+            except BaseException:
+                self._conn.execute("ROLLBACK")
+                raise
+            else:
+                self._conn.execute("COMMIT")
 
 
 def open_library(data_dir: Path | None = None) -> SqliteLibrary:
@@ -381,7 +394,7 @@ def open_library(data_dir: Path | None = None) -> SqliteLibrary:
     directory.mkdir(parents=True, exist_ok=True)
     db_path = directory / "aqeno.db"
 
-    conn = sqlite3.connect(db_path, timeout=5, isolation_level=None)
+    conn = sqlite3.connect(db_path, timeout=5, isolation_level=None, check_same_thread=False)
     conn.row_factory = sqlite3.Row
 
     try:

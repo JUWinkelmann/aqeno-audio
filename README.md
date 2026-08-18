@@ -6,8 +6,9 @@ The first focus is **AQENO Kids**; the same core is intended to support **AQENO 
 
 ## Current status
 
-**Pre-implementation, decisions made.** The technology basis is settled in `docs/decisions/`
-(ADRs 0001–0003, 0005, 0007–0009). The first implementation target is
+**First Vertical Slice in progress.** Domain state, persistence, audio, semantic input and the local
+process composition are implemented; the first Device UI and Reference Hardware adapters remain.
+The implementation target is
 [`docs/implementation/FIRST_VERTICAL_SLICE.md`](docs/implementation/FIRST_VERTICAL_SLICE.md).
 
 AQENO is a personal project. Licensing, publication and commercialisation are deferred by intent —

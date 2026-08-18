@@ -60,6 +60,9 @@ resolutions, collections, tag mappings, profiles, policies and resume positions.
 - Resume positions live in their own narrow table, so the frequent small writes touch as few pages as
   possible.
 - **A resume write is skipped when the position has not advanced** — paused playback writes nothing.
+- One process-owned connection serves application, audio-callback and scheduled-checkpoint threads.
+  The adapter permits cross-thread use but serialises every read, transaction and close operation;
+  application code never coordinates SQLite access itself.
 
 ### 3. Media files are not in the database
 

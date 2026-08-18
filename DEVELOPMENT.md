@@ -86,7 +86,7 @@ docs/
    validated against `CONFIGURATION_DEFAULTS.md`.
 7. **Hardware adapters are named for the technology they speak, not the board they were first
    tested on** — `adapters/input/i2c_seesaw.py`, not `adapters/input/pi.py`. The Raspberry Pi
-   configuration is AQENO Reference Hardware v0, the first implementation of these ports and
+   configuration is AQENO Reference Hardware 1, the first implementation of these ports and
    explicitly not the only possible one (ADR 0010 § 2).
 
 Rules 1, 2 and 4 are enforced by `tests/unit/test_import_boundaries.py`, not by discipline
@@ -99,12 +99,21 @@ fail is worse than none.
 # Desktop, all hardware faked — the normal development loop
 python -m aqeno --profile kids-early --fake-hardware
 
+# Open the local core, verify persistence and adapter construction, then exit
+python -m aqeno --profile kids-early --fake-hardware --check
+
 # Desktop, real audio, faked controls and display power
 python -m aqeno --profile kids-early --fake-hardware=input,display,nfc
 
 # Reference hardware
 python -m aqeno --profile kids-early
 ```
+
+Until the first Device UI and Reference input/display adapters exist, the normal desktop command
+starts the local Core without a visible surface and waits for `Ctrl+C`. Starting without
+fake input fails explicitly rather than pretending the keyboard is Reference hardware. The
+`--check` form is the useful smoke test until the Device UI supplies keyboard events; there is no
+temporary terminal-control UI.
 
 With `--fake-hardware`, semantic input events come from the keyboard simulator:
 
