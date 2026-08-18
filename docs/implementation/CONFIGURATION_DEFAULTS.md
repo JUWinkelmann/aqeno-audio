@@ -192,3 +192,17 @@ One settings store, per the persistence contract, with three tiers:
 
 Ranges are enforced in the application layer. A UI that cannot produce an out-of-range value is not
 sufficient: the settings file is editable by hand and must be treated as untrusted input.
+
+## 8. Library and scanning
+
+Added 2026-08-18 with ADR 0014. Specified in full, with the reasoning, in
+`docs/implementation/CONTENT_INGESTION.md` § 1.
+
+| Setting | Default | Range | Tier |
+|---|---|---|---|
+| Library roots | `["$XDG_DATA_HOME/aqeno/media"]` | 1–8 absolute directory paths | Manager |
+| Scan on startup | `true` | boolean | Manager |
+| Follow symlinks | `false` | boolean | Manager |
+
+A configured root that does not exist is skipped and logged, not created. Media location is a Manager
+setting rather than a fixed path because content usually arrives on removable storage.
