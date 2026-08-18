@@ -142,12 +142,25 @@ audio path must not consume the only practical connection path for Reference con
 
 ## Mechanical and power requirements
 
+RH1 remains the acquired prototype described above; the repairability principles in
+`PRODUCT_FOUNDATION.md` do not change its components or define an enclosure. Its use of a Raspberry
+Pi, Qwiic/STEMMA QT connections, standard switches and separable development modules is appropriate
+for experimentation, access and replacement even if a later cost-optimised device integrates some
+functions.
+
+As RH1 is assembled, record the exact installed component/revision, relevant electrical
+characteristics and connection method when they become known. Unknown inventory details remain
+unknown rather than guessed. This is the first step toward identifiable hardware, not a request for
+a service manual or compatible-parts catalogue now.
+
 - Boards are fixed to printed bosses or standoffs; no breadboard or loose Dupont wiring is a
   permanent enclosure component.
 - Buttons are supported by the front plate rather than relying on PCB sockets to absorb user force.
 - Cables receive strain relief and internal connectors remain serviceable.
 - Exposed PCBs and unavoidable diagnostic light are hidden from the user.
-- The enclosure should use screws rather than permanent glue where practical.
+- Service-relevant electronics should use suitable removable fasteners or connections where
+  practical. Adhesive is not prohibited where it does not make a realistic repair needlessly
+  destructive.
 - Reference input is standard USB-C. A commodity power bank may be used only after sustained load,
   idle-load, wake/restart and full-system capacity have been tested.
 

@@ -133,6 +133,13 @@ feedback and no mandatory precision gesture or routine smartphone use. Concrete 
 may require further work, but they refine shared capabilities rather than defaulting to labelled or
 stigmatising special modes.
 
+### P18 — Repairable by intent
+AQENO should remain useful beyond the life of an individual electronic component. Hardware choices
+favour access, identification, repair and functionally compatible replacement without turning the
+device into a speculative modular platform.
+
+> **AQENO is assembled, not sealed.**
+
 ## 4. Adaptive experience
 
 AQENO should use a shared capability model rather than separate rigid products for each age,
@@ -328,7 +335,78 @@ for understanding or operating core playback. A future device may rely on a spea
 large controls, tokens and restrained feedback, provided its adapters express the same relevant user
 intentions.
 
-A future commercial device may integrate components for manufacturing efficiency while preserving openness wherever reasonable.
+A future product may integrate prototype modules for manufacturing efficiency; the repairability
+rules below govern that trade-off rather than hypothetical series cost alone.
+
+### Repairability, longevity and standard components
+
+AQENO should look and feel like a finished product without hiding its construction from the person
+who maintains it:
+
+> **Product outside. Understandable hardware inside.**
+
+The canonical hardware principles are:
+
+- **Replacing a component should not require replacing the device.** Where technically and
+  economically reasonable, likely wear, failure and platform-change points remain independently
+  accessible and replaceable. This includes compute hardware, display, speakers, amplifier,
+  controls, NFC, sensors and power components as categories—not a requirement to design modules for
+  all of them today.
+- **Standard components should remain standard components.** Commodity parts should stay
+  functionally replaceable by freely obtainable compatible parts where that creates no material
+  product disadvantage. AQENO does not turn an ordinary speaker, switch, sensor or connector into an
+  artificial proprietary spare.
+- **Replaceability is more important than permanent part identity.** A successor part may require a
+  different adapter, cable set or mounting solution. Exact long-term availability of one part number
+  is not assumed; preserving the rest of the device matters more.
+- **The enclosure should outlive individual electronics.** Future mechanical decisions should allow
+  for compute, display, sensor and audio electronics changing on shorter cycles than a sound product
+  form. This principle does not define a mechanical platform, interface or enclosure architecture.
+- **Repairability first. Upgradeability where it comes naturally.** A repairable boundary may permit
+  a better later component, but AQENO does not become a PC-like upgrade platform and does not design
+  upgrade paths without a real need.
+- **Modularity serves longevity, not complexity.** Separation is justified when it improves repair,
+  replacement availability, likely component change or reuse. It is not a reason for cartridges,
+  adapters, mechanical standards or plugin mechanisms for every part.
+- **Integration may reduce cost, but should not intentionally create unnecessary irreparability.** A
+  later product may integrate today's prototype modules where that genuinely reduces cost and
+  complexity. Hypothetical series cost does not shape Reference hardware today, and integration must
+  still be weighed against repair and useful life.
+- **Hardware should be identifiable.** AQENO should be able to record the installed component type,
+  relevant electrical characteristics, connection method, hardware revision and known compatible
+  replacements. This establishes the information requirement; it does not require a service manual
+  before hardware exists.
+
+Repair should be easier and cheaper than replacing the whole device when that is technically and
+economically reasonable. Repair quality is assessed through total effort as well as purchase
+price—tools, part availability, specialist knowledge and the risk of damaging otherwise functional
+components all matter.
+
+Replaceability does not silently broaden the support promise: `Reference`, `Compatible` and
+`Community` retain their meanings. A functionally suitable substitute may be repairable without
+becoming an officially tested AQENO component.
+
+No artificial spare-part lock is introduced without a technical reason: avoid unnecessarily
+proprietary connectors or fasteners, serial-number binding, replacement-part pairing and software
+blocks on compatible parts. AQENO likewise introduces no hardware-generation dependency, cloud
+service or expiry mechanism whose primary purpose is to make functioning hardware unusable.
+
+Service-relevant electronics should prefer suitable removable connections and fasteners over
+permanent bonding. This is not a ban on adhesive: the test is whether a realistic repair becomes
+needlessly destructive.
+
+These principles guide rather than override engineering reality. Safety, electrical reliability,
+acoustics, mechanical stability, size, cost, regulation and manufacturability may justify a less
+repairable choice. Such a trade-off should be explicit rather than an accidental result of
+convenience.
+
+For AQENO, sustainability begins with useful life: repair, compatible replacement, continued
+software support, reuse of functioning parts and avoiding whole-device electronic waste. Material
+choice and recyclability remain relevant, but they do not substitute for keeping the device usable.
+
+`P07 Screen when useful, screenless when possible` and ADR 0017 apply the same discipline to the
+display: it is a replaceable capability rather than the identity or prerequisite of the audio
+device. This does not imply a generic hardware-capability framework for every component.
 
 ## 13. Capabilities worth having
 
