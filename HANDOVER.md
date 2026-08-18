@@ -15,8 +15,8 @@ implementation specifications. Documentation is English; the maintainer communic
 
 ## Live state
 
-Step 7 is complete in `6e295a0`. Step 9 is now the active slice task: close only the missing
-end-to-end acceptance coverage defined by `FIRST_VERTICAL_SLICE.md`.
+Steps 7 and 9 are complete. Step 10 is active as a Reference Hardware feasibility and adapter-scope
+assessment; do not invent unverified board or display behaviour.
 
 Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff format --check` and
 `mypy` pass.
@@ -31,8 +31,8 @@ Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff f
 | 6 — typed Device UI state channel | done (`1fcedfd`) |
 | 7 — Kids Early Device UI | done (`6e295a0`) |
 | 8 — display policy | done (`f88365f`, `cc493c7`) |
-| 9 — end-to-end tests | delegated audit/implementation in progress |
-| 10 — Reference Hardware adapters | not started |
+| 9 — end-to-end tests | done (`707de90`) |
+| 10 — Reference Hardware adapters | feasibility/scope assessment in progress |
 
 ## Step log
 
@@ -78,6 +78,32 @@ Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff f
 - Delegated that bounded audit and implementation to the weaker Codex model
   `/root/vertical_slice_e2e`. The primary architect is independently checking the existing dark-room,
   persistence, NFC, startup and failure coverage and will review all returned changes.
+- The audit found four missing cross-boundary proofs and added one focused scenario file: three local
+  tiles plus UI selection and simulated NFC launch; durable resume across SQLite/session restart;
+  explicit wake without audio interruption; and panel failure without loss of playback controls.
+- Existing dark-room, unit and contract tests already cover DIM-to-OFF, controls while OFF, simulator
+  mappings, transition completeness, readiness and import boundaries; those were not duplicated.
+- Primary review accepted the scope and added explicit shutdown of the restarted PlaybackSession so
+  the scenario does not leave an owned timer/service alive when its library closes.
+- Full verification passed: 950 tests, 1 hardware test deselected; ruff, format and mypy green.
+- Committed as `707de90 prove the vertical slice across application boundaries` with honest AI
+  co-authorship.
+
+### 2026-08-18 — Step 10 started
+
+- Began checking the documented RH1 components against the existing ports, installed driver surface
+  and hardware-only facts. The goal is the smallest concrete adapter set that can be tested honestly;
+  true panel OFF, bus coexistence and timing remain hardware measurements, not desktop assumptions.
+- Official Adafruit documentation verifies enough for the acquired controls only: PID 5880 uses
+  seesaw at default `0x36`, button pin 24 with pull-up and inverted position for clockwise-positive;
+  NeoKey 1x4 uses default `0x30` and exposes four key states. The libraries are MIT-licensed but are
+  not installed on this desktop.
+- Delegated a thin, lazy-imported RH1 input adapter with injected deterministic tests to the weaker
+  Codex model `/root/rh1_controls`. Scope excludes display, LEDs, NFC, hotplug and generic hardware
+  frameworks. NeoKey 0/2 map to Previous/Next; reserve keys remain unused.
+- Display power/brightness cannot be implemented honestly until the exact display revision and
+  display-server path are known and tested. LED colour/meaning is likewise not invented merely to
+  illuminate acquired pixels; true dark remains preferable.
 
 ## Accepted display and hardware decisions already in the repository
 
@@ -93,8 +119,9 @@ Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff f
 
 ## Next action
 
-1. Review the delegated Step 9 audit and changes against the primary coverage analysis.
-2. Run the complete checks, commit the accepted Step 9 change and update this log.
+1. Review the delegated RH1 control adapter, composition-root degradation and dependencies.
+2. Run full checks and commit if the adapter remains hardware-isolated and headless-safe.
+3. Stop only at the genuine display/physical-hardware boundary and record it precisely.
 
 ## Standing reminders
 
