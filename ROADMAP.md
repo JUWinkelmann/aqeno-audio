@@ -45,6 +45,12 @@ the shared platform boundary is defined in `PRODUCT_FOUNDATION.md`. Unscheduled 
 
 Freeze only after P1/P2 evidence.
 
+**Amended 2026-08-18 (ADR 0015).** The evidence that currently counts is real use of the reference
+prototype by its actual user, recorded in `docs/product/USE_OBSERVATIONS.md`. Prototype testing with
+representative users in P1 belongs to the design horizon and to productisation; it does not gate the
+first device. P5 remains the separate productisation phase, and nothing in it shapes decisions
+today.
+
 Expected MVP themes:
 
 - local audio;

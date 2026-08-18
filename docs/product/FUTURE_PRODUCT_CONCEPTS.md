@@ -8,6 +8,13 @@ This catalogue preserves plausible product directions without making them requir
 or architecture work. Nothing here authorises implementation, a dependency, an interface or generic
 infrastructure. YAGNI remains binding.
 
+**Nothing is removed from this catalogue for lacking market differentiation** (ADR 0015 § 2). A
+concept earns implementation by making AQENO better for the person using it, not by being unique. In
+particular, `F1 Send to AQENO` is no longer defined by whether a paid service follows: a parent
+sending a child a personal message from a trip, a heart appearing, a tap, a familiar voice, is
+sufficient value on its own (ADR 0015 § 6). Whether AQENO Connect ever exists is a separate, later
+decision.
+
 > AQENO may become internally capable without becoming complicated for the person using it.
 
 AQENO remains a calm, physical and intuitive audio device for individuals and families. The display

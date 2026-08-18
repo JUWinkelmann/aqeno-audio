@@ -4,11 +4,47 @@
 **Date:** 2026-08-17  
 **Purpose:** Product foundation and decision frame for discovery and implementation.
 
+## 0. Why AQENO exists
+
+**Canonical statement of project motivation. Decided in ADR 0015; this section is its home.**
+
+> **AQENO is built to be excellent, not to justify a business.**
+
+AQENO is being built because we want an exceptionally good audio player made to our own design. The
+first one is for a specific child in the maintainer's family, who will use it every day. That is the
+real requirement AQENO answers, and it does not have to be defended against any existing product.
+
+The guiding sentences, in the order they matter:
+
+> **The first AQENO is built for real use, not for a hypothetical market.**
+>
+> **The primary design case starts with a child, but AQENO's design horizon is broader.**
+>
+> **Existing products are benchmarks and sources of learning, not reasons for AQENO not to exist.**
+>
+> **A feature does not need to be unique. It needs to make AQENO better.**
+>
+> **Optimal does not mean maximal.**
+>
+> **Use technology where it removes friction, not where it adds features.**
+>
+> **Commercialization is an option earned by a good product, not a requirement imposed on its
+> development.**
+
+And the question every product decision answers first:
+
+> **Does this make AQENO meaningfully better for the person using it?**
+
+There is no obligation to innovate. CD players, MP3 players, radios and telephones existed in large
+numbers with nearly identical core functions; they earned their place through handling, design, build
+quality, reliability, feel, price, scope, integration and preference. A capability existing elsewhere
+is not a reason to leave it out — and not a reason to include it either. The decision order in
+`AGENTS.md` § "Deciding what to build" applies.
+
 ## 1. Purpose
 
-AQENO is not a cheaper Toniebox clone and not a tablet with a simplified skin. It is an **open,
-adaptive, audio-first player platform** that makes digital audio understandable through calm,
-physical interaction while preserving freedom of hardware, content and interaction.
+AQENO is an **open, adaptive, audio-first player platform** that makes digital audio understandable
+through calm, physical interaction while preserving freedom of hardware, content and interaction.
 
 > **AQENO adapts to people — people should not have to adapt to the player.**
 
@@ -282,9 +318,11 @@ intentions.
 
 A future commercial device may integrate components for manufacturing efficiency while preserving openness wherever reasonable.
 
-## 13. Capabilities beyond a Toniebox
+## 13. Capabilities worth having
 
-AQENO differentiates through architecture, not feature accumulation.
+These are capabilities we want AQENO to have because they make it better to use — not claims of
+differentiation. Several of them are commodity in this product category, and that is not an argument
+against them (ADR 0015 § 2). Each still has to earn its place when it is actually built.
 
 | Capability | AQENO opportunity |
 |---|---|
@@ -323,6 +361,10 @@ assistant. This preserves a product option around privacy, speech accessibility 
 it is not a competitive marketing claim and does not prohibit a future explicitly chosen input.
 
 ## 15. Business and trust boundaries
+
+Commercialisation is optional and shapes no current decision (ADR 0015 § 6). The boundaries below are
+the ones that must hold *if* it ever happens, and several of them — no advertising, no paid placement,
+no locked controls — are product quality rules that stand on their own.
 
 - Core local playback must not require a subscription.
 - No advertising or paid placement in the child-facing interface.

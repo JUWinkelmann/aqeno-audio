@@ -21,6 +21,39 @@ This project is worked on productively. **No bells and whistles that do not adva
 
 When in doubt whether something advances the project: it does not. Ask instead of building it.
 
+## Deciding what to build
+
+AQENO is built to be excellent, not to justify a business (ADR 0015). The test for a capability is
+therefore **not** whether it differentiates AQENO from another product. It is:
+
+> **Does this make AQENO meaningfully better for the person using it?**
+
+with the companion test: **does it make AQENO better, or merely bigger?** "Optimal does not mean
+maximal" — the section above still governs, and a capability that adds scope without adding value,
+better interaction or a genuinely new possibility is declined or recorded in
+`docs/product/FUTURE_PRODUCT_CONCEPTS.md`.
+
+When a product or feature question needs deciding, work through these in order:
+
+1. **Real user value** — does it make actual use better?
+2. **Simplicity** — does AQENO stay understandable?
+3. **Quality** — can it feel like an integral part of the device?
+4. **Architectural fit** — does it sit cleanly in the existing model?
+5. **Broader vision** — does it needlessly foreclose future use situations?
+6. **Competitor learning** — how do others solve this, and what can we take from it?
+7. **Product potential** — only last: might this matter commercially later?
+
+Point 7 may not dominate points 1–5. Two things that are **never** arguments on their own:
+
+- *"A competitor already has this"* — existing products are benchmarks, not judges of what AQENO may
+  contain. See `docs/product/COMPETITIVE_REVIEW.md`, which is a learning reference and carries no
+  authority over scope.
+- *"This is not a USP"* — that says nothing about whether it makes AQENO better.
+
+The current primary design case is a child using AQENO independently in daily life on the reference
+hardware. Other audiences in `PRODUCT_FOUNDATION.md` § 4 and § 14 are design horizon, not
+implementation requirements for 1.0.
+
 ## Vibe-coding operating model
 
 This is intentionally an AI-assisted / vibe-coding project. Fast iteration is desirable, but **speed must not replace explicit decisions, tests or maintainability**.
