@@ -45,6 +45,9 @@ Linux touch/display-server behaviour. The amplifier's exact Linux/I2S presentati
 channel arrangement must be verified from the unit and vendor documentation before an adapter or
 wiring contract is recorded. Unknown inventory details must not be guessed.
 
+No NFC reader has been acquired. `NFC_REFERENCE_CANDIDATE.md` records the PN532/SPI spike candidate;
+it is not part of RH1 until that spike passes.
+
 ## Prototype topology
 
 ```text
@@ -55,6 +58,8 @@ Raspberry Pi 4B
 ├── Soldered Stereo I2S MAX98357 amplifier
 │   ├── QUARKZMAN 3 W / 4 ohm speaker (left)
 │   └── QUARKZMAN 3 W / 4 ohm speaker (right)
+│
+├── candidate PN532 NFC reader via SPI (not acquired / not Reference-supported)
 │
 └── SparkFun Qwiic SHIM DEV-15794
     │
@@ -71,7 +76,7 @@ Raspberry Pi 4B
         │   ├── key 3 → Next
         │   └── key 4 → unassigned reserve
         │
-        ├── free branch → candidate NFC hardware
+        ├── free branch → unused; PN532 candidate is SPI, not I2C
         └── free branch → future hardware if a real use case requires it
 ```
 

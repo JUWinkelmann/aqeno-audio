@@ -8,11 +8,15 @@ from fastapi import FastAPI
 from aqeno.adapters.fakes.input import FakeInputBus
 from aqeno.adapters.persistence.sqlite_library import open_library
 from aqeno.adapters.persistence.toml_settings import TomlSettingsStore
+from aqeno.appliance.storage import validate_data_volume
+from aqeno.config.paths import appliance_mode, paths
 from aqeno.management.api import create_app
 from aqeno.management.runtime import build_context
 
 
 def build_app() -> FastAPI:
+    if appliance_mode():
+        validate_data_volume(paths().data_root)
     library = open_library()
     settings_store = TomlSettingsStore()
     inputs = FakeInputBus()

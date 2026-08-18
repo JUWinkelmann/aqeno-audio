@@ -5,19 +5,35 @@ from __future__ import annotations
 import os
 import tempfile
 import uuid
+from collections.abc import Callable
 from contextlib import suppress
 from pathlib import Path
 from typing import BinaryIO
+
+from aqeno.appliance.storage import CapacityStatus
 
 
 class UploadTooLargeError(Exception):
     pass
 
 
+class InsufficientCapacityError(Exception):
+    pass
+
+
 class LocalAssetStore:
-    def __init__(self, *, media_root: Path, artwork_root: Path) -> None:
+    def __init__(
+        self,
+        *,
+        media_root: Path,
+        artwork_root: Path,
+        import_staging_root: Path | None = None,
+        capacity: Callable[[], CapacityStatus] | None = None,
+    ) -> None:
         self.media_root = media_root
         self.artwork_root = artwork_root
+        self.import_staging_root = import_staging_root or media_root / ".staging"
+        self._capacity = capacity
 
     def store_media(
         self, source: BinaryIO, *, filename: str, maximum_bytes: int = 4 * 1024**3
@@ -25,9 +41,55 @@ class LocalAssetStore:
         safe_name = Path(filename).name
         if not safe_name or safe_name in {".", ".."}:
             raise ValueError("invalid upload filename")
-        target_dir = self.media_root / "imports" / str(uuid.uuid4())
-        target_dir.mkdir(parents=True, exist_ok=False)
-        return self._atomic_copy(source, target_dir / safe_name, maximum_bytes)
+        expected = self._stream_size(source)
+        if expected is not None and self._capacity is not None:
+            status: CapacityStatus = self._capacity()
+            if not status.permits(expected, staging_copies=1):
+                raise InsufficientCapacityError("not enough reserved capacity for import")
+        operation_id = str(uuid.uuid4())
+        staging_dir = self.import_staging_root / operation_id
+        target_dir = self.media_root / "imports" / operation_id
+        staging_dir.mkdir(parents=True, exist_ok=False)
+        try:
+            staged = self._atomic_copy(source, staging_dir / safe_name, maximum_bytes)
+            target_dir.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(staging_dir, target_dir)
+            return target_dir / staged.name
+        except BaseException:
+            with suppress(OSError):
+                for child in staging_dir.iterdir():
+                    child.unlink()
+                staging_dir.rmdir()
+            raise
+
+    def cleanup_interrupted_imports(self) -> int:
+        """Remove only Class-D staging; published media is never touched."""
+        if not self.import_staging_root.is_dir():
+            return 0
+        removed = 0
+        for operation in self.import_staging_root.iterdir():
+            if operation.is_dir():
+                for child in operation.iterdir():
+                    if child.is_file():
+                        child.unlink()
+                with suppress(OSError):
+                    operation.rmdir()
+                    removed += 1
+            elif operation.is_file():
+                operation.unlink()
+                removed += 1
+        return removed
+
+    @staticmethod
+    def _stream_size(source: BinaryIO) -> int | None:
+        try:
+            position = source.tell()
+            source.seek(0, os.SEEK_END)
+            size = source.tell()
+            source.seek(position)
+            return size - position
+        except (AttributeError, OSError):
+            return None
 
     def store_artwork(
         self,
@@ -42,6 +104,11 @@ class LocalAssetStore:
         )
         if not suffix:
             raise ValueError("unsupported artwork type")
+        expected = self._stream_size(source)
+        if expected is not None and self._capacity is not None:
+            status = self._capacity()
+            if not status.permits(expected, staging_copies=1):
+                raise InsufficientCapacityError("not enough reserved capacity for artwork")
         self.artwork_root.mkdir(parents=True, exist_ok=True)
         return self._atomic_copy(source, self.artwork_root / f"{content_id}{suffix}", maximum_bytes)
 

@@ -1,0 +1,48 @@
+@import 'tailwindcss';
+@import '$lib/ui/tokens.css';
+
+@source '../**/*.{html,js,svelte,ts}';
+
+/* Semantic utilities */
+@utility bg-canvas { background-color: var(--color-canvas); }
+@utility bg-surface { background-color: var(--color-surface); }
+@utility bg-surface-muted { background-color: var(--color-surface-muted); }
+@utility bg-accent { background-color: var(--color-accent); }
+@utility bg-accent-soft { background-color: var(--color-accent-soft); }
+@utility bg-success-soft { background-color: var(--color-success-soft); }
+@utility bg-attention-soft { background-color: var(--color-attention-soft); }
+@utility text-ink { color: var(--color-ink); }
+@utility text-ink-muted { color: var(--color-ink-muted); }
+@utility text-ink-faint { color: var(--color-ink-faint); }
+@utility text-accent { color: var(--color-accent); }
+@utility text-success { color: var(--color-success); }
+@utility text-attention { color: var(--color-attention); }
+@utility text-danger { color: var(--color-danger); }
+@utility border-border { border-color: var(--color-border); }
+@utility shadow-artwork { box-shadow: var(--shadow-artwork); }
+@utility shadow-md-token { box-shadow: var(--shadow-md); }
+
+@utility text-display {
+	font-size: 1.75rem;
+	font-weight: 600;
+	letter-spacing: -0.02em;
+	line-height: 1.2;
+}
+@utility text-title {
+	font-size: 1.125rem;
+	font-weight: 600;
+	line-height: 1.3;
+}
+@utility text-body {
+	font-size: 0.9375rem;
+	line-height: 1.5;
+}
+@utility text-caption {
+	font-size: 0.8125rem;
+	line-height: 1.4;
+}
+@utility text-label {
+	font-size: 0.75rem;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+}

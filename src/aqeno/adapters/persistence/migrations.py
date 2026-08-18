@@ -12,7 +12,6 @@ to open (`SchemaTooNewError`): downgrading silently is worse than failing.
 
 from __future__ import annotations
 
-import shutil
 import sqlite3
 from collections.abc import Callable
 from pathlib import Path
@@ -243,12 +242,12 @@ def get_schema_version(conn: sqlite3.Connection) -> int:
 def _backup(db_path: Path, version: int) -> None:
     if not db_path.exists() or db_path.stat().st_size == 0:
         return  # nothing to lose yet
+    from aqeno.appliance.sqlite_snapshot import sqlite_online_snapshot
+
     backup_path = db_path.with_name(f"{db_path.name}.bak-{version}")
-    shutil.copy2(db_path, backup_path)
-    for suffix in ("-wal", "-shm"):
-        side_file = db_path.with_name(db_path.name + suffix)
-        if side_file.exists():
-            shutil.copy2(side_file, backup_path.with_name(backup_path.name + suffix))
+    if backup_path.exists():
+        backup_path.unlink()
+    sqlite_online_snapshot(db_path, backup_path)
 
 
 def apply_migrations(conn: sqlite3.Connection, *, db_path: Path) -> None:

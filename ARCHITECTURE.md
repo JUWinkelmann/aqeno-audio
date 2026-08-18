@@ -55,6 +55,11 @@ Hardware-specific implementations should sit behind explicit ports for at least:
 
 The application must not depend directly on Raspberry Pi GPIO libraries or a particular SBC SDK.
 
+The appliance, storage and installation boundary is defined by ADR 0020, ADR 0021 and
+`docs/architecture/APPLIANCE_ARCHITECTURE.md`. Raspberry Pi 4B is Reference Platform 1, not the AQENO
+architecture. Production state lives on the separately validated `AQENO-DATA` volume; Linux and
+versioned application releases are replaceable.
+
 ## Startup architecture
 
 AQENO uses staged readiness rather than waiting for the entire system to initialise before becoming usable.
@@ -116,14 +121,16 @@ See `docs/decisions/`. Accepted ADRs override this document.
 - excellence-first personal-project posture (ADR 0015);
 - application authority over display power policy (ADR 0016);
 - display as an optional capability without a capability framework (ADR 0017).
+- replaceable SYSTEM, classified Data and portable backup (ADR 0020);
+- capability-oriented platform, Reference Platform 1 and installer/image boundary (ADR 0021).
 
 ## Decision still open
 
 Do not lock these prematurely:
 
 - production hardware beyond the acquired RH1 prototype;
-- packaging/update mechanism and display server — `eglfs` vs Wayland gates the display-power
-  story (gap G24);
+- final Reference Platform package manifest and display server — `eglfs` vs Wayland gates the
+  display-power story (gap G24); packaging/install boundaries are decided by ADR 0021;
 - remote/cloud architecture;
 - final open-source license — **deferred by intent**, see ADR 0006. AQENO is a personal project;
   nothing is published or distributed, so no licence is needed yet.

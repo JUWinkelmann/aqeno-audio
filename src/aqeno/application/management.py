@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import secrets
 import threading
-import time
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -52,48 +50,6 @@ class BulkLimitError(ManagementError):
     code = "bulk_limit_exceeded"
 
 
-class PairingInvalidError(ManagementError):
-    code = "pairing_code_invalid"
-
-
-@dataclass(frozen=True, slots=True)
-class PairingSession:
-    code: str
-    expires_at_monotonic: float
-
-
-class PairingCoordinator:
-    """Bounded one-time handover initiated by an already authorised Manager."""
-
-    def __init__(self, *, lifetime_seconds: int = 300) -> None:
-        self._lifetime_seconds = lifetime_seconds
-        self._session: PairingSession | None = None
-        self._attempts = 0
-        self._lock = threading.Lock()
-
-    def start(self) -> PairingSession:
-        session = PairingSession(
-            code=f"{secrets.randbelow(1_000_000):06d}",
-            expires_at_monotonic=time.monotonic() + self._lifetime_seconds,
-        )
-        with self._lock:
-            self._session = session
-            self._attempts = 0
-        return session
-
-    def exchange(self, code: str) -> None:
-        with self._lock:
-            session = self._session
-            expired = session is None or time.monotonic() > session.expires_at_monotonic
-            matches = session is not None and secrets.compare_digest(code, session.code)
-            if expired or not matches or self._attempts >= 5:
-                self._attempts += 1
-                if expired or self._attempts >= 5:
-                    self._session = None
-                raise PairingInvalidError("Pairing code is invalid or expired.")
-            self._session = None
-
-
 class OperationType(StrEnum):
     MEDIA_IMPORT = auto()
     LIBRARY_SCAN = auto()
@@ -128,6 +84,7 @@ class OperationRegistry:
         self._listeners: list[OperationListener] = []
         self._lock = threading.RLock()
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="aqeno-management")
+        self._closed = False
 
     def on_changed(self, listener: OperationListener) -> None:
         with self._lock:
@@ -142,13 +99,20 @@ class OperationRegistry:
             return self._operations.get(operation_id)
 
     def submit(self, kind: OperationType, work: Callable[[], dict[str, Any]]) -> Operation:
+        with self._lock:
+            if self._closed:
+                raise RuntimeError("operation registry is closed")
         operation = Operation(id=uuid.uuid4(), type=kind, state=OperationState.QUEUED, progress=0)
         self._set(operation)
         self._executor.submit(self._run, operation, work)
         return operation
 
     def close(self) -> None:
-        self._executor.shutdown(wait=False, cancel_futures=False)
+        with self._lock:
+            if self._closed:
+                return
+            self._closed = True
+        self._executor.shutdown(wait=True, cancel_futures=True)
 
     def _run(self, operation: Operation, work: Callable[[], dict[str, Any]]) -> None:
         current = replace(operation, state=OperationState.RUNNING, progress=5)
@@ -302,10 +266,19 @@ class TokenAssignment:
     def start_capture(self) -> TokenCapture:
         capture = TokenCapture(id=uuid.uuid4(), state=TokenCaptureState.WAITING)
         with self._lock:
+            superseded = (
+                replace(self._captures[self._active], state=TokenCaptureState.CANCELLED)
+                if self._active is not None
+                else None
+            )
+            if superseded is not None:
+                self._captures[superseded.id] = superseded
             self._captures[capture.id] = capture
             self._active = capture.id
         if self._capture_active_changed is not None:
             self._capture_active_changed(True)
+        if superseded is not None:
+            self._notify(superseded)
         self._notify(capture)
         return capture
 
@@ -318,7 +291,7 @@ class TokenAssignment:
 
     def assign(self, capture_id: uuid.UUID, content_id: ContentId) -> TokenCapture:
         capture = self.get_capture(capture_id)
-        if capture.token_uid is None:
+        if capture.state is not TokenCaptureState.DETECTED or capture.token_uid is None:
             raise TokenNotDetectedError(str(capture_id))
         if self._library.get_content(content_id) is None:
             raise ContentNotFoundError(str(content_id.value))
@@ -328,7 +301,7 @@ class TokenAssignment:
             self._captures[capture_id] = assigned
             if self._active == capture_id:
                 self._active = None
-        if self._capture_active_changed is not None:
+        if self._capture_active_changed is not None and self._active is None:
             self._capture_active_changed(False)
         self._notify(assigned)
         return assigned

@@ -69,7 +69,7 @@ Expected MVP themes:
 - screen-off playback and Dark Room;
 - basic NFC mapping;
 - Kids Early experience;
-- local Guardian setup/configuration.
+- local Manager/Owner setup and configuration.
 
 ## P4 — Alpha implementation
 
@@ -77,10 +77,12 @@ Expected MVP themes:
 - [x] Content domain and storage.
 - [x] Playback application layer.
 - [x] Bounded Kids Early Device UI over adaptive architecture.
-- [ ] Guardian local management.
+- [x] Versioned local Management API and OpenAPI handover.
+- [ ] Local Management Web client integration and RH1 validation.
 - [ ] NFC Actions.
 - [ ] Scenes.
-- [ ] Packaging/install/update path.
+- [x] Reference systemd/Avahi installation path.
+- [ ] Signed update and rollback path.
 
 ## P5 — Productisation exploration
 

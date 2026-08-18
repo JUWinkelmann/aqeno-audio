@@ -39,6 +39,9 @@ rh1 = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"aqeno.management" = ["static/**/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-m 'not hardware' --strict-markers"

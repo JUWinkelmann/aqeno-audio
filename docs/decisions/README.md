@@ -30,3 +30,10 @@ What becomes easier, harder or constrained?
 ```
 
 Do not create ADRs for trivial implementation details.
+
+The appliance-level decisions are ADR 0020 (replaceable SYSTEM, Data and portable backup) and ADR
+0021 (platform/install/image boundary). Their detailed contracts are linked from
+`docs/architecture/APPLIANCE_ARCHITECTURE.md`.
+
+ADR 0022 defines the human-facing local Admin password/session boundary and the reference
+`http://aqeno.local` discovery/serving path.

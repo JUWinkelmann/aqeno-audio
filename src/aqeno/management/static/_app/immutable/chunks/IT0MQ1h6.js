@@ -1,0 +1,1 @@
+function e(e){if(e==null||e<=0)return`—`;let t=Math.round(e),n=Math.floor(t/3600),r=Math.floor(t%3600/60);return n>0?`${n} Std ${r} Min`:`${r} Min`}function t(e){return e<1024**2?`${Math.round(e/1024)} KB`:e<1024**3?`${(e/1024**2).toFixed(1)} MB`:`${(e/1024**3).toFixed(1)} GB`}export{e as n,t};

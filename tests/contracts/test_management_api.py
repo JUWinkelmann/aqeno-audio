@@ -22,7 +22,8 @@ from aqeno.application.management import (
 from aqeno.config.defaults import default_settings
 from aqeno.domain.content import ContentId, ContentItem, ContentKind, Fingerprint, LocalFileSource
 from aqeno.management.api import ManagementContext, create_app
-from aqeno.ports.input import NfcPresented
+from aqeno.management.auth import AdminAuth
+from aqeno.ports.input import Next, NfcPresented, Previous, TogglePlayback
 from aqeno.ports.media_probe import ProbedFile
 
 KEY = "test-management-key"
@@ -56,7 +57,13 @@ def _item(title: str) -> ContentItem:
 
 
 class ApiFixture:
-    def __init__(self, tmp_path: Path) -> None:
+    def __init__(
+        self,
+        tmp_path: Path,
+        *,
+        admin_dir: Path | None = None,
+        development_origins: tuple[str, ...] = (),
+    ) -> None:
         self.library = FakeLibrary()
         self.settings_store = FakeSettingsStore()
         self.inputs = FakeInputBus()
@@ -80,24 +87,203 @@ class ApiFixture:
             tokens=TokenAssignment(self.library, self.inputs),
             assets=self.assets,
             management_key=KEY,
+            auth=AdminAuth(credential_path=tmp_path / "admin-auth.json", inputs=self.inputs),
             device_id=uuid.UUID("11111111-1111-1111-1111-111111111111"),
             data_dir=tmp_path,
+            admin_dir=admin_dir,
+            development_origins=development_origins,
         )
         self.client = TestClient(create_app(self.context))
 
 
-def test_every_management_resource_requires_the_device_key(tmp_path: Path) -> None:
+def test_every_management_resource_requires_management_authority(tmp_path: Path) -> None:
     api = ApiFixture(tmp_path)
     response = api.client.get("/api/v1/device")
     assert response.status_code == 401
     assert response.json() == {
         "error": {
-            "code": "management_auth_required",
-            "message": "A valid management key is required.",
+            "code": "authentication_required",
+            "message": "Authentication is required.",
             "details": None,
         }
     }
     assert api.client.get("/api/v1/device", headers=HEADERS).status_code == 200
+
+
+def test_built_admin_client_is_served_with_spa_fallback_without_masking_api(
+    tmp_path: Path,
+) -> None:
+    admin = tmp_path / "admin"
+    admin.mkdir()
+    (admin / "index.html").write_text("<h1>AQENO Admin</h1>")
+    (admin / "app.js").write_text("console.log('aqeno')")
+    api = ApiFixture(tmp_path, admin_dir=admin)
+
+    assert "AQENO Admin" in api.client.get("/").text
+    assert "AQENO Admin" in api.client.get("/library/some-media").text
+    assert "console.log" in api.client.get("/app.js").text
+    assert api.client.get("/api/v1/does-not-exist").status_code == 404
+
+
+def test_vite_development_origin_has_bounded_cors_access(tmp_path: Path) -> None:
+    api = ApiFixture(tmp_path, development_origins=("http://127.0.0.1:5173",))
+    response = api.client.options(
+        "/api/v1/device",
+        headers={
+            "Origin": "http://127.0.0.1:5173",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "X-AQENO-CSRF",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
+    assert response.headers["access-control-allow-credentials"] == "true"
+    denied = api.client.options(
+        "/api/v1/device",
+        headers={"Origin": "https://example.invalid", "Access-Control-Request-Method": "GET"},
+    )
+    assert "access-control-allow-origin" not in denied.headers
+
+
+def _configure_admin(api: ApiFixture, password: str = "eine gute passphrase") -> str:
+    started = api.client.post("/api/v1/auth/setup/confirmations")
+    assert started.status_code == 201
+    confirmation_id = started.json()["id"]
+    api.inputs.emit(Previous())
+    api.inputs.emit(TogglePlayback())
+    api.inputs.emit(Next())
+    assert (
+        api.client.get(f"/api/v1/auth/setup/confirmations/{confirmation_id}").json()["state"]
+        == "confirmed"
+    )
+    configured = api.client.post(
+        "/api/v1/auth/setup",
+        json={"confirmation_id": confirmation_id, "password": password},
+    )
+    assert configured.status_code == 201
+    return str(configured.json()["csrf_token"])
+
+
+def test_first_setup_uses_physical_confirmation_and_never_returns_management_key(
+    tmp_path: Path,
+) -> None:
+    api = ApiFixture(tmp_path)
+    assert api.client.get("/api/v1/auth/status").json() == {
+        "setup_required": True,
+        "authenticated": False,
+        "physical_confirmation_available": True,
+        "csrf_token": None,
+    }
+    csrf = _configure_admin(api)
+    assert csrf
+    assert api.client.get("/api/v1/device").status_code == 200
+    assert api.client.get("/api/v1/auth/status").json()["authenticated"] is True
+    assert "management_key" not in api.client.get("/api/openapi.json").text
+    cookie = api.client.cookies.get("aqeno_admin_session")
+    assert cookie is not None
+
+
+def test_session_mutations_require_csrf_and_logout_invalidates_session(tmp_path: Path) -> None:
+    api = ApiFixture(tmp_path)
+    csrf = _configure_admin(api)
+    assert api.client.post("/api/v1/token-captures").status_code == 403
+    assert (
+        api.client.post("/api/v1/token-captures", headers={"X-AQENO-CSRF": csrf}).status_code == 201
+    )
+    assert api.client.post("/api/v1/auth/logout").status_code == 403
+    assert api.client.post("/api/v1/auth/logout", headers={"X-AQENO-CSRF": csrf}).status_code == 204
+    assert api.client.get("/api/v1/device").status_code == 401
+
+
+def test_password_login_change_and_recovery_are_local_and_profile_independent(
+    tmp_path: Path,
+) -> None:
+    api = ApiFixture(tmp_path)
+    csrf = _configure_admin(api, "erstes passwort")
+    changed = api.client.post(
+        "/api/v1/auth/password",
+        headers={"X-AQENO-CSRF": csrf},
+        json={"current_password": "erstes passwort", "new_password": "zweites passwort"},
+    )
+    assert changed.status_code == 200
+    new_csrf = changed.json()["csrf_token"]
+    api.client.post("/api/v1/auth/logout", headers={"X-AQENO-CSRF": new_csrf})
+    assert (
+        api.client.post("/api/v1/auth/login", json={"password": "erstes passwort"}).status_code
+        == 401
+    )
+    assert (
+        api.client.post("/api/v1/auth/login", json={"password": "zweites passwort"}).status_code
+        == 200
+    )
+
+    recovery = api.client.post("/api/v1/auth/recovery/confirmations").json()
+    api.inputs.emit(Previous())
+    api.inputs.emit(TogglePlayback())
+    api.inputs.emit(Next())
+    recovered = api.client.post(
+        "/api/v1/auth/recovery",
+        json={"confirmation_id": recovery["id"], "password": "drittes passwort"},
+    )
+    assert recovered.status_code == 200
+
+
+def test_hidden_management_key_can_confirm_bootstrap_without_entering_openapi(
+    tmp_path: Path,
+) -> None:
+    api = ApiFixture(tmp_path)
+    started = api.client.post("/api/v1/auth/setup/confirmations", headers=HEADERS)
+    assert started.status_code == 201
+    assert started.json()["state"] == "confirmed"
+    configured = api.client.post(
+        "/api/v1/auth/setup",
+        json={"confirmation_id": started.json()["id"], "password": "diagnose passphrase"},
+    )
+    assert configured.status_code == 201
+    cookie = configured.headers["set-cookie"].lower()
+    assert "httponly" in cookie
+    assert "samesite=strict" in cookie
+    assert "path=/api/v1" in cookie
+    specification = api.client.get("/api/openapi.json").text
+    assert "X-AQENO-Management-Key" not in specification
+    assert "management_key" not in specification
+
+
+def test_openapi_documents_browser_session_and_write_only_passwords(tmp_path: Path) -> None:
+    api = ApiFixture(tmp_path)
+    specification = api.client.get("/api/openapi.json").json()
+    assert specification["components"]["securitySchemes"]["AdminSession"] == {
+        "type": "apiKey",
+        "description": "HttpOnly session cookie issued by password login or confirmed local setup.",
+        "in": "cookie",
+        "name": "aqeno_admin_session",
+    }
+    assert {"AdminSession": []} in specification["paths"]["/api/v1/device"]["get"]["security"]
+    assert specification["components"]["schemas"]["PasswordRequest"]["properties"]["password"][
+        "writeOnly"
+    ]
+    headers = specification["paths"]["/api/v1/auth/logout"]["post"]["parameters"]
+    assert any(item["name"] == "X-AQENO-CSRF" and item["in"] == "header" for item in headers)
+
+
+def test_validation_errors_never_echo_password_payloads(tmp_path: Path) -> None:
+    api = ApiFixture(tmp_path)
+    secret = "not-for-logs-or-responses-" * 100
+    response = api.client.post("/api/v1/auth/login", json={"password": secret})
+    assert response.status_code == 422
+    assert secret not in response.text
+
+
+def test_login_rate_limit_is_temporary_and_has_stable_error(tmp_path: Path) -> None:
+    api = ApiFixture(tmp_path)
+    csrf = _configure_admin(api)
+    api.client.post("/api/v1/auth/logout", headers={"X-AQENO-CSRF": csrf})
+    for _ in range(5):
+        response = api.client.post("/api/v1/auth/login", json={"password": "falsch falsch"})
+        assert response.status_code == 401
+    limited = api.client.post("/api/v1/auth/login", json={"password": "eine gute passphrase"})
+    assert limited.status_code == 429
+    assert limited.json()["error"]["code"] == "auth_rate_limited"
 
 
 def test_library_uses_bounded_stable_cursor_pagination_and_server_filters(tmp_path: Path) -> None:

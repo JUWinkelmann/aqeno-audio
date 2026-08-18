@@ -1,0 +1,65 @@
+name: quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - run: python -m ruff format --check .
+      - run: python -m ruff check .
+      - run: >-
+          python -m mypy
+          src/aqeno/management
+          src/aqeno/application/management.py
+          src/aqeno/appliance
+          src/aqeno/config/paths.py
+          src/aqeno/adapters/local_assets.py
+      - name: Management and persistence contracts
+        run: >-
+          python -m pytest -q
+          tests/contracts/test_management_api.py
+          tests/contracts/test_openapi_artifact.py
+          tests/contracts/test_persistence.py
+          tests/contracts/test_profile_content_access.py
+          tests/contracts/test_reference_deployment.py
+          tests/unit/test_ingestion.py
+          tests/unit/test_appliance_storage.py
+          tests/unit/test_management_auth.py
+          tests/unit/test_management_hardening.py
+          tests/unit/test_paths.py
+      - run: python scripts/benchmark_large_library.py --count 10000 --max-query-ms 250
+
+  admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci
+        working-directory: admin
+      - run: npm run generate:api
+        working-directory: admin
+      - run: git diff --exit-code -- admin/src/lib/api/schema.d.ts
+      - run: npm run check
+        working-directory: admin
+      - run: npm test
+        working-directory: admin
+      - run: npm run build
+        working-directory: admin
+      - run: npx playwright install --with-deps chromium
+        working-directory: admin
+      - run: npm run test:e2e
+        working-directory: admin

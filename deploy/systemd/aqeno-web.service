@@ -1,0 +1,13 @@
+[Unit]
+Description=AQENO local administration same-origin proxy
+Requires=aqeno.service
+After=aqeno.service
+
+[Service]
+User=aqeno
+Group=aqeno
+ExecStart=/lib/systemd/systemd-socket-proxyd 127.0.0.1:8766
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true

@@ -23,13 +23,14 @@ from aqeno.adapters.led.none import NullStatusLeds
 from aqeno.adapters.metadata import MutagenProbe
 from aqeno.adapters.persistence.sqlite_library import SqliteLibrary, open_library
 from aqeno.adapters.persistence.toml_settings import TomlSettingsStore
+from aqeno.appliance.storage import validate_data_volume
 from aqeno.application.device_ui import DeviceUiState
 from aqeno.application.display import DisplayService
 from aqeno.application.ingestion import run_scan
 from aqeno.application.playback import PlaybackSession
 from aqeno.application.readiness import Readiness, ReadinessState
 from aqeno.config.defaults import Settings
-from aqeno.config.paths import artwork_dir
+from aqeno.config.paths import appliance_mode, derived_artwork_dir, paths
 from aqeno.domain.display import DisplayState
 from aqeno.domain.profile import (
     DisplayPolicy,
@@ -173,7 +174,7 @@ def _run_startup_scan(
             clock=SystemClock(),
             roots=settings.library.roots,
             follow_symlinks=settings.library.follow_symlinks,
-            artwork_dir=artwork_dir(),
+            artwork_dir=derived_artwork_dir(),
         )
         logger.info(
             "content scan complete",
@@ -426,6 +427,12 @@ def _start_device_ui(process: AqenoProcess) -> _DeviceUiRuntime:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    if appliance_mode():
+        try:
+            validate_data_volume(paths().data_root)
+        except Exception as exc:
+            logger.error("AQENO-DATA validation failed: %s", exc)
+            return 2
     try:
         process = _open_process(profile_name=args.profile, fake_hardware=args.fake_hardware)
     except Exception as exc:

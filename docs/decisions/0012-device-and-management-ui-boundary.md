@@ -39,10 +39,10 @@ Complex administration does not belong on the box. The local `SETUP` state remai
 appliance tasks such as pairing, recovery and simple choices. It is not the permanent home for
 media management, NFC assignment, account management or service configuration.
 
-A future Management API is a presentation adapter over application use cases. It may be local or
-optionally remote, must be deliberately authenticated, and may not expose persistence or other
-internal Python objects as its contract. These constraints do not justify building it before a
-management journey requires it.
+A Management API is a presentation adapter over application use cases. ADR 0018 selects the local,
+authenticated implementation. It may not expose persistence or other internal Python objects as its
+contract. Future remote access remains a separate adapter/transport decision and cannot become a
+gateway required to operate the local device.
 
 Qt Virtual Keyboard is not part of the AQENO product runtime. Device flows avoid complex free-text
 entry; no replacement keyboard is implemented. This is a product-scope decision as well as avoiding

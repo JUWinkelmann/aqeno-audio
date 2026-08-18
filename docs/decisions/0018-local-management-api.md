@@ -24,11 +24,10 @@ Device UI never wait for HTTP readiness. The adapter consumes application servic
 snapshots; it never exposes SQLite rows, configuration files, filesystem browsing or Python domain
 objects as JSON.
 
-All management routes require a management key in `X-AQENO-Management-Key`. Cookie authentication is not used,
-so browser ambient authority and CSRF are avoided; CORS is disabled by default. The development
-server binds to loopback unless a Manager deliberately binds it to the LAN. A generated device key
-is stored locally with owner-only permissions. This is the minimum prototype trust boundary, not an
-account or OAuth platform.
+**Amended by ADR 0022.** Human administration now uses a local password, physical first-ownership
+confirmation and server-side cookie sessions with CSRF protection. The generated Management key is
+retained only as a hidden break-glass/machine credential. Listening profiles remain unrelated to
+authentication.
 
 Library lists use opaque cursors, bounded limits and stable `(normalised title, ContentId)` ordering.
 List representations omit sources, chapters and original artwork bytes. Artwork has separate URLs.
@@ -48,9 +47,10 @@ playback.
   explicitly reviewed compatible migration.
 - FastAPI, Starlette/Pydantic transitively, Uvicorn and python-multipart become runtime dependencies.
   Their licences and exact release versions must be retained in release compliance.
-- The API key protects LAN mutation without inventing users. An authorised Manager may create a
-  short-lived, single-use code to pair another local client. Certificate transport remains later
-  security work before exposure beyond a deliberately trusted LAN.
+- The local Admin password/session plus CSRF protects browser mutation without inventing accounts;
+  setup and recovery require a short-lived physical ownership confirmation. The technical key is
+  break-glass/machine authority only. Trusted certificate transport remains later security work
+  before exposure beyond a deliberately trusted LAN.
 - Avahi publishes the local HTTP endpoint. Wi-Fi/captive-portal setup, updates, messaging, Connect
   and remote access are not added by this decision.
 

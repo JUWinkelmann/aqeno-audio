@@ -73,6 +73,11 @@ from `DOMAIN_MODEL.md` made concrete, and it is why identity is not derived from
 
 ### 4. Locations
 
+**Amended for appliance deployment by ADR 0020.** The following remain development/XDG defaults.
+On an AQENO appliance, user configuration, database, original artwork and local media live below the
+validated `/aqeno-data` mount according to `STORAGE_BACKUP_RECOVERY_CONTRACT.md`; `/etc/aqeno` may
+contain only reconstructable platform/bootstrap configuration.
+
 | Path | Contents | Override |
 |---|---|---|
 | `$XDG_CONFIG_HOME/aqeno/settings.toml` | settings | `AQENO_CONFIG_DIR` |
@@ -86,8 +91,9 @@ tests never touch real state — `tests/` always points them at a temporary dire
 
 - A `schema_version` table with a single integer row.
 - **Forward-only migrations**, each a numbered Python module, applied in one transaction at startup.
-- **The database file is copied before any migration runs.** On a device that may lose power at any
-  moment, a mid-migration crash without a backup is how a library gets lost.
+- **A consistent database snapshot is created before any migration runs.** ADR 0020 requires the
+  SQLite online backup API plus integrity validation for appliance data. The current raw `.bak-*`
+  implementation is a legacy safeguard to replace before migrating real user data.
 - A database whose version is *newer* than the code refuses to open. Downgrading silently is worse
   than failing.
 

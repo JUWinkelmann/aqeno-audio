@@ -6,8 +6,8 @@
 ## Decision
 
 Profiles are local listening contexts, not accounts or authentication identities. Management
-authorization remains the device management key described by ADR 0018. Media identity is shared;
-favorites and playback progress are stored per profile.
+authorization remains the separate local Admin trust boundary described by ADR 0018 and amended by
+ADR 0022. Media identity is shared; favorites and playback progress are stored per profile.
 
 Content is shared by default. A media object may instead name selected profiles. A minimal
 collection groups media for one inherited audience, and an explicit media/profile allow or deny is
@@ -30,7 +30,8 @@ media and 50 profiles per request. Profile-filtered library queries evaluate acc
 - A new profile does not require assignments for an existing shared library.
 - Collection membership is introduced only for shared access administration, not as a second media
   library, playlist engine or generic taxonomy.
-- No username, password, email, login, OAuth, cloud identity, RBAC or policy engine is introduced.
+- No username, profile password, email, profile login, OAuth, cloud identity, RBAC or policy engine
+  is introduced. The one local Administration password is outside the listening-profile model.
 - Existing resume rows already contain a profile name; there is no destructive progress migration.
 - There were no persisted favorites or visibility rules before this decision, so shared default
   preserves all existing content visibility.

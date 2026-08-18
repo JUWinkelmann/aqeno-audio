@@ -127,13 +127,12 @@ ADR 0011 defines synchronous, registration-order delivery without replay or coal
 `DEVELOPMENT.md` defines the desktop keyboard mapping; the simulator implements the same `InputBus`
 port as hardware controls.
 
-### G07 — Local API / event channel — **CLOSED 2026-08-17 (by ADRs 0002 and 0012)**
+### G07 — Local API / event channel — **CLOSED 2026-08-18 (by ADRs 0002, 0012 and 0018)**
 Slice step 6 was "local API/event channel" with zero further description. ADR 0002 decides that the
 UI runs **in-process** with the application core, communicating via Qt signals and an
-application-level event bus. There is therefore no local API, serialisation format or network
-listener in the vertical slice. ADR 0012 permits a later authenticated Management API as a separate
-presentation adapter when an adult management journey requires it; it does not add one now. Slice
-step 6 should be restated as "application event bus" rather than "local API".
+application-level event bus. The Device UI still has no HTTP dependency. ADR 0018 subsequently adds
+the independently optional authenticated Local Management API; OpenAPI and SSE do not replace the
+in-process Device UI boundary.
 
 ---
 

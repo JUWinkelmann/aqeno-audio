@@ -224,6 +224,6 @@ provides.
 
 ## 10. Deliberately not decided here
 
-Which readiness state a future Management API attaches to (ADR 0012 — it is not on the box today);
+The Management API attaches after `PLAYBACK_READY` and remains optional degradation (ADR 0018);
 suspend/resume of the whole device as distinct from display wake; and the shutdown sequence, which is
 `PlaybackSession.shutdown()` plus an orderly close and needs no ladder of its own.

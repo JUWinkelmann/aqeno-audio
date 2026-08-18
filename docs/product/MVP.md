@@ -17,10 +17,11 @@ Prove the AQENO product architecture with one coherent vertical slice before exp
 - provide only the bounded on-device setup/recovery controls required by the slice, without complex
   free-text entry;
 - provide structured local logs without telemetry.
+- provide authenticated local management for import, library metadata/artwork, token assignment and
+  relevant device configuration without cloud dependency; its Web client remains replaceable.
 
 ## Explicitly not MVP
 - cloud accounts or remote management;
-- Management Web UI or Management API;
 - commercial streaming services;
 - recommendations/AI;
 - multi-device follow-me;

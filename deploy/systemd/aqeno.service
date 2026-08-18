@@ -1,16 +1,17 @@
 [Unit]
 Description=AQENO audio player
-After=local-fs.target sound.target
-Wants=network-online.target
-After=network-online.target
+After=local-fs.target sound.target aqeno-data.mount
+RequiresMountsFor=/aqeno-data
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
 User=aqeno
 Group=aqeno
-WorkingDirectory=/opt/aqeno
+WorkingDirectory=/opt/aqeno/current
 EnvironmentFile=-/etc/aqeno/aqeno.env
-ExecStart=/opt/aqeno/.venv/bin/python -m aqeno --management-host 0.0.0.0
+ExecStart=/opt/aqeno/current/venv/bin/python -m aqeno --management-host 127.0.0.1 --management-port 8766
 Restart=on-failure
 RestartSec=2
 TimeoutStopSec=10
@@ -18,7 +19,8 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/aqeno /var/cache/aqeno
+ReadOnlyPaths=/opt/aqeno
+ReadWritePaths=/aqeno-data
 
 [Install]
 WantedBy=multi-user.target

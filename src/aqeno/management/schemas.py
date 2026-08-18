@@ -24,6 +24,41 @@ class ErrorResponse(ApiModel):
     error: ErrorBody
 
 
+class AuthStatus(ApiModel):
+    setup_required: bool
+    authenticated: bool
+    physical_confirmation_available: bool = True
+    csrf_token: str | None = None
+
+
+class PasswordRequest(ApiModel):
+    password: str = Field(min_length=1, max_length=1024, json_schema_extra={"writeOnly": True})
+
+
+class InitialPasswordRequest(ApiModel):
+    confirmation_id: UUID
+    password: str = Field(min_length=10, max_length=1024, json_schema_extra={"writeOnly": True})
+
+
+class PasswordChangeRequest(ApiModel):
+    current_password: str = Field(
+        min_length=1, max_length=1024, json_schema_extra={"writeOnly": True}
+    )
+    new_password: str = Field(min_length=10, max_length=1024, json_schema_extra={"writeOnly": True})
+
+
+class ConfirmationResponse(ApiModel):
+    id: UUID
+    purpose: Literal["setup", "recovery"]
+    state: Literal["pending", "confirmed"]
+    expires_in_seconds: int
+
+
+class SessionResponse(ApiModel):
+    csrf_token: str
+    expires_in_seconds: int
+
+
 class DeviceStatus(ApiModel):
     device_id: UUID
     name: str
@@ -114,20 +149,6 @@ class TokenCaptureResponse(ApiModel):
     state: str
     token_uid: str | None
     assigned_media_id: UUID | None
-
-
-class PairingSessionResponse(ApiModel):
-    code: str
-    expires_in_seconds: int
-
-
-class PairingExchangeRequest(ApiModel):
-    code: str = Field(pattern=r"^[0-9]{6}$")
-
-
-class PairingExchangeResponse(ApiModel):
-    management_key: str
-    header_name: Literal["X-AQENO-Management-Key"] = "X-AQENO-Management-Key"
 
 
 class TokenAssignmentRequest(ApiModel):

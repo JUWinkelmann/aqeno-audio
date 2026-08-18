@@ -5,18 +5,19 @@ This guide is for a client developer who does not need AQENO's Python code.
 ## Connection
 
 - Development: `http://127.0.0.1:8766/api/v1`
-- Trusted LAN: start with `--management-host 0.0.0.0`, then use the device IP.
-- Reference-device URL: `http://aqeno.local:8766`, published through Avahi/mDNS.
+- Product entry: `http://aqeno.local` (no port); same-origin API is `/api/v1`.
+- Diagnostic fallback: `http://DEVICE_IP` when the client/network does not resolve mDNS.
+- Appliance Uvicorn is loopback-only on `127.0.0.1:8766`; systemd exposes port 80.
 - OpenAPI: `/api/openapi.json`; interactive development docs: `/api/docs`.
-- Every v1 request sends `X-AQENO-Management-Key: DEVICE_KEY`.
 
-The prototype key is generated in AQENO's state directory as `management.key` (0600), or supplied
-with `AQENO_MANAGEMENT_KEY`. Do not embed a production device key in a public bundle.
+Browser clients call `/auth/status`, use the physical RH1 sequence Previous → Encoder → Next for
+setup/recovery when required, and log in through `/auth/login`. Send cookies with
+`credentials: include`; retain the returned `csrf_token` only for
+the tab/session and send `X-AQENO-CSRF` on POST/PUT/PATCH/DELETE. Passwords are sent only to auth
+routes and never retained by the client. `POST /auth/logout` invalidates the session.
 
-An authorised client can add another local client without creating an account: authenticated
-`POST /pairing-sessions` returns a six-digit code valid for five minutes. The new client submits it
-once to public `POST /pairing-exchange` and receives the device key. Five wrong attempts or one
-successful exchange invalidate the code. Pairing must be initiated deliberately by a Manager.
+The owner-only `management.key` header remains solely for diagnostic scripts and non-browser
+compatibility. It is not a human login and must never be embedded in the Admin bundle.
 
 ## Development server
 
@@ -32,9 +33,15 @@ AQENO_MANAGEMENT_KEY=development-only \
 The full AQENO process starts the adapter after playback readiness. `--no-management` exists to test
 failure isolation.
 
+For hot-reload development, Vite runs on `127.0.0.1:5173` and proxies its same-origin `/api` path to
+the loopback API. AQENO additionally allows only the documented loopback development origins for
+diagnostic direct calls; production uses same-origin static assets.
+`npm run build` produces `admin/build`, which AQENO serves automatically. No Node process is needed
+at runtime.
+
 ## Core flows
 
-Status:
+Diagnostic status using the break-glass machine credential:
 
 ```bash
 curl -H 'X-AQENO-Management-Key: development-only' \
@@ -99,15 +106,16 @@ the result is explicit, inherited or the shared default.
 
 ## Errors, events and generation
 
-Errors are `{ "error": { "code", "message", "details" } }`; branch only on code. `401` is key,
-`404` unknown resource, `409` workflow state, `413` upload size and `422` schema/product policy.
+Errors are `{ "error": { "code", "message", "details" } }`; branch only on code. `401` requires
+login or reports an incorrect password, `403` reports missing CSRF, `404` unknown resource, `409`
+workflow state, `413` upload size, `429` temporary login throttling and `422` schema/product policy.
 
 `GET /events` is authenticated SSE. v1 events are `operation.changed`, `token.capture_changed` and
 `playback.changed`. Polling remains fully supported.
 
 Use [openapi.json](./openapi.json) as source of truth. A generated TypeScript type/client package is
 a useful separate artifact; generated code is disposable and must not replace OpenAPI. Preserve UUID
-strings, enum strings and the `X-AQENO-Management-Key` security scheme.
+strings and enum strings; browser authentication is cookie/CSRF based.
 
 Not supported: cloud/remote access, accounts, messages, updates, Wi-Fi mutation, NAS
 discovery/mounting, chapter editing, arbitrary filesystem browsing or raw log download.

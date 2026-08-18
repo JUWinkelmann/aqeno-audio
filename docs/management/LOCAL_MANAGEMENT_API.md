@@ -12,6 +12,8 @@ The Management API is a replaceable presentation adapter over AQENO application 
 Device UI, playback, physical controls and NFC playback do not call HTTP and remain operational when
 the API, LAN or client is absent. The API and future clients share the one SQLite library, settings
 store and application services with the Device UI; there is no web-only library or configuration.
+When `admin/build/index.html` exists, the same adapter serves the replaceable static Admin SPA at
+`/`. Node/Vite remains build-time tooling and is not a runtime service.
 
 FastAPI/Uvicorn implement the HTTP/OpenAPI boundary (ADR 0018). API DTOs in `management/schemas.py`
 are separate from domain values. Stable content UUIDs cross the boundary; paths, SQLite row IDs,
@@ -34,7 +36,7 @@ mutagen objects, tracebacks and live Python objects do not become identity.
 
 True gaps closed here are server-side library queries, management use cases, async operation state,
 token capture, API authentication/error shapes, incremental unchanged-file scans and non-destructive
-offline-root scans. Chapter editing, first setup, updates, network mutation and
+offline-root scans. Chapter editing, updates, network mutation and
 durable operation history remain explicit gaps rather than invented behaviour.
 
 ## Resource model
@@ -56,57 +58,65 @@ durable operation history remain explicit gaps rather than invented behaviour.
 
 ## Endpoint inventory
 
-`KEY` means `X-AQENO-Management-Key` is required. Every implemented route is in the generated
-OpenAPI document; errors use the common envelope.
+`SESSION` means a valid HttpOnly Admin session; mutating requests additionally require
+`X-AQENO-CSRF`. OpenAPI declares the `AdminSession` cookie security scheme; password fields are
+write-only. The hidden Management key remains a break-glass machine path and is deliberately not
+part of generated browser auth types. Every implemented route is in OpenAPI; errors use one envelope.
 
 | Method | Path | Purpose | Request / response | Mapping | Auth | Errors | Status |
 |---|---|---|---|---|---|---|---|
-| GET | `/api/v1/device` | device/readiness/storage | — / `DeviceStatus` | Readiness, Library health | KEY | auth | IMPLEMENTED |
-| POST | `/api/v1/pairing-sessions` | issue one-time local code | — / PairingSession | PairingCoordinator | KEY | auth | IMPLEMENTED |
-| POST | `/api/v1/pairing-exchange` | exchange code for device key | code / key | PairingCoordinator | bounded public | invalid/expired | IMPLEMENTED |
-| GET | `/api/v1/diagnostics` | bounded diagnosis | — / `DiagnosticsStatus` | snapshots/health | KEY | auth | IMPLEMENTED |
-| GET | `/api/v1/media-sources` | roots/mount availability | — / `MediaSource[]` | LibrarySettings | KEY | auth | IMPLEMENTED |
-| GET | `/api/v1/library/media` | indexed browse/search | cursor/filter / `MediaPage` | Library query | KEY | cursor | IMPLEMENTED |
-| GET | `/api/v1/library/media/{media_id}` | work detail/resume | profile / `MediaDetail` | Library/get_resume | KEY | not found | IMPLEMENTED |
-| PATCH | `/api/v1/library/media/{media_id}` | correct metadata | `MediaPatch` / detail | update_metadata | KEY | validation | IMPLEMENTED |
-| DELETE | `/api/v1/library/media/{media_id}` | remove AQENO object | — / 204 | remove_content | KEY | not found | IMPLEMENTED |
-| GET | `/api/v1/library/media/{media_id}/artwork` | artwork bytes | — / binary | artwork reference | KEY | not found | IMPLEMENTED |
-| PUT | `/api/v1/library/media/{media_id}/artwork` | replace artwork | multipart / detail | asset store | KEY | type/size | IMPLEMENTED |
-| DELETE | `/api/v1/library/media/{media_id}/artwork` | remove artwork | — / detail | set_artwork | KEY | not found | IMPLEMENTED |
-| POST | `/api/v1/imports` | upload and ingest | multipart / Operation 202 | ingestion | KEY | size/name | IMPLEMENTED |
-| POST | `/api/v1/library/scans` | scan roots | — / Operation 202 | ingestion | KEY | operation | IMPLEMENTED |
-| GET | `/api/v1/operations` | current operations | — / `Operation[]` | registry | KEY | auth | IMPLEMENTED |
-| GET | `/api/v1/operations/{operation_id}` | operation status | — / Operation | registry | KEY | not found | IMPLEMENTED |
-| GET | `/api/v1/tokens` | assigned tokens | — / `Token[]` | tag mappings | KEY | auth | IMPLEMENTED |
-| GET | `/api/v1/tokens/{uid}` | token assignment | — / Token | resolve_tag | KEY | not found | IMPLEMENTED |
-| DELETE | `/api/v1/tokens/{uid}/assignment` | unassign | — / 204 | unmap_tag | KEY | auth | IMPLEMENTED |
-| POST | `/api/v1/token-captures` | wait for token | — / capture 201 | TokenAssignment | KEY | auth | IMPLEMENTED |
-| GET | `/api/v1/token-captures/{capture_id}` | detection status | — / capture | TokenAssignment | KEY | not found | IMPLEMENTED |
-| DELETE | `/api/v1/token-captures/{capture_id}` | cancel capture | — / capture | TokenAssignment | KEY | not found | IMPLEMENTED |
-| PUT | `/api/v1/token-captures/{capture_id}/assignment` | assign detected token | media ID / capture | map_tag | KEY | state/media | IMPLEMENTED |
-| GET | `/api/v1/playback` | playback snapshot | — / PlaybackStatus | PlaybackSession | KEY | auth | IMPLEMENTED |
-| GET | `/api/v1/settings` | local settings | — / Settings | SettingsStore | KEY | auth | IMPLEMENTED |
-| PUT | `/api/v1/settings` | validate/persist settings | Settings / Settings | validate/store | KEY | range | IMPLEMENTED |
-| GET | `/api/v1/profiles` | configurations | — / Profile[] | Library profiles | KEY | auth | IMPLEMENTED |
-| GET | `/api/v1/profiles/{name}` | one profile | — / Profile | Library | KEY | not found | IMPLEMENTED |
-| PUT | `/api/v1/profiles/{name}` | persist policies | Profile / Profile | domain values | KEY | policy | IMPLEMENTED |
-| DELETE | `/api/v1/profiles/{name}` | remove local context | — / 204 | ConfigurationManagement | KEY | not found | IMPLEMENTED |
-| GET | `/api/v1/profiles/{name}/favorites` | paged personal favorites | cursor / MediaPage | Library index | KEY | not found | IMPLEMENTED |
-| PUT/DELETE | `/api/v1/profiles/{name}/favorites/{media_id}` | set/unset favorite | — / Favorite | ProfileContentManagement | KEY | not found | IMPLEMENTED |
-| GET | `/api/v1/profiles/{name}/progress/{media_id}` | personal resume | — / Progress | Library resume | KEY | not found | IMPLEMENTED |
-| POST | `/api/v1/content-access/bulk` | many-media/many-profile access | BulkAccess / result | ProfileContentManagement | KEY | limits/IDs | IMPLEMENTED |
-| GET | `/api/v1/library/media/{media_id}/access/{profile}` | explain effective access | — / EffectiveAccess | indexed policy | KEY | not found | IMPLEMENTED |
-| GET/POST | `/api/v1/collections` | list/create access grouping | Collection / Collection | Library | KEY | validation | IMPLEMENTED |
-| PUT/DELETE | `/api/v1/collections/{collection_id}` | replace/remove grouping | Collection / Collection | Library | KEY | not found | IMPLEMENTED |
-| PUT | `/api/v1/collections/{collection_id}/audience` | inherited audience | Audience / Collection | ProfileContentManagement | KEY | profiles | IMPLEMENTED |
-| GET | `/api/v1/events` | local change hints | — / SSE | listeners | KEY | auth | IMPLEMENTED |
+| GET | `/api/v1/auth/status` | setup/session state | — / AuthStatus | AdminAuth | public | — | IMPLEMENTED |
+| POST/GET | `/api/v1/auth/setup/confirmations[/id]` | begin/poll physical ownership | — / Confirmation | AdminAuth + InputBus | public, physical | expired | IMPLEMENTED |
+| POST | `/api/v1/auth/setup` | set first password/session | password + confirmation / Session | AdminAuth | physical | policy/state | IMPLEMENTED |
+| POST | `/api/v1/auth/login` | password login | password / Session | AdminAuth | public | password/rate | IMPLEMENTED |
+| POST | `/api/v1/auth/logout` | invalidate session | — / 204 | AdminAuth | SESSION+CSRF | auth | IMPLEMENTED |
+| POST | `/api/v1/auth/password` | change password | current/new / Session | AdminAuth | SESSION+CSRF | password/policy | IMPLEMENTED |
+| POST/GET | `/api/v1/auth/recovery/confirmations[/id]` | begin/poll local recovery | — / Confirmation | AdminAuth + InputBus | public, physical | expired | IMPLEMENTED |
+| POST | `/api/v1/auth/recovery` | reset password/session | password + confirmation / Session | AdminAuth | physical | policy/state | IMPLEMENTED |
+| GET | `/api/v1/device` | device/readiness/storage | — / `DeviceStatus` | Readiness, Library health | SESSION | auth | IMPLEMENTED |
+| GET | `/api/v1/diagnostics` | bounded diagnosis | — / `DiagnosticsStatus` | snapshots/health | SESSION | auth | IMPLEMENTED |
+| GET | `/api/v1/media-sources` | roots/mount availability | — / `MediaSource[]` | LibrarySettings | SESSION | auth | IMPLEMENTED |
+| GET | `/api/v1/library/media` | indexed browse/search | cursor/filter / `MediaPage` | Library query | SESSION | cursor | IMPLEMENTED |
+| GET | `/api/v1/library/media/{media_id}` | work detail/resume | profile / `MediaDetail` | Library/get_resume | SESSION | not found | IMPLEMENTED |
+| PATCH | `/api/v1/library/media/{media_id}` | correct metadata | `MediaPatch` / detail | update_metadata | SESSION | validation | IMPLEMENTED |
+| DELETE | `/api/v1/library/media/{media_id}` | remove AQENO object | — / 204 | remove_content | SESSION | not found | IMPLEMENTED |
+| GET | `/api/v1/library/media/{media_id}/artwork` | artwork bytes | — / binary | artwork reference | SESSION | not found | IMPLEMENTED |
+| PUT | `/api/v1/library/media/{media_id}/artwork` | replace artwork | multipart / detail | asset store | SESSION | type/size | IMPLEMENTED |
+| DELETE | `/api/v1/library/media/{media_id}/artwork` | remove artwork | — / detail | set_artwork | SESSION | not found | IMPLEMENTED |
+| POST | `/api/v1/imports` | upload and ingest | multipart / Operation 202 | ingestion | SESSION | size/name | IMPLEMENTED |
+| POST | `/api/v1/library/scans` | scan roots | — / Operation 202 | ingestion | SESSION | operation | IMPLEMENTED |
+| GET | `/api/v1/operations` | current operations | — / `Operation[]` | registry | SESSION | auth | IMPLEMENTED |
+| GET | `/api/v1/operations/{operation_id}` | operation status | — / Operation | registry | SESSION | not found | IMPLEMENTED |
+| GET | `/api/v1/tokens` | assigned tokens | — / `Token[]` | tag mappings | SESSION | auth | IMPLEMENTED |
+| GET | `/api/v1/tokens/{uid}` | token assignment | — / Token | resolve_tag | SESSION | not found | IMPLEMENTED |
+| DELETE | `/api/v1/tokens/{uid}/assignment` | unassign | — / 204 | unmap_tag | SESSION | auth | IMPLEMENTED |
+| POST | `/api/v1/token-captures` | wait for token | — / capture 201 | TokenAssignment | SESSION | auth | IMPLEMENTED |
+| GET | `/api/v1/token-captures/{capture_id}` | detection status | — / capture | TokenAssignment | SESSION | not found | IMPLEMENTED |
+| DELETE | `/api/v1/token-captures/{capture_id}` | cancel capture | — / capture | TokenAssignment | SESSION | not found | IMPLEMENTED |
+| PUT | `/api/v1/token-captures/{capture_id}/assignment` | assign detected token | media ID / capture | map_tag | SESSION | state/media | IMPLEMENTED |
+| GET | `/api/v1/playback` | playback snapshot | — / PlaybackStatus | PlaybackSession | SESSION | auth | IMPLEMENTED |
+| GET | `/api/v1/settings` | local settings | — / Settings | SettingsStore | SESSION | auth | IMPLEMENTED |
+| PUT | `/api/v1/settings` | validate/persist settings | Settings / Settings | validate/store | SESSION | range | IMPLEMENTED |
+| GET | `/api/v1/profiles` | configurations | — / Profile[] | Library profiles | SESSION | auth | IMPLEMENTED |
+| GET | `/api/v1/profiles/{name}` | one profile | — / Profile | Library | SESSION | not found | IMPLEMENTED |
+| PUT | `/api/v1/profiles/{name}` | persist policies | Profile / Profile | domain values | SESSION | policy | IMPLEMENTED |
+| DELETE | `/api/v1/profiles/{name}` | remove local context | — / 204 | ConfigurationManagement | SESSION | not found | IMPLEMENTED |
+| GET | `/api/v1/profiles/{name}/favorites` | paged personal favorites | cursor / MediaPage | Library index | SESSION | not found | IMPLEMENTED |
+| PUT/DELETE | `/api/v1/profiles/{name}/favorites/{media_id}` | set/unset favorite | — / Favorite | ProfileContentManagement | SESSION | not found | IMPLEMENTED |
+| GET | `/api/v1/profiles/{name}/progress/{media_id}` | personal resume | — / Progress | Library resume | SESSION | not found | IMPLEMENTED |
+| POST | `/api/v1/content-access/bulk` | many-media/many-profile access | BulkAccess / result | ProfileContentManagement | SESSION | limits/IDs | IMPLEMENTED |
+| GET | `/api/v1/library/media/{media_id}/access/{profile}` | explain effective access | — / EffectiveAccess | indexed policy | SESSION | not found | IMPLEMENTED |
+| GET/POST | `/api/v1/collections` | list/create access grouping | Collection / Collection | Library | SESSION | validation | IMPLEMENTED |
+| PUT/DELETE | `/api/v1/collections/{collection_id}` | replace/remove grouping | Collection / Collection | Library | SESSION | not found | IMPLEMENTED |
+| PUT | `/api/v1/collections/{collection_id}/audience` | inherited audience | Audience / Collection | ProfileContentManagement | SESSION | profiles | IMPLEMENTED |
+| GET | `/api/v1/events` | local change hints | — / SSE | listeners | SESSION | auth | IMPLEMENTED |
 | GET | `/api/openapi.json` | machine contract | — / OpenAPI | FastAPI | public | — | IMPLEMENTED |
 | GET | `/api/docs` | development viewer | — / Swagger UI | OpenAPI | public | — | IMPLEMENTED |
 | PATCH | chapter structure | manager override | — | no override contract | — | — | CONTRACT ONLY / NOT INCLUDED |
-| POST | first setup | initialise/pair | — | authority undecided | — | — | CONTRACT ONLY / NOT INCLUDED |
 | PUT | network configuration | configure Wi-Fi | — | no network port | — | — | CONTRACT ONLY / NOT INCLUDED |
 | POST | updates | install update | — | no update model | — | — | FUTURE / NOT INCLUDED |
-| any | Connect/messages/remote/backup/accounts | internet convenience | — | future concepts | — | — | FUTURE / NOT INCLUDED |
+| any | Connect/messages/remote/accounts | internet convenience | — | future concepts | — | — | FUTURE / NOT INCLUDED |
+| any | local backup/restore | appliance recovery | — | local engine exists; HTTP contract does not | — | — | API GAP / NOT INCLUDED |
 
 Deleting a media object removes its AQENO index identity, token assignments and resume state through
 existing persistence semantics. It does not currently delete arbitrary source files. That destructive
@@ -160,7 +170,8 @@ storage.
 ```
 
 Clients branch on `code`, never message. No traceback crosses HTTP. Principal codes:
-`management_auth_required`, `validation_failed`, `cursor_invalid`, `media_not_found`,
+`authentication_required`, `password_incorrect`, `auth_rate_limited`, `csrf_required`,
+`physical_confirmation_required`, `password_policy`, `validation_failed`, `cursor_invalid`, `media_not_found`,
 `artwork_not_found`, `artwork_type_unsupported`, `upload_filename_missing`, `upload_too_large`,
 `operation_not_found`, `operation_failed`, `token_not_found`, `token_capture_not_found`,
 `token_not_detected`, `settings_out_of_range`, `profile_not_found`, `profile_name_mismatch` and
@@ -169,22 +180,16 @@ Access additions are `bulk_limit_exceeded`, `collection_not_found` and `profiles
 
 ## Authentication and local threat model
 
-- Default development bind is `127.0.0.1:8766`; the reference systemd unit binds the trusted LAN.
-- Management routes require `X-AQENO-Management-Key` with constant-time comparison. Only the
-  bounded one-time pairing exchange is public.
-- A key is generated once with mode 0600, or supplied as `AQENO_MANAGEMENT_KEY` for provisioning.
-- No cookie auth and no permissive CORS are used, avoiding ordinary browser CSRF authority.
-- Upload basenames are sanitised, writes bounded/atomic, and no filesystem browse endpoint exists.
-- Plain HTTP does not protect confidentiality on a hostile LAN. TLS remains required before such
-  networks are supported.
+ADR 0022 is authoritative. A local scrypt password plus the 90-second physical sequence Previous →
+Encoder → Next owns setup/recovery. Random server-side sessions use HttpOnly, SameSite=Strict cookies; every mutation
+made through a session requires its separate CSRF token. Password change/recovery revokes all older
+sessions. Five failed logins begin a bounded increasing delay, never permanent lockout. Profiles do
+not authenticate.
 
-The one prototype key grants trusted management access without inventing accounts or OAuth. Domain
-roles remain User/Manager/Owner.
-
-An authenticated Manager may create a six-digit pairing session lasting five minutes. Its exchange
-is single-use and locks after five incorrect attempts. It transfers the existing device authority;
-it creates no user, profile or durable pairing identity. Avahi publishes `_http._tcp`, while direct
-IP access remains supported.
+Reference production is `http://aqeno.local`: port 80 is a systemd socket proxy to Uvicorn bound only
+to `127.0.0.1:8766`. Development may use direct loopback. Exact Vite origins alone receive credentialed
+CORS. The 0600 Management key remains hidden break-glass/machine authority and never appears in normal
+UI/OpenAPI auth DTOs. Plain HTTP supports a trusted LAN only; it does not resist passive LAN capture.
 
 ## Events, process isolation and versioning
 
@@ -198,4 +203,5 @@ components honestly.
 
 Compatible additions may remain in v1. Removed/renamed fields or changed meanings require deliberate
 review and normally `/api/v2`. `docs/management/openapi.json` is authoritative. No v1 path is
-reserved for Connect, remote/cloud access, accounts, subscriptions, messages, backup or OEM.
+reserved for Connect, remote/cloud access, accounts, subscriptions, messages or OEM. Local backup
+and restore remain a separately documented Appliance API gap rather than a cloud feature.

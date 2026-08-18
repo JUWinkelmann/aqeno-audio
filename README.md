@@ -14,6 +14,10 @@ must not be claimed complete before on-device evidence exists.
 The implementation target is
 [`docs/implementation/FIRST_VERTICAL_SLICE.md`](docs/implementation/FIRST_VERTICAL_SLICE.md).
 
+On the reference device, local administration opens at **http://aqeno.local**. No IP address or
+port is part of the normal product journey; direct loopback/IP access is development and recovery
+only.
+
 AQENO is a personal project. Licensing, publication and commercialisation are deferred by intent —
 see [`ADR 0006`](docs/decisions/0006-non-commercial-posture.md).
 

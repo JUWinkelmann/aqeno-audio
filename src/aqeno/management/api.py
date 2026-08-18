@@ -4,7 +4,9 @@ import base64
 import hashlib
 import json
 import queue
+import secrets
 import shutil
+import time
 import uuid
 from collections.abc import Iterator
 from dataclasses import asdict
@@ -12,13 +14,22 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Annotated, Any, Literal, cast
 
-from fastapi import Depends, FastAPI, File, Query, Request, Security, UploadFile
+from fastapi import Depends, FastAPI, File, Header, Query, Request, Security, UploadFile
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from fastapi.security import APIKeyHeader
+from fastapi.security import APIKeyCookie
+from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHttpException
+from starlette.responses import Response
+from starlette.types import Scope
 
 from aqeno import __version__
-from aqeno.adapters.local_assets import LocalAssetStore, UploadTooLargeError
+from aqeno.adapters.local_assets import (
+    InsufficientCapacityError,
+    LocalAssetStore,
+    UploadTooLargeError,
+)
 from aqeno.application.display import DisplayService
 from aqeno.application.management import (
     CollectionNotFoundError,
@@ -29,8 +40,6 @@ from aqeno.application.management import (
     ManagementError,
     Operation,
     OperationRegistry,
-    PairingCoordinator,
-    PairingInvalidError,
     ProfileContentManagement,
     ProfileNotFoundError,
     TokenAssignment,
@@ -42,14 +51,27 @@ from aqeno.config.defaults import Settings, validate
 from aqeno.domain.access import AccessDecision, Audience, AudienceMode, Collection, CollectionId
 from aqeno.domain.content import ContentId, ContentItem, ContentKind, HttpSource, LocalFileSource
 from aqeno.domain.profile import DisplayPolicy, Profile, VolumeLimits
+from aqeno.management.auth import (
+    CONFIRMATION_LIFETIME_SECONDS,
+    SESSION_LIFETIME_SECONDS,
+    AdminAuth,
+    AuthError,
+    ConfirmationError,
+    PasswordInvalidError,
+    PasswordPolicyError,
+    RateLimitError,
+    SetupStateError,
+)
 from aqeno.management.schemas import (
     AudienceResource,
+    AuthStatus,
     BrightnessSettings,
     BulkAccessRequest,
     BulkAccessResult,
     Chapter,
     CollectionResource,
     CollectionWrite,
+    ConfirmationResponse,
     DeviceStatus,
     DiagnosticsStatus,
     DisplaySettings,
@@ -57,6 +79,7 @@ from aqeno.management.schemas import (
     ErrorBody,
     ErrorResponse,
     FavoriteResource,
+    InitialPasswordRequest,
     LibrarySettings,
     MediaDetail,
     MediaPage,
@@ -65,15 +88,15 @@ from aqeno.management.schemas import (
     MediaSummary,
     NfcSettings,
     OperationResponse,
-    PairingExchangeRequest,
-    PairingExchangeResponse,
-    PairingSessionResponse,
+    PasswordChangeRequest,
+    PasswordRequest,
     PlaybackStatus,
     ProfileDisplay,
     ProfileResource,
     ProfileVolume,
     ProgressResource,
     ResumeSettings,
+    SessionResponse,
     SettingsResource,
     SleepTimerSettings,
     SourceSummary,
@@ -87,9 +110,12 @@ from aqeno.ports.persistence import ContentQuery, Library, SettingsStore
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     400: {"model": ErrorResponse},
     401: {"model": ErrorResponse},
+    403: {"model": ErrorResponse},
     404: {"model": ErrorResponse},
     409: {"model": ErrorResponse},
     413: {"model": ErrorResponse},
+    429: {"model": ErrorResponse},
+    507: {"model": ErrorResponse},
     422: {"model": ErrorResponse},
 }
 
@@ -131,12 +157,15 @@ class ManagementContext:
         tokens: TokenAssignment,
         assets: LocalAssetStore,
         management_key: str,
+        auth: AdminAuth,
         device_id: uuid.UUID,
         data_dir: Path,
         readiness: Readiness | None = None,
         playback: PlaybackSession | None = None,
         display: DisplayService | None = None,
         capabilities: tuple[str, ...] = (),
+        admin_dir: Path | None = None,
+        development_origins: tuple[str, ...] = (),
     ) -> None:
         self.library = library
         self.settings_store = settings_store
@@ -146,15 +175,17 @@ class ManagementContext:
         self.tokens = tokens
         self.assets = assets
         self.management_key = management_key
+        self.auth = auth
         self.device_id = device_id
         self.data_dir = data_dir
         self.readiness = readiness
         self.playback = playback
         self.display = display
         self.capabilities = capabilities
+        self.admin_dir = admin_dir
+        self.development_origins = development_origins
         self.configuration = ConfigurationManagement(library, settings_store)
         self.profile_content = ProfileContentManagement(library)
-        self.pairing = PairingCoordinator()
         self.events = EventBroker()
         operations.on_changed(self._operation_changed)
         tokens.on_changed(self._token_changed)
@@ -188,20 +219,60 @@ def create_app(context: ManagementContext) -> FastAPI:
         redoc_url=None,
         responses={401: {"model": ErrorResponse}},
     )
+    if context.development_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(context.development_origins),
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+            allow_headers=["Content-Type", "X-AQENO-CSRF"],
+        )
 
-    management_key_header = APIKeyHeader(name="X-AQENO-Management-Key", auto_error=False)
+    session_cookie = APIKeyCookie(
+        name="aqeno_admin_session",
+        scheme_name="AdminSession",
+        description="HttpOnly session cookie issued by password login or confirmed local setup.",
+        auto_error=False,
+    )
 
-    def require_key(
-        x_aqeno_management_key: str | None = Security(management_key_header),
+    def require_management(
+        request: Request,
+        browser_session: str | None = Security(session_cookie),
+        csrf: str | None = Header(default=None, alias="X-AQENO-CSRF"),
     ) -> None:
-        import secrets
-
-        if x_aqeno_management_key is None or not secrets.compare_digest(
-            x_aqeno_management_key, context.management_key
+        # Deliberately absent from OpenAPI: this is a break-glass/machine path,
+        # not the human-facing browser authentication contract.
+        supplied_key = request.headers.get("X-AQENO-Management-Key")
+        if supplied_key is not None and secrets.compare_digest(
+            supplied_key, context.management_key
         ):
-            raise ApiError(401, "management_auth_required", "A valid management key is required.")
+            return
+        session = context.auth.session(browser_session)
+        if session is None:
+            raise ApiError(401, "authentication_required", "Authentication is required.")
+        if request.method not in {"GET", "HEAD", "OPTIONS"} and (
+            csrf is None or not secrets.compare_digest(csrf, session.csrf_token)
+        ):
+            raise ApiError(403, "csrf_required", "The request could not be verified.")
 
-    auth = [Depends(require_key)]
+    def has_break_glass_authority(request: Request) -> bool:
+        supplied_key = request.headers.get("X-AQENO-Management-Key")
+        return supplied_key is not None and secrets.compare_digest(
+            supplied_key, context.management_key
+        )
+
+    auth = [Depends(require_management)]
+
+    def set_session_cookie(response: Response, request: Request, token: str) -> None:
+        response.set_cookie(
+            "aqeno_admin_session",
+            token,
+            max_age=SESSION_LIFETIME_SECONDS,
+            httponly=True,
+            secure=request.url.scheme == "https",
+            samesite="strict",
+            path="/api/v1",
+        )
 
     @app.exception_handler(ApiError)
     def api_error(_request: Request, exc: ApiError) -> JSONResponse:
@@ -216,36 +287,165 @@ def create_app(context: ManagementContext) -> FastAPI:
             )
             else 409
         )
-        if isinstance(exc, PairingInvalidError):
-            status = 401
         return _error(status, exc.code, str(exc))
 
-    @app.post(
-        "/api/v1/pairing-sessions",
-        response_model=PairingSessionResponse,
-        status_code=201,
-        dependencies=auth,
-        tags=["security"],
-    )
-    def start_pairing() -> PairingSessionResponse:
-        session = context.pairing.start()
-        return PairingSessionResponse(code=session.code, expires_in_seconds=300)
+    @app.exception_handler(AuthError)
+    def auth_error(_request: Request, exc: AuthError) -> JSONResponse:
+        if isinstance(exc, RateLimitError):
+            return _error(
+                429,
+                exc.code,
+                "Too many attempts. Try again shortly.",
+                {"retry_after_seconds": exc.retry_after_seconds},
+            )
+        if isinstance(exc, PasswordInvalidError):
+            return _error(401, exc.code, "The password is not correct.")
+        if isinstance(exc, PasswordPolicyError):
+            return _error(422, exc.code, str(exc))
+        if isinstance(exc, ConfirmationError):
+            return _error(409, exc.code, str(exc))
+        if isinstance(exc, SetupStateError):
+            return _error(409, exc.code, str(exc))
+        return _error(400, exc.code, "Authentication failed.")
+
+    @app.get("/api/v1/auth/status", response_model=AuthStatus, tags=["authentication"])
+    def auth_status(request: Request) -> AuthStatus:
+        session = context.auth.session(request.cookies.get("aqeno_admin_session"))
+        return AuthStatus(
+            setup_required=not context.auth.configured,
+            authenticated=session is not None,
+            csrf_token=session.csrf_token if session is not None else None,
+        )
+
+    def confirmation_response(confirmation_id: uuid.UUID, purpose: str) -> ConfirmationResponse:
+        confirmation = context.auth.confirmation(confirmation_id, purpose)
+        return ConfirmationResponse(
+            id=confirmation.id,
+            purpose=cast(Literal["setup", "recovery"], confirmation.purpose),
+            state="confirmed" if confirmation.confirmed else "pending",
+            expires_in_seconds=max(0, int(confirmation.expires_at - time.monotonic())),
+        )
 
     @app.post(
-        "/api/v1/pairing-exchange",
-        response_model=PairingExchangeResponse,
-        responses=ERROR_RESPONSES,
-        tags=["security"],
+        "/api/v1/auth/setup/confirmations",
+        response_model=ConfirmationResponse,
+        status_code=201,
+        tags=["authentication"],
     )
-    def exchange_pairing(request: PairingExchangeRequest) -> PairingExchangeResponse:
-        context.pairing.exchange(request.code)
-        return PairingExchangeResponse(management_key=context.management_key)
+    def begin_setup_confirmation(request: Request) -> ConfirmationResponse:
+        if context.auth.configured:
+            raise SetupStateError("administration is already configured")
+        confirmation = context.auth.begin_confirmation("setup")
+        if has_break_glass_authority(request):
+            confirmation = context.auth.confirm(confirmation.id, "setup")
+        return ConfirmationResponse(
+            id=confirmation.id,
+            purpose="setup",
+            state="confirmed" if confirmation.confirmed else "pending",
+            expires_in_seconds=CONFIRMATION_LIFETIME_SECONDS,
+        )
+
+    @app.get(
+        "/api/v1/auth/setup/confirmations/{confirmation_id}",
+        response_model=ConfirmationResponse,
+        tags=["authentication"],
+    )
+    def setup_confirmation(confirmation_id: uuid.UUID) -> ConfirmationResponse:
+        return confirmation_response(confirmation_id, "setup")
+
+    @app.post(
+        "/api/v1/auth/setup",
+        response_model=SessionResponse,
+        status_code=201,
+        tags=["authentication"],
+    )
+    def setup_password(
+        body: InitialPasswordRequest, request: Request, response: Response
+    ) -> SessionResponse:
+        token, session = context.auth.create_initial_password(body.confirmation_id, body.password)
+        set_session_cookie(response, request, token)
+        return SessionResponse(
+            csrf_token=session.csrf_token, expires_in_seconds=SESSION_LIFETIME_SECONDS
+        )
+
+    @app.post("/api/v1/auth/login", response_model=SessionResponse, tags=["authentication"])
+    def login(body: PasswordRequest, request: Request, response: Response) -> SessionResponse:
+        peer = request.client.host if request.client is not None else "local"
+        token, session = context.auth.login(body.password, peer)
+        set_session_cookie(response, request, token)
+        return SessionResponse(
+            csrf_token=session.csrf_token, expires_in_seconds=SESSION_LIFETIME_SECONDS
+        )
+
+    @app.post("/api/v1/auth/logout", status_code=204, dependencies=auth, tags=["authentication"])
+    def logout(request: Request, response: Response) -> None:
+        context.auth.revoke(request.cookies.get("aqeno_admin_session"))
+        response.delete_cookie("aqeno_admin_session", path="/api/v1")
+
+    @app.post(
+        "/api/v1/auth/password",
+        response_model=SessionResponse,
+        dependencies=auth,
+        tags=["authentication"],
+    )
+    def change_password(
+        body: PasswordChangeRequest, request: Request, response: Response
+    ) -> SessionResponse:
+        context.auth.change_password(body.current_password, body.new_password)
+        token, session = context.auth.create_session()
+        set_session_cookie(response, request, token)
+        return SessionResponse(
+            csrf_token=session.csrf_token, expires_in_seconds=SESSION_LIFETIME_SECONDS
+        )
+
+    @app.post(
+        "/api/v1/auth/recovery/confirmations",
+        response_model=ConfirmationResponse,
+        status_code=201,
+        tags=["authentication"],
+    )
+    def begin_recovery_confirmation(request: Request) -> ConfirmationResponse:
+        if not context.auth.configured:
+            raise SetupStateError("administration setup is required")
+        confirmation = context.auth.begin_confirmation("recovery")
+        if has_break_glass_authority(request):
+            confirmation = context.auth.confirm(confirmation.id, "recovery")
+        return ConfirmationResponse(
+            id=confirmation.id,
+            purpose="recovery",
+            state="confirmed" if confirmation.confirmed else "pending",
+            expires_in_seconds=CONFIRMATION_LIFETIME_SECONDS,
+        )
+
+    @app.get(
+        "/api/v1/auth/recovery/confirmations/{confirmation_id}",
+        response_model=ConfirmationResponse,
+        tags=["authentication"],
+    )
+    def recovery_confirmation(confirmation_id: uuid.UUID) -> ConfirmationResponse:
+        return confirmation_response(confirmation_id, "recovery")
+
+    @app.post(
+        "/api/v1/auth/recovery",
+        response_model=SessionResponse,
+        tags=["authentication"],
+    )
+    def recover_password(
+        body: InitialPasswordRequest, request: Request, response: Response
+    ) -> SessionResponse:
+        token, session = context.auth.recover(body.confirmation_id, body.password)
+        set_session_cookie(response, request, token)
+        return SessionResponse(
+            csrf_token=session.csrf_token, expires_in_seconds=SESSION_LIFETIME_SECONDS
+        )
 
     @app.exception_handler(RequestValidationError)
     def validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
-        return _error(
-            422, "validation_failed", "The request is not valid.", {"issues": exc.errors()}
-        )
+        issues = [
+            {key: value for key, value in issue.items() if key not in {"input", "ctx"}}
+            for issue in exc.errors()
+        ]
+        return _error(422, "validation_failed", "The request is not valid.", {"issues": issues})
 
     @app.get("/api/v1/device", response_model=DeviceStatus, dependencies=auth, tags=["device"])
     def device() -> DeviceStatus:
@@ -402,6 +602,8 @@ def create_app(context: ManagementContext) -> FastAPI:
         suffix = Path(file.filename or "").suffix
         try:
             path = context.assets.store_artwork(file.file, content_id=media_id, extension=suffix)
+        except InsufficientCapacityError as exc:
+            raise ApiError(507, "storage_capacity_critical", str(exc)) from exc
         except UploadTooLargeError as exc:
             raise ApiError(413, "upload_too_large", str(exc)) from exc
         except ValueError as exc:
@@ -437,6 +639,8 @@ def create_app(context: ManagementContext) -> FastAPI:
             raise ApiError(400, "upload_filename_missing", "A filename is required.")
         try:
             stored = context.assets.store_media(file.file, filename=file.filename)
+        except InsufficientCapacityError as exc:
+            raise ApiError(507, "storage_capacity_critical", str(exc)) from exc
         except UploadTooLargeError as exc:
             raise ApiError(413, "upload_too_large", str(exc)) from exc
         operation = context.ingestion.scan((stored.parent,), imported=True)
@@ -887,7 +1091,22 @@ def create_app(context: ManagementContext) -> FastAPI:
     def events() -> StreamingResponse:
         return StreamingResponse(context.events.stream(), media_type="text/event-stream")
 
+    if context.admin_dir is not None and (context.admin_dir / "index.html").is_file():
+        app.mount("/", AdminSpaFiles(directory=context.admin_dir, html=True), name="admin-client")
+
     return app
+
+
+class AdminSpaFiles(StaticFiles):
+    """Serve the static Management SPA without swallowing unknown API routes."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHttpException as exc:
+            if exc.status_code != 404 or path == "api" or path.startswith("api/"):
+                raise
+            return await super().get_response("index.html", scope)
 
 
 class ApiError(Exception):

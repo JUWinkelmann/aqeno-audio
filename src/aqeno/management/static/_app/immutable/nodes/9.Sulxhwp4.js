@@ -1,0 +1,1 @@
+import{n as e}from"../chunks/hePW80VL.js";import{t}from"../chunks/DxhPVHKV.js";var n=e({load:()=>r}),r=()=>{t(301,`/people`)};export{n as universal};

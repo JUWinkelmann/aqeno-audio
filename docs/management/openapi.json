@@ -6,20 +6,20 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/v1/pairing-sessions": {
-      "post": {
+    "/api/v1/auth/status": {
+      "get": {
         "tags": [
-          "security"
+          "authentication"
         ],
-        "summary": "Start Pairing",
-        "operationId": "start_pairing_api_v1_pairing_sessions_post",
+        "summary": "Auth Status",
+        "operationId": "auth_status_api_v1_auth_status_get",
         "responses": {
-          "201": {
+          "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PairingSessionResponse"
+                  "$ref": "#/components/schemas/AuthStatus"
                 }
               }
             }
@@ -34,26 +34,156 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
-    "/api/v1/pairing-exchange": {
+    "/api/v1/auth/setup/confirmations": {
       "post": {
         "tags": [
-          "security"
+          "authentication"
         ],
-        "summary": "Exchange Pairing",
-        "operationId": "exchange_pairing_api_v1_pairing_exchange_post",
+        "summary": "Begin Setup Confirmation",
+        "operationId": "begin_setup_confirmation_api_v1_auth_setup_confirmations_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/setup/confirmations/{confirmation_id}": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Setup Confirmation",
+        "operationId": "setup_confirmation_api_v1_auth_setup_confirmations__confirmation_id__get",
+        "parameters": [
+          {
+            "name": "confirmation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Confirmation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/setup": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Setup Password",
+        "operationId": "setup_password_api_v1_auth_setup_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PairingExchangeRequest"
+                "$ref": "#/components/schemas/InitialPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRequest"
               }
             }
           },
@@ -65,7 +195,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PairingExchangeResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 }
               }
             }
@@ -80,8 +210,170 @@
               }
             }
           },
-          "400": {
-            "description": "Bad Request",
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Change Password",
+        "operationId": "change_password_api_v1_auth_password_post",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/recovery/confirmations": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Begin Recovery Confirmation",
+        "operationId": "begin_recovery_confirmation_api_v1_auth_recovery_confirmations_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -89,29 +381,93 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/recovery/confirmations/{confirmation_id}": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Recovery Confirmation",
+        "operationId": "recovery_confirmation_api_v1_auth_recovery_confirmations__confirmation_id__get",
+        "parameters": [
+          {
+            "name": "confirmation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Confirmation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmationResponse"
+                }
+              }
+            }
           },
-          "404": {
-            "description": "Not Found",
+          "401": {
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unauthorized"
           },
-          "409": {
-            "description": "Conflict",
+          "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/recovery": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Recover Password",
+        "operationId": "recover_password_api_v1_auth_recovery_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitialPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
                 }
               }
             }
           },
-          "413": {
-            "description": "Content Too Large",
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
@@ -121,11 +477,11 @@
             }
           },
           "422": {
-            "description": "Unprocessable Content",
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -140,6 +496,29 @@
         ],
         "summary": "Device",
         "operationId": "device_api_v1_device_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -152,21 +531,26 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/diagnostics": {
@@ -176,6 +560,29 @@
         ],
         "summary": "Diagnostics",
         "operationId": "diagnostics_api_v1_diagnostics_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -188,21 +595,26 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/media-sources": {
@@ -212,37 +624,65 @@
         ],
         "summary": "Media Sources",
         "operationId": "media_sources_api_v1_media_sources_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/MediaSourceResource"
                   },
-                  "type": "array",
                   "title": "Response Media Sources Api V1 Media Sources Get"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/library/media": {
@@ -254,7 +694,7 @@
         "operationId": "list_media_api_v1_library_media_get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -350,6 +790,22 @@
               ],
               "title": "Profile Name"
             }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
           }
         ],
         "responses": {
@@ -383,6 +839,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -413,6 +879,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -435,7 +921,7 @@
         "operationId": "get_media_api_v1_library_media__media_id__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -463,6 +949,22 @@
                 }
               ],
               "title": "Profile"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -497,6 +999,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -527,6 +1039,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -547,7 +1079,7 @@
         "operationId": "patch_media_api_v1_library_media__media_id__patch",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -559,6 +1091,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Media Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -603,6 +1151,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -633,6 +1191,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -653,7 +1231,7 @@
         "operationId": "delete_media_api_v1_library_media__media_id__delete",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -665,6 +1243,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Media Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -692,6 +1286,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -722,6 +1326,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -744,7 +1368,7 @@
         "operationId": "artwork_api_v1_library_media__media_id__artwork_get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -756,6 +1380,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Media Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -788,6 +1428,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -818,6 +1468,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -838,7 +1508,7 @@
         "operationId": "put_artwork_api_v1_library_media__media_id__artwork_put",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -850,6 +1520,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Media Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -894,6 +1580,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -924,6 +1620,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -944,7 +1660,7 @@
         "operationId": "delete_artwork_api_v1_library_media__media_id__artwork_delete",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -956,6 +1672,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Media Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -990,6 +1722,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1020,6 +1762,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1040,15 +1802,38 @@
         ],
         "summary": "Import Media",
         "operationId": "import_media_api_v1_imports_post",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_import_media_api_v1_imports_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "202": {
@@ -1062,71 +1847,96 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unauthorized"
           },
           "400": {
-            "description": "Bad Request",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
-            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Not Found"
           },
           "409": {
-            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Conflict"
           },
           "413": {
-            "description": "Content Too Large",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
-            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Content"
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/library/scans": {
@@ -1136,6 +1946,29 @@
         ],
         "summary": "Scan Library",
         "operationId": "scan_library_api_v1_library_scans_post",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "202": {
             "description": "Successful Response",
@@ -1148,21 +1981,26 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/operations": {
@@ -1172,37 +2010,65 @@
         ],
         "summary": "Operations",
         "operationId": "operations_api_v1_operations_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/OperationResponse"
                   },
-                  "type": "array",
                   "title": "Response Operations Api V1 Operations Get"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/operations/{operation_id}": {
@@ -1214,7 +2080,7 @@
         "operationId": "operation_api_v1_operations__operation_id__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -1226,6 +2092,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Operation Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -1260,6 +2142,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1290,6 +2182,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1310,37 +2222,65 @@
         ],
         "summary": "Tokens",
         "operationId": "tokens_api_v1_tokens_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/TokenResource"
                   },
-                  "type": "array",
                   "title": "Response Tokens Api V1 Tokens Get"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/tokens/{uid}": {
@@ -1352,7 +2292,7 @@
         "operationId": "token_api_v1_tokens__uid__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -1363,6 +2303,22 @@
             "schema": {
               "type": "string",
               "title": "Uid"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -1397,6 +2353,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1427,6 +2393,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1449,7 +2435,7 @@
         "operationId": "remove_assignment_api_v1_tokens__uid__assignment_delete",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -1460,6 +2446,22 @@
             "schema": {
               "type": "string",
               "title": "Uid"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -1497,6 +2499,29 @@
         ],
         "summary": "Start Capture",
         "operationId": "start_capture_api_v1_token_captures_post",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "description": "Successful Response",
@@ -1509,21 +2534,26 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/token-captures/{capture_id}": {
@@ -1535,7 +2565,7 @@
         "operationId": "get_capture_api_v1_token_captures__capture_id__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -1547,6 +2577,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Capture Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -1581,6 +2627,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1610,6 +2666,26 @@
               }
             },
             "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
             "content": {
@@ -1631,7 +2707,7 @@
         "operationId": "cancel_capture_api_v1_token_captures__capture_id__delete",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -1643,6 +2719,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Capture Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -1677,6 +2769,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1706,6 +2808,26 @@
               }
             },
             "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
             "content": {
@@ -1729,7 +2851,7 @@
         "operationId": "assign_capture_api_v1_token_captures__capture_id__assignment_put",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -1741,6 +2863,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Capture Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -1785,6 +2923,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1815,6 +2963,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1835,6 +3003,29 @@
         ],
         "summary": "Playback",
         "operationId": "playback_api_v1_playback_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1847,21 +3038,26 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/settings": {
@@ -1871,6 +3067,29 @@
         ],
         "summary": "Settings",
         "operationId": "settings_api_v1_settings_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1883,21 +3102,26 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       },
       "put": {
         "tags": [
@@ -1905,15 +3129,38 @@
         ],
         "summary": "Put Settings",
         "operationId": "put_settings_api_v1_settings_put",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SettingsResource"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -1927,71 +3174,96 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unauthorized"
           },
           "400": {
-            "description": "Bad Request",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
-            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Not Found"
           },
           "409": {
-            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Conflict"
           },
           "413": {
-            "description": "Content Too Large",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
-            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Content"
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/profiles": {
@@ -2001,37 +3273,65 @@
         ],
         "summary": "Profiles",
         "operationId": "profiles_api_v1_profiles_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ProfileResource"
                   },
-                  "type": "array",
                   "title": "Response Profiles Api V1 Profiles Get"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/profiles/{name}": {
@@ -2043,7 +3343,7 @@
         "operationId": "delete_profile_api_v1_profiles__name__delete",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -2054,6 +3354,22 @@
             "schema": {
               "type": "string",
               "title": "Name"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -2081,6 +3397,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2111,6 +3437,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2131,7 +3477,7 @@
         "operationId": "profile_api_v1_profiles__name__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -2142,6 +3488,22 @@
             "schema": {
               "type": "string",
               "title": "Name"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -2176,6 +3538,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2206,6 +3578,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2226,7 +3618,7 @@
         "operationId": "put_profile_api_v1_profiles__name__put",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -2237,6 +3629,22 @@
             "schema": {
               "type": "string",
               "title": "Name"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -2281,6 +3689,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2311,6 +3729,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2333,7 +3771,7 @@
         "operationId": "favorites_api_v1_profiles__name__favorites_get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -2373,6 +3811,22 @@
               ],
               "title": "Cursor"
             }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
           }
         ],
         "responses": {
@@ -2406,6 +3860,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2435,6 +3899,26 @@
               }
             },
             "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
             "content": {
@@ -2458,7 +3942,7 @@
         "operationId": "set_favorite_api_v1_profiles__name__favorites__media_id__put",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -2479,6 +3963,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Media Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -2513,6 +4013,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2542,6 +4052,26 @@
               }
             },
             "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
             "content": {
@@ -2563,7 +4093,7 @@
         "operationId": "remove_favorite_api_v1_profiles__name__favorites__media_id__delete",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -2584,6 +4114,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Media Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -2618,6 +4164,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2647,6 +4203,26 @@
               }
             },
             "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
             "content": {
@@ -2670,7 +4246,7 @@
         "operationId": "progress_api_v1_profiles__name__progress__media_id__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -2691,6 +4267,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Media Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -2725,6 +4317,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2755,6 +4357,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2775,15 +4397,38 @@
         ],
         "summary": "Bulk Access",
         "operationId": "bulk_access_api_v1_content_access_bulk_post",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/BulkAccessRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2797,71 +4442,96 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unauthorized"
           },
           "400": {
-            "description": "Bad Request",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
-            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Not Found"
           },
           "409": {
-            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Conflict"
           },
           "413": {
-            "description": "Content Too Large",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
-            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Content"
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/library/media/{media_id}/access/{profile_name}": {
@@ -2873,7 +4543,7 @@
         "operationId": "effective_access_api_v1_library_media__media_id__access__profile_name__get",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -2894,6 +4564,22 @@
             "schema": {
               "type": "string",
               "title": "Profile Name"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -2928,6 +4614,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -2958,6 +4654,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2978,37 +4694,65 @@
         ],
         "summary": "Collections",
         "operationId": "collections_api_v1_collections_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/CollectionResource"
                   },
-                  "type": "array",
                   "title": "Response Collections Api V1 Collections Get"
                 }
               }
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       },
       "post": {
         "tags": [
@@ -3016,15 +4760,38 @@
         ],
         "summary": "Create Collection",
         "operationId": "create_collection_api_v1_collections_post",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CollectionWrite"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -3038,71 +4805,96 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unauthorized"
           },
           "400": {
-            "description": "Bad Request",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Bad Request"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
-            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Not Found"
           },
           "409": {
-            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Conflict"
           },
           "413": {
-            "description": "Content Too Large",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Content Too Large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
           },
           "422": {
-            "description": "Unprocessable Content",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Content"
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/collections/{collection_id}": {
@@ -3114,7 +4906,7 @@
         "operationId": "put_collection_api_v1_collections__collection_id__put",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -3126,6 +4918,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Collection Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -3170,6 +4978,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -3200,6 +5018,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -3220,7 +5058,7 @@
         "operationId": "delete_collection_api_v1_collections__collection_id__delete",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -3232,6 +5070,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Collection Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -3259,6 +5113,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -3289,6 +5153,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -3312,7 +5196,7 @@
         "operationId": "put_collection_audience_api_v1_collections__collection_id__audience_put",
         "security": [
           {
-            "APIKeyHeader": []
+            "AdminSession": []
           }
         ],
         "parameters": [
@@ -3324,6 +5208,22 @@
               "type": "string",
               "format": "uuid",
               "title": "Collection Id"
+            }
+          },
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
             }
           }
         ],
@@ -3368,6 +5268,16 @@
             },
             "description": "Bad Request"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
             "content": {
               "application/json": {
@@ -3398,6 +5308,26 @@
             },
             "description": "Content Too Large"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "507": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Insufficient Storage"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -3418,6 +5348,29 @@
         ],
         "summary": "Events",
         "operationId": "events_api_v1_events_get",
+        "security": [
+          {
+            "AdminSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-AQENO-CSRF",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Aqeno-Csrf"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3428,21 +5381,26 @@
             }
           },
           "401": {
-            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
             }
           }
-        },
-        "security": [
-          {
-            "APIKeyHeader": []
-          }
-        ]
+        }
       }
     }
   },
@@ -3493,6 +5451,41 @@
           "mode"
         ],
         "title": "AudienceResource"
+      },
+      "AuthStatus": {
+        "properties": {
+          "setup_required": {
+            "type": "boolean",
+            "title": "Setup Required"
+          },
+          "authenticated": {
+            "type": "boolean",
+            "title": "Authenticated"
+          },
+          "physical_confirmation_available": {
+            "type": "boolean",
+            "title": "Physical Confirmation Available",
+            "default": true
+          },
+          "csrf_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Csrf Token"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "setup_required",
+          "authenticated"
+        ],
+        "title": "AuthStatus"
       },
       "Body_import_media_api_v1_imports_post": {
         "properties": {
@@ -3769,6 +5762,44 @@
           "name"
         ],
         "title": "CollectionWrite"
+      },
+      "ConfirmationResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "setup",
+              "recovery"
+            ],
+            "title": "Purpose"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed"
+            ],
+            "title": "State"
+          },
+          "expires_in_seconds": {
+            "type": "integer",
+            "title": "Expires In Seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "purpose",
+          "state",
+          "expires_in_seconds"
+        ],
+        "title": "ConfirmationResponse"
       },
       "ContentKind": {
         "type": "string",
@@ -4117,6 +6148,29 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "InitialPasswordRequest": {
+        "properties": {
+          "confirmation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Confirmation Id"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 1024,
+            "minLength": 10,
+            "title": "Password",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirmation_id",
+          "password"
+        ],
+        "title": "InitialPasswordRequest"
       },
       "LibrarySettings": {
         "properties": {
@@ -4516,59 +6570,47 @@
         ],
         "title": "OperationResponse"
       },
-      "PairingExchangeRequest": {
+      "PasswordChangeRequest": {
         "properties": {
-          "code": {
+          "current_password": {
             "type": "string",
-            "pattern": "^[0-9]{6}$",
-            "title": "Code"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "code"
-        ],
-        "title": "PairingExchangeRequest"
-      },
-      "PairingExchangeResponse": {
-        "properties": {
-          "management_key": {
-            "type": "string",
-            "title": "Management Key"
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Current Password",
+            "writeOnly": true
           },
-          "header_name": {
+          "new_password": {
             "type": "string",
-            "const": "X-AQENO-Management-Key",
-            "title": "Header Name",
-            "default": "X-AQENO-Management-Key"
+            "maxLength": 1024,
+            "minLength": 10,
+            "title": "New Password",
+            "writeOnly": true
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "management_key"
+          "current_password",
+          "new_password"
         ],
-        "title": "PairingExchangeResponse"
+        "title": "PasswordChangeRequest"
       },
-      "PairingSessionResponse": {
+      "PasswordRequest": {
         "properties": {
-          "code": {
+          "password": {
             "type": "string",
-            "title": "Code"
-          },
-          "expires_in_seconds": {
-            "type": "integer",
-            "title": "Expires In Seconds"
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Password",
+            "writeOnly": true
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "code",
-          "expires_in_seconds"
+          "password"
         ],
-        "title": "PairingSessionResponse"
+        "title": "PasswordRequest"
       },
       "PlaybackStatus": {
         "properties": {
@@ -4873,6 +6915,25 @@
         ],
         "title": "Role"
       },
+      "SessionResponse": {
+        "properties": {
+          "csrf_token": {
+            "type": "string",
+            "title": "Csrf Token"
+          },
+          "expires_in_seconds": {
+            "type": "integer",
+            "title": "Expires In Seconds"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "csrf_token",
+          "expires_in_seconds"
+        ],
+        "title": "SessionResponse"
+      },
       "SettingsResource": {
         "properties": {
           "display": {
@@ -5167,10 +7228,11 @@
       }
     },
     "securitySchemes": {
-      "APIKeyHeader": {
+      "AdminSession": {
         "type": "apiKey",
-        "in": "header",
-        "name": "X-AQENO-Management-Key"
+        "description": "HttpOnly session cookie issued by password login or confirmed local setup.",
+        "in": "cookie",
+        "name": "aqeno_admin_session"
       }
     }
   }
