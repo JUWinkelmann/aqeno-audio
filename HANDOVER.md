@@ -4,6 +4,26 @@
 **Reason:** end of session; another assistant takes over for the rest of today.
 **Supersedes:** the handover of 2026-08-17, whose contents are all done.
 
+## Live operating directive — 2026-08-18
+
+The maintainer has asked the active architect to continue the remaining work autonomously and as
+quickly as the repository contracts allow. Every completed or in-progress step is recorded in this
+file so another agent can take over without reconstructing the session. Clear, bounded
+implementation tasks should be delegated to a weaker model when that does not reduce quality;
+architecture, product decisions and final review remain with the primary architect.
+
+Current continuation point: Vertical Slice step 6 is complete in commit `1fcedfd`; the next scoped
+task is step 7, the minimal Kids Early Device UI. Repairability principles were documented afterward
+in commit `0aede03` and do not alter the slice or RH1.
+
+### Work in progress
+
+- **Step 7 — Kids Early Device UI:** delegated as a bounded implementation task to a weaker model.
+  Scope is one concrete PySide6/QML presentation over `DeviceUiState`: Home with large image tiles,
+  Now Playing, deliberately reduced `DIM`, no administration, no keyboard and no new framework.
+  The primary architect will review the UI contract, thread marshalling, readiness integration,
+  headless behaviour and tests before accepting or committing it.
+
 Read `ONBOARDING.md` first — it is the entry point and this document assumes it. This file records
 only what is *in flight*: state that is not obvious from the repository itself.
 
@@ -27,7 +47,7 @@ maintainer pushes.
 | 3 — audio adapter | done |
 | 4 — semantic input bus + simulator | done |
 | 5 — application services | done, including content ingestion |
-| 6 — typed state channel | **partly** — `PlaybackSnapshot` and `DisplaySnapshot` exist; nothing merges them for a UI |
+| 6 — typed state channel | done — `DeviceUiState` combines library, playback and display state |
 | 7 — Kids Early UI | not started. **No `ui/` directory exists.** |
 | 8 — display policy | done today: ports, service, readiness ladder |
 | 9 — end-to-end tests | not started |
