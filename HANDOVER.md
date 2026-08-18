@@ -17,9 +17,9 @@ implementation specifications. Documentation is English; the maintainer communic
 
 Steps 7 and 9 are complete. Step 10 has the desktop-tested RH1 controls implementation in `851898c`.
 Remaining Step 10 work requires physical RH1 evidence or unselected hardware and is recorded below
-rather than guessed. The worktree is clean except for this handover checkpoint.
+rather than guessed.
 
-Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff format --check` and
+Quality result after review: **959 passed, 1 deselected**; `ruff check`, `ruff format --check` and
 `mypy` pass.
 
 | Slice step | State |
@@ -125,8 +125,10 @@ Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff f
 - Status LED output needs observed true-off behaviour and a deliberately chosen semantic indication;
   AQENO currently uses `NullStatusLeds` on real composition rather than illuminating pixels without
   a product reason.
-- NFC, VEML7700, final audio path and power components are not selected/acquired or remain explicit
-  feasibility candidates. No adapter should pretend they exist.
+- The Soldered Stereo I2S MAX98357 amplifier and two QUARKZMAN 3 W / 4 ohm speakers are acquired;
+  their wiring, Linux audio path, channel behaviour, sustained output and calibration are unverified.
+- NFC, VEML7700 and final power components remain unselected or explicit feasibility candidates. No
+  adapter should pretend they exist.
 - Hardware-only boot/wake timing, full-dark output and child-safe calibrated volume remain physical
   measurements. The single deselected test is intentionally in that class.
 
@@ -153,6 +155,6 @@ Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff f
 - Run quality commands directly, never through a pipe (`MISTAKES.md` M-004).
 - Preserve unrelated user changes and keep commits conceptually narrow.
 - Every AI-authored commit needs an honest `Co-Authored-By` trailer (ADR 0006 § 7).
-- Do not push; the maintainer owns publication.
+- Push only on the maintainer's explicit instruction.
 - Remaining hardware-only questions include true panel OFF/display-server behaviour, wake/startup
   timing and calibrated child volume. Do not fabricate results without Reference Hardware.

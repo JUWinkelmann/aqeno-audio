@@ -2,10 +2,10 @@
 
 **Identifier:** AQENO Reference Hardware 1 (`RH1`)
 
-**Status:** Acquired prototype platform; RH1 controls adapter implemented, pending on-device
-validation; audio and remaining components are still incomplete
+**Status:** Acquired prototype platform; controls adapter implemented, pending on-device validation;
+display and audio hardware acquired, integration unverified
 
-**Date:** 2026-08-17
+**Date:** 2026-08-18
 
 ## Role
 
@@ -26,7 +26,7 @@ is implied.
 | Component | Quantity | Product identifier | Role |
 |---|---:|---|---|
 | Raspberry Pi 4B | 1 | Raspberry Pi 4 Model B | Reference computer |
-| 7-inch Raspberry Pi Touch Display | 1 | existing Raspberry Pi display; exact revision to record during assembly | Device UI and touch input |
+| 7-inch touchscreen | 1 | FREENOVE; exact product identifier/revision to record from the unit | Device UI and touch input |
 | I2C STEMMA QT rotary encoder | 1 | Adafruit 5880 | Relative volume, press for play/pause, restrained RGB feedback |
 | NeoKey 1x4 QT | 1 | Adafruit 4980 | Up to four physical MX keys with individually controlled NeoPixels |
 | CHERRY MX2A Brown RGB, 3-pin | several | CHERRY MX2A-G1NA | Quiet tactile switches |
@@ -34,9 +34,14 @@ is implied.
 | Qwiic SHIM for Raspberry Pi | 1 | SparkFun DEV-15794 | Solderless Raspberry Pi I2C/Qwiic connection |
 | STEMMA QT/Qwiic hub | 1 | Adafruit 5625 | Central I2C distribution and free branches |
 | 300 mm STEMMA QT/Qwiic cable | 3 | Adafruit 5384 | Solderless JST-SH wiring |
+| Stereo I2S Class-D amplifier | 1 | Soldered MAX98357, 3 W; product 333355 | Final prototype audio amplifier with screw terminals |
+| Mini speaker, 3 W / 4 ohm | 2 | QUARKZMAN, 44 x 31 x 15 mm | Left/right prototype speakers |
+| Speaker lead and connector | 2 | JST-PH 2.0, 100 mm; supplied with speakers | Removable speaker connection |
 
-The display's exact part/revision and the Raspberry Pi's RAM variant should be added when confirmed
-from the physical units. Unknown inventory details must not be guessed.
+The display's exact product identifier/revision and the Raspberry Pi's RAM variant should be added
+when confirmed from the physical units. The amplifier's exact Linux/I2S presentation and stereo
+channel arrangement must be verified from the unit and vendor documentation before an adapter or
+wiring contract is recorded. Unknown inventory details must not be guessed.
 
 ## Prototype topology
 
@@ -44,6 +49,10 @@ from the physical units. Unknown inventory details must not be guessed.
 Raspberry Pi 4B
 │
 ├── 7-inch Touch Display
+│
+├── Soldered Stereo I2S MAX98357 amplifier
+│   ├── QUARKZMAN 3 W / 4 ohm speaker (left)
+│   └── QUARKZMAN 3 W / 4 ohm speaker (right)
 │
 └── SparkFun Qwiic SHIM DEV-15794
     │
@@ -105,7 +114,6 @@ Not yet selected or acquired:
 
 - NFC reader and tags;
 - VEML7700 ambient-light sensor; candidate for measuring lux during glanceable-display experiments;
-- audio amplifier, speakers and final audio path;
 - final mains/mobile power arrangement;
 - final enclosure and mechanical fixtures;
 - any additional sensor or actuator justified by later product work.
@@ -123,13 +131,19 @@ The Waveshare 5-inch HDMI AMOLED is a possible **RH2** display candidate for lat
 records an experiment option only: it is not a hardware decision, does not replace the acquired RH1
 touch display and creates no current adapter or purchasing requirement.
 
-For initial software work, an already available USB or HDMI audio output is acceptable. The final
-audio path must not consume the only practical connection path for Reference controls.
+The amplifier and speakers are acquired, but acquisition is not integration evidence. Before the
+audio path is accepted, record the Pi connection, required Linux configuration, actual left/right
+behaviour, clean startup/shutdown, usable gain range, sustained thermal/power behaviour and measured
+sound pressure. Until then, an already available USB or HDMI audio output remains acceptable for
+software work. The final audio path must not consume or electrically conflict with the practical
+connection path for Reference controls.
 
 ## Known prototype constraints
 
 - Qwiic simplifies prototype wiring but is not an AQENO platform requirement.
 - Shared I2C wiring still requires address, bus-load, cable-length and startup-order validation.
+- The FREENOVE panel's exact revision, Pi connection and display-server behaviour are not yet
+  recorded; authoritative panel off and touch routing therefore remain unproven.
 - The NeoKey and encoder boards are development modules, not production control assemblies.
 - Small board LEDs may need physical shielding; software-off capability must be verified on the
   assembled hardware.
@@ -138,6 +152,8 @@ audio path must not consume the only practical connection path for Reference con
 - The current control placement, key order, switch feel and enclosure ergonomics require user testing.
 - Logical volume limits are not hearing-safety claims until the complete amplifier/speaker path is
   measured and calibrated as specified in `CONFIGURATION_DEFAULTS.md`.
+- The MAX98357 board's advertised rating and the speakers' nominal ratings do not establish safe,
+  distortion-free or thermally sustainable output in the assembled enclosure.
 - Raspberry Pi boot time and power behaviour must be measured on the assembled unit rather than
   inferred from desktop tests.
 
@@ -178,6 +194,7 @@ The existing boundaries are sufficient for RH1:
 - ADR 0012 keeps QML/PySide6 outside the Core.
 
 The RH1 controls adapter now maps the acquired encoder and NeoKey through this boundary, pending
-on-device I2C validation. Visual hardware and remaining components still need concrete adapters when
-their implementation step is reached. This does not need a universal action bus, dynamic input
-engine, persona-specific hardware profiles or adapters for hypothetical external switches.
+on-device I2C validation. The display, amplifier and speakers are acquired but still need verified
+platform integration; acquisition alone does not justify concrete adapter behaviour. This does not
+need a universal action bus, dynamic input engine, persona-specific hardware profiles or adapters
+for hypothetical external switches.

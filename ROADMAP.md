@@ -5,7 +5,14 @@ current validation focus on Kids and Easy describes discovery contexts, not sepa
 the shared platform boundary is defined in `PRODUCT_FOUNDATION.md`. Unscheduled concepts in
 `docs/product/FUTURE_PRODUCT_CONCEPTS.md` do not alter these phases or priorities.
 
-## P0 — Product foundation — CURRENT
+## Current position
+
+The project deliberately has an implemented First Vertical Slice before completing the broader P1
+discovery programme. Desktop architecture and behaviour are proven; current progress is gated by
+physical RH1 assembly and measurements. The phase lists below retain the broader discovery horizon,
+but unchecked historic spike items do not mean the implemented slice is absent.
+
+## P0 — Product foundation
 
 - [x] Establish product position and principles.
 - [x] Define adaptive UX direction.
@@ -14,7 +21,7 @@ the shared platform boundary is defined in `PRODUCT_FOUNDATION.md`. Unscheduled 
 - [x] Establish open NFC and hardware philosophy.
 - [x] Establish one shared platform across Kids, independent and assisted use contexts.
 - [ ] Complete core user journeys.
-- [ ] Identify product risks and open questions.
+- [x] Identify product risks and open questions.
 
 ## P1 — UX discovery
 
@@ -31,10 +38,10 @@ the shared platform boundary is defined in `PRODUCT_FOUNDATION.md`. Unscheduled 
 
 ## P2 — Feasibility spikes
 
-- [ ] Audio engine comparison.
-- [ ] UI stack comparison on Raspberry Pi 4 reference prototype.
+- [ ] Validate the accepted GStreamer audio path on assembled RH1.
+- [ ] UI stack validation on Raspberry Pi 4 reference prototype.
 - [ ] Display sleep/wake + dark-room spike.
-- [ ] Rotary encoder/buttons spike.
+- [ ] Validate the implemented rotary encoder/NeoKey adapter on assembled RH1.
 - [ ] NFC spike.
 - [ ] Podcast/RSS + local file content spike.
 - [ ] Power-bank compatibility constraints.
@@ -66,10 +73,10 @@ Expected MVP themes:
 
 ## P4 — Alpha implementation
 
-- [ ] Hardware abstraction.
-- [ ] Content domain and storage.
-- [ ] Playback application layer.
-- [ ] Adaptive UI primitives.
+- [x] Hardware abstraction.
+- [x] Content domain and storage.
+- [x] Playback application layer.
+- [x] Bounded Kids Early Device UI over adaptive architecture.
 - [ ] Guardian local management.
 - [ ] NFC Actions.
 - [ ] Scenes.

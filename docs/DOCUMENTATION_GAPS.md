@@ -6,6 +6,12 @@
 
 ## Summary
 
+**Current-state note, 2026-08-18:** this document retains the original gap analysis and therefore
+contains historical descriptions below. The First Vertical Slice is implemented and desktop-tested.
+G01–G14 are closed for that slice except physical calibration; G24 and the RH1 evidence listed in
+`HANDOVER.md` remain active. `ONBOARDING.md`, `ARCHITECTURE.md`, `ROADMAP.md`, `README.md` and the
+hardware inventory were reconciled with that state on 2026-08-18.
+
 The documentation is unusually strong on **product intent** — principles, dark-room requirement,
 role model, display behaviour, hardware philosophy. It is close to zero on **implementation
 determinism**: nothing here tells an implementer what to build with, what values to use, or what

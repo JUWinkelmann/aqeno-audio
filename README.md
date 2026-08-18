@@ -6,9 +6,11 @@ The first focus is **AQENO Kids**; the same core is intended to support **AQENO 
 
 ## Current status
 
-**First Vertical Slice in progress.** Domain state, persistence, audio, semantic input and the local
-process composition and the first bounded Kids Early Device UI are implemented; Reference Hardware
-adapters remain.
+**First Vertical Slice implemented on desktop; Reference Hardware validation is in progress.** The
+domain, persistence, GStreamer audio, semantic input, process composition, bounded Kids Early Device
+UI, display policy and end-to-end scenarios exist. The RH1 encoder/NeoKey adapter is implemented but
+still needs verification on the assembled prototype; panel, final audio and other physical boundaries
+must not be claimed complete before on-device evidence exists.
 The implementation target is
 [`docs/implementation/FIRST_VERTICAL_SLICE.md`](docs/implementation/FIRST_VERTICAL_SLICE.md).
 

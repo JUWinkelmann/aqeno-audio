@@ -1,4 +1,4 @@
-# Onboarding — AI Assistants
+# Onboarding — Architects and AI Assistants
 
 Read this first. It takes you from zero to productive without re-deriving the project.
 
@@ -37,18 +37,19 @@ briefly justified by liability reasoning; the better reason stands on its own.
 
 ## 3. Where the project actually stands
 
-- **Phase:** specifications and decisions complete, repository initialised, **no code yet**.
-- **Next implementation target:** `docs/implementation/FIRST_VERTICAL_SLICE.md`, in its documented
-  order. It is **no longer blocked**.
+- **Phase:** the First Vertical Slice is implemented and desktop-tested; RH1 hardware validation is
+  the active boundary.
+- **Current continuation:** read `HANDOVER.md`. Step 10 has an implemented encoder/NeoKey adapter;
+  remaining work needs the assembled prototype, exact hardware evidence or a scoped new decision.
 - **Technology basis, all Accepted:** ADR 0001 Python 3.11+ · 0002 PySide6/QML in-process ·
   0003 GStreamer · 0005 DE/EN i18n · 0007 SQLite WAL + TOML settings · 0008 test strategy ·
   0009 content kinds.
 - **How to set up, run and test:** `DEVELOPMENT.md`.
-- **Still open, none of it blocking:** failure taxonomy (G08), resume precision (G12), readiness
-  criteria (G13), content ingestion (G14), input-bus delivery semantics (G06), packaging and display
-  server (G24). Write each immediately before the slice step that needs it, not up front.
-- **The one open item that should not stay undone:** volume calibration,
-  `CONFIGURATION_DEFAULTS.md` § 3.3. It needs a sound-level meter and the Reference hardware.
+- **Closed implementation contracts:** input delivery, failure states, resume, readiness and content
+  ingestion are specified and implemented.
+- **Open physical decisions/evidence:** exact FREENOVE display revision and display-server path,
+  authoritative panel off, final I2S wiring/audio behaviour, NFC selection, power, boot/wake timing,
+  LED true-off behaviour and calibrated child volume.
 
 Do not decide a technology by committing code. Writing code first *is* the decision, and it would be
 an undocumented one.
@@ -65,21 +66,25 @@ Do not skim these. They are contracts, not background.
 | 4 | `docs/product/MVP.md` | What is in scope and explicitly out |
 | 5 | `docs/product/USER_JOURNEY_KIDS_EARLY.md` | The experience the code must produce |
 | 6 | `docs/product/DISPLAY_BEHAVIOR.md` | Display state machine and its rules |
-| 7 | `docs/implementation/DOMAIN_MODEL.md` | Entities and invariants |
-| 8 | `docs/implementation/PLATFORM_CONTRACTS.md` | Ports: input, display, LED, audio, persistence |
-| 9 | `docs/implementation/DISPLAY_STATE_MACHINE.md` | **Normative** transition table. Do not infer transitions from prose. |
-| 10 | `docs/implementation/CONFIGURATION_DEFAULTS.md` | Every timeout, brightness and volume value. Never invent one. |
-| 11 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | The first thing to build, in order |
+| 7 | `docs/product/DEVICE_UI_PRINCIPLES.md` | Mandatory appliance-UI decision filter |
+| 8 | `docs/implementation/DOMAIN_MODEL.md` | Entities and invariants |
+| 9 | `docs/implementation/PLATFORM_CONTRACTS.md` | Ports: input, display, LED, audio, persistence |
+| 10 | `docs/implementation/DISPLAY_STATE_MACHINE.md` | **Normative** transition table. Do not infer transitions from prose. |
+| 11 | `docs/implementation/CONFIGURATION_DEFAULTS.md` | Every timeout, brightness and volume value. Never invent one. |
+| 12 | `docs/implementation/CONTENT_INGESTION.md` | Library discovery, identity and metadata contract |
+| 13 | `docs/implementation/READINESS_STATES.md` | Staged startup guarantees and degradation |
+| 14 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | Implemented slice contract and remaining RH1 boundary |
+| 15 | `DEVELOPMENT.md` | Toolchain, layout, how to run and test |
+| 16 | `docs/hardware/HARDWARE_REFERENCE.md` | Acquired prototype, topology and verification boundary |
+| 17 | `HANDOVER.md` | Current live state and exact next action |
+| 18 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
+| 19 | `docs/DOCUMENTATION_GAPS.md` | Remaining known gaps; historical analysis is retained |
+| 20 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
 
 Two further documents are **context, not contracts**: `docs/product/COMPETITIVE_REVIEW.md` records
 what competing products do well and badly, and carries no authority over scope;
 `docs/product/USE_OBSERVATIONS.md` collects evidence from real use and may overturn assumptions in the
 list above.
-| 12 | `DEVELOPMENT.md` | Toolchain, layout, how to run and test |
-| 13 | `docs/hardware/HARDWARE_REFERENCE.md` | Reference prototype, solderless constraint |
-| 14 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
-| 15 | `docs/DOCUMENTATION_GAPS.md` | What is not yet decided — read before assuming |
-| 16 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
 
 ## 5. How work is done here
 

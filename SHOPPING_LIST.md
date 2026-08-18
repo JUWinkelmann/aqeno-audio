@@ -1,26 +1,36 @@
-# AQENO Prototype Shopping List — no soldering
+# AQENO Prototype Inventory and Remaining Purchases
 
 This list is for the **Reference prototype**, not final production hardware.
 
-## Buy now
+## Acquired
 
-| Qty | Item | Purpose | Approx. observed price |
-|---:|---|---|---:|
-| 1 | Adafruit Pi STEMMA QT Breakout PID 6365 or equivalent | Solderless Pi I2C/Qwiic connection | ~US$2.50 |
-| 1 | Adafruit I2C QT Rotary Encoder **PID 5880 pre-soldered** | Volume + push Play/Pause + RGB LED | ~€8–15 depending retailer |
-| 1 | Adafruit NeoKey 1x4 QT I2C | Hot-swap physical buttons + 4 controllable RGB LEDs | ~€10–14 |
-| 3–4 | MX-compatible switches | Previous / Next / spare | ~€1 each upward |
-| 3–4 | translucent/shine-through MX keycaps | Let controlled LED light through | a few euros |
-| 3–4 | STEMMA QT/Qwiic cables, 50–200 mm | Internal plug connections | ~€1 each |
-| 1 set | M2.5/M3 screws + brass/plastic standoffs | Robust printed enclosure mounting | ~€8–15 |
-| 1 | suitable USB-C PSU if none available | Stationary power | use quality 5 V supply suitable for Pi 4 |
+| Qty | Item | Purpose |
+|---:|---|---|
+| 1 | Raspberry Pi 4B | AQENO Core |
+| 1 | FREENOVE 7-inch touchscreen | Device UI and touch |
+| 1 | Adafruit rotary encoder PID 5880 | Volume, Play/Pause press and RGB feedback |
+| 1 | Adafruit NeoKey 1x4 QT PID 4980 | Previous/Next MX buttons and NeoPixels |
+| several | CHERRY MX2A Brown RGB, 3-pin (MX2A-G1NA) | Physical buttons; initially two used |
+| 1 pack of 10 | Adafruit transparent MX keycaps PID 4956 | Light-transmitting keycaps |
+| 1 | SparkFun Qwiic SHIM DEV-15794 | Solderless Pi I2C/Qwiic connection |
+| 1 | Adafruit STEMMA QT/Qwiic Hub PID 5625 | I2C distribution |
+| 3 | Adafruit 300 mm STEMMA QT/Qwiic cables PID 5384 | Solderless bus wiring |
+| 1 | Soldered Stereo I2S MAX98357, 3 W (333355) | Prototype stereo amplifier |
+| 2 | QUARKZMAN 3 W / 4 ohm speakers, 44 x 31 x 15 mm | Stereo output |
+| 2 | Supplied JST-PH 2.0 leads, 100 mm | Removable speaker connection |
 
-Already available: Raspberry Pi 4B + 7-inch display.
+Inventory means physically present, not electrically or acoustically validated. The exact display
+revision, Pi RAM variant and amplifier integration details remain to be recorded from the units.
+
+## Buy only when required for assembly or verification
+
+- suitable standoffs, fasteners and strain relief for the chosen mechanical layout;
+- a suitable stationary USB-C power supply if none is already available;
+- a sound-level meter suitable for the child-volume calibration procedure.
 
 ## Do not buy yet
 - NFC module: simulate NFC first, then choose a genuinely solderless PN532 implementation.
 - battery/power bank: test stationary first; later validate common power banks.
-- final speakers/amplifier: choose after enclosure/audio requirements.
 - expensive custom arcade switches: wait until Kids Early physical-control testing tells us button size/force.
 
 ## Recommended control layout for prototype

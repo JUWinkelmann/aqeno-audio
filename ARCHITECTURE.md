@@ -1,6 +1,6 @@
 # AQENO Architecture
 
-**Status:** pre-implementation architecture guardrails, not a final technology selection.
+**Status:** implemented First Vertical Slice architecture; physical RH1 validation remains.
 
 ## Goals
 
@@ -106,12 +106,20 @@ See `docs/decisions/`. Accepted ADRs override this document.
 - local persistence — SQLite in WAL mode plus a hand-editable TOML settings file (ADR 0007);
 - test strategy (ADR 0008);
 - content kinds and their playback behaviour (ADR 0009).
+- Core/hardware/optional-service separation (ADR 0010);
+- synchronous semantic input delivery (ADR 0011);
+- Device UI and future Management UI boundary (ADR 0012);
+- physical token/content separation (ADR 0013);
+- local content ingestion and identity (ADR 0014);
+- excellence-first personal-project posture (ADR 0015);
+- application authority over display power policy (ADR 0016);
+- display as an optional capability without a capability framework (ADR 0017).
 
 ## Decision still open
 
 Do not lock these prematurely:
 
-- SBC/reference production hardware;
+- production hardware beyond the acquired RH1 prototype;
 - packaging/update mechanism and display server — `eglfs` vs Wayland gates the display-power
   story (gap G24);
 - remote/cloud architecture;
