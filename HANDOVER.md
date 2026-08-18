@@ -1,44 +1,25 @@
 # Handover
 
-**Date:** 2026-08-18
-**Reason:** end of session; another assistant takes over for the rest of today.
-**Supersedes:** the handover of 2026-08-17, whose contents are all done.
+**Updated:** 2026-08-18
+**Purpose:** live continuation log; read `ONBOARDING.md` first.
 
-## Live operating directive — 2026-08-18
+## Operating directive
 
-The maintainer has asked the active architect to continue the remaining work autonomously and as
-quickly as the repository contracts allow. Every completed or in-progress step is recorded in this
-file so another agent can take over without reconstructing the session. Clear, bounded
-implementation tasks should be delegated to a weaker model when that does not reduce quality;
-architecture, product decisions and final review remain with the primary architect.
+Continue the remaining scoped work autonomously. Record every started, reviewed, completed or
+blocked step here so another agent can take over immediately. Delegate bounded implementation work
+to a weaker model when quality will not suffer; architecture, product decisions, review and final
+acceptance remain with the primary architect.
 
-Current continuation point: Vertical Slice step 6 is complete in commit `1fcedfd`; the next scoped
-task is step 7, the minimal Kids Early Device UI. Repairability principles were documented afterward
-in commit `0aede03` and do not alter the slice or RH1.
+Do not broaden the First Vertical Slice. Follow `AGENTS.md`, accepted ADRs and the required
+implementation specifications. Documentation is English; the maintainer communicates in German.
 
-### Work in progress
+## Live state
 
-- **Step 7 — Kids Early Device UI:** delegated as a bounded implementation task to a weaker model.
-  Scope is one concrete PySide6/QML presentation over `DeviceUiState`: Home with large image tiles,
-  Now Playing, deliberately reduced `DIM`, no administration, no keyboard and no new framework.
-  The primary architect will review the UI contract, thread marshalling, readiness integration,
-  headless behaviour and tests before accepting or committing it.
+Step 7 is complete in `6e295a0`. Step 9 is now the active slice task: close only the missing
+end-to-end acceptance coverage defined by `FIRST_VERTICAL_SLICE.md`.
 
-Read `ONBOARDING.md` first — it is the entry point and this document assumes it. This file records
-only what is *in flight*: state that is not obvious from the repository itself.
-
-## Where things stand
-
-`main` is clean and green: **908 tests, ruff, ruff format and mypy pass.** Run the checks **bare,
-never through a pipe** — a piped exit status comes from the pipe, not the command. That is M-004 in
-`MISTAKES.md`.
-
-```
-ruff check . && ruff format --check . && mypy && pytest
-```
-
-`main` is **13 commits ahead of `origin/main` and nothing has been pushed.** That is deliberate; the
-maintainer pushes.
+Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff format --check` and
+`mypy` pass.
 
 | Slice step | State |
 |---|---|
@@ -46,137 +27,80 @@ maintainer pushes.
 | 2 — persistence | done |
 | 3 — audio adapter | done |
 | 4 — semantic input bus + simulator | done |
-| 5 — application services | done, including content ingestion |
-| 6 — typed state channel | done — `DeviceUiState` combines library, playback and display state |
-| 7 — Kids Early UI | not started. **No `ui/` directory exists.** |
-| 8 — display policy | done today: ports, service, readiness ladder |
-| 9 — end-to-end tests | not started |
-| 10 — Reference Hardware adapter | not started |
+| 5 — application services + ingestion | done |
+| 6 — typed Device UI state channel | done (`1fcedfd`) |
+| 7 — Kids Early Device UI | done (`6e295a0`) |
+| 8 — display policy | done (`f88365f`, `cc493c7`) |
+| 9 — end-to-end tests | delegated audit/implementation in progress |
+| 10 — Reference Hardware adapters | not started |
 
-Every documentation gap the vertical slice depends on is now closed (`docs/DOCUMENTATION_GAPS.md`).
-Open and blocking nothing: G24 (packaging and display server) and the hygiene set.
+## Step log
 
-## 1. What changed today, and why it matters
+### 2026-08-18 — autonomous continuation established
 
-**A project-direction correction, and it is the most important thing in this file.** ADR 0015
-established:
+- Read the repository contract and created an explicit continuation goal.
+- Recorded the user's autonomous-work and delegation directive in `HANDOVER.md`.
+- Committed that checkpoint as `e150055 keep the live handover aligned with autonomous work`.
 
-> **AQENO is built to be excellent, not to justify a business.**
+### 2026-08-18 — Step 7 implementation delegated
 
-A competitive review earlier the same day judged every capability by market differentiation and
-recommended narrowing the product. The research was kept; the framing was rejected, because the
-premise was wrong — there is no market to enter, there is one child who will use this device daily.
+- Delegated the bounded PySide6/QML implementation to a weaker Codex model.
+- Scope: one Kids Early presentation over `DeviceUiState`; Home image tiles, Now Playing,
+  deliberately reduced DIM, Qt-thread marshalling, UI readiness and a Qt-free headless path.
+- Explicit exclusions: administration, settings, keyboard, new frameworks, new dependencies,
+  hardware adapters and product-policy changes.
 
-Two rules follow, and a new agent will get decisions wrong without them:
+### 2026-08-18 — Step 7 primary review
 
-- **"Not a USP" is never a reason not to build something.** Neither is "a competitor already has
-  this". The test is `AGENTS.md` § "Deciding what to build": *does this make AQENO meaningfully
-  better for the person using it?*, with *better or merely bigger?* as the guard.
-- **`docs/product/COMPETITIVE_REVIEW.md` is a benchmark, not a scope authority.** It is written
-  persuasively and will read as binding if you do not know this.
+- Reviewed every generated file and the composition-root integration.
+- Confirmed the UI imports application/domain state only; Qt remains behind a lazy composition-root
+  import, so headless startup does not import or construct Qt.
+- Confirmed Home is image-first, Now Playing is separate, DIM has no controls/navigation, and OFF
+  removes the QML surface from hit testing.
+- Found and removed an automatic `WAKE_REQUEST` emitted by UI startup. It contradicted the accepted
+  invariant that nothing leaves OFF automatically. `UI_READY` now only marks readiness; an explicit
+  human wake remains required.
+- Added a deterministic runtime test proving UI startup advances `UI_READY` without needing or
+  touching a display service. Existing model tests cover Qt-thread marshalling and OFF input gating.
+- Updated `DEVELOPMENT.md` and `README.md` only where their statements that no Device UI existed had
+  become false. Documented the explicit `audio,input` headless run and Qt-free `--check` path.
+- Full suite result after the final lint correction: 946 passed, 1 deselected; ruff, format and mypy
+  pass.
+- Committed the accepted implementation as `6e295a0 give Kids Early one calm device surface` with
+  honest AI co-authorship.
 
-Also today: content ingestion (ADR 0014), the readiness ladder and display service (ADR 0016), the
-readiness specification (`READINESS_STATES.md`) and a fix to the display state machine.
+### 2026-08-18 — Step 9 started
 
-## 2. Waiting on the maintainer: two open decisions
+- Read the canonical ten user-visible behaviours and Definition of Done in
+  `docs/implementation/FIRST_VERTICAL_SLICE.md`.
+- Next action is an evidence audit against existing unit, contract and scenario coverage. Only
+  genuinely missing cross-boundary scenarios should be added; existing tests must not be duplicated.
+- Delegated that bounded audit and implementation to the weaker Codex model
+  `/root/vertical_slice_e2e`. The primary architect is independently checking the existing dark-room,
+  persistence, NFC, startup and failure coverage and will review all returned changes.
 
-A display, ambient-interaction and display-modularity directive arrived at the end of the session.
-**It is analysed but not yet written into the documentation, because two product questions are the
-maintainer's to answer.** Do not decide them yourself.
+## Accepted display and hardware decisions already in the repository
 
-The directive's canonical statement is *"Display is a capability, not a dependency"* — AQENO must be
-a complete audio device with no display attached. The full analysis is in the final assistant message
-of the previous session; its substance:
+- `INTERACTIVE → DIM → OFF` during playback; DIM is the glanceable presentation, not a new state.
+- Idle retains existing OFF policy. AMBIENT stays explicit and never becomes inactivity fallback.
+- Night/Bedtime remains authoritative and reliably dark.
+- Display is optional through a null panel and composition-root selection; playback remains complete
+  headlessly. No capability framework or runtime hotplug.
+- Ambient light is a Lux port with VEML7700 adapter and minimal calm policy; no generic adaptive
+  brightness engine.
+- Repairability and standard-component principles are canonical in `PRODUCT_FOUNDATION.md` and
+  `docs/hardware/HARDWARE_REFERENCE.md` (`0aede03`). No CAD, enclosure design or RH change was made.
 
-**The architecture already satisfies most of it.** `test_import_boundaries.py` forbids every layer
-from importing `aqeno.ui`; there is no `ui/` package; `UI_READY` is never reached today and the
-process runs correctly that way. Unplugging the display stops exactly one thing: **choosing content
-that has no token assigned.**
+## Next action
 
-**Question 1 — naming.** The directive's "AMBIENT" (glanceable: title, chapter, clock, entered
-automatically after inactivity) is the *opposite* of the accepted `AMBIENT` state, which is the
-deliberately enabled visual mode and carries the invariant *"Ambient is never an automatic fallback
-for inactivity"* plus product principle P14. The glanceable state the directive describes is
-structurally the existing **`DIM`** — automatic after inactivity, dimmed, no controls, `dim_hold`
-onward to `OFF`. Recommendation: implement glanceable as `DIM` with defined content, keep `AMBIENT`
-meaning what it means. Rejected alternative: renaming states in an accepted normative table.
+1. Review the delegated Step 9 audit and changes against the primary coverage analysis.
+2. Run the complete checks, commit the accepted Step 9 change and update this log.
 
-**Question 2 — Kids Early.** It currently goes `INTERACTIVE → OFF` after 30 s (`allows_dim=False`,
-`dim_brightness=0`). A glanceable stage means a faintly lit screen in a child's room after 30 seconds
-instead of darkness. Does Kids Early get it, or is glanceable for kitchen/Easy/Standard only?
+## Standing reminders
 
-**Two further conflicts to resolve when writing this up:** § 13 of the directive (a clock shown when
-idle) contradicts P14 directly; and the directive's "Ambient Idle" must stay distinct from the photo
-frame, which remains a future concept.
-
-**The agreed minimal implementation, once those are answered** — four items, one new Core file:
-
-1. `adapters/display/none.py` — a null panel reporting `PanelCapabilities(authoritative_off=True,
-   brightness_control=False, touch=False)`. With no panel, authoritative off is simply true. Zero
-   changes to the service, the policy or the LEDs.
-2. Display detection in the composition root only. **No hotplug.**
-3. Glanceable as `DIM` plus config values and a rendering description in `DISPLAY_BEHAVIOR.md`.
-4. `ports/ambient_light.py` with `read_lux()`, a VEML7700 adapter, smoothing and hysteresis as policy
-   in the display service. No sensor logic in the domain.
-
-**Do not build:** a capability DSL, a display-plugin or universal-input framework, runtime hotplug, a
-burn-in engine, an adaptive-brightness engine, or product variants. All seven were ruled out
-explicitly.
-
-**Documentation plan agreed but not executed:** ADR 0017 (`Display as optional capability`),
-`PRODUCT_FOUNDATION.md` for the principles and the P14 resolution, `DISPLAY_BEHAVIOR.md` for
-glanceable and headless feedback, `HARDWARE_REFERENCE.md` for the VEML7700 as an RH1 candidate and
-AMOLED / Waveshare 5" as RH2 candidates. No new redundant documents.
-
-## 3. Known gaps worth acting on
-
-- **No update or recovery path exists.** It is the only row of the failure comparison in
-  `COMPETITIVE_REVIEW.md` with no answer, and it is the most realistic way a self-built device dies.
-- **Setup requires maker knowledge and there is no interface**, so the primary design case — a child
-  using the device daily — is still untested. `docs/product/USE_OBSERVATIONS.md` is empty and waiting
-  for its first entry.
-- **`CONFIGURATION_DEFAULTS.md` § 3.3 volume calibration** is still open. The current ceilings are
-  placeholders, not a hearing-safety guarantee; it needs a sound-level meter and Reference hardware.
-- **G24, `eglfs` versus Wayland.** ADR 0016 deliberately made this *observable* rather than deciding
-  it: the real panel adapter is not finished until it reports `authoritative_off` truthfully on
-  Reference Hardware 1.
-- **Ingestion, two documented deviations** (`CONTENT_INGESTION.md` § 15): every scan re-probes every
-  file, and MP4 chapter atoms are not read, so an `.m4b` falls back to one chapter.
-
-## 4. Housekeeping the assistant could not do
-
-`docs/history-rewrite-plan.md` is untracked and **obsolete** — the rewrite it describes was completed
-and `main` carries the result. Deleting it was blocked by the environment's permission classifier, so
-it is still on disk. The same applies to four stale branches, all behind `main`:
-`wip/audio-adapter` (also on `origin`), `wip/content-ingestion`, `wip/display-service`,
-`rewrite/quality-history`, `backup/pre-quality-history-rewrite`.
-
-```
-rm docs/history-rewrite-plan.md
-git branch -D wip/audio-adapter wip/content-ingestion wip/display-service \
-  rewrite/quality-history backup/pre-quality-history-rewrite
-```
-
-Deleting `origin/wip/audio-adapter` is a remote change and needs the maintainer's explicit go-ahead.
-
-## 5. How this project works
-
-- **Architecture and specification come from the assistant; implementation is delegated** to a
-  subagent and then reviewed against the specification. That pattern produced today's ingestion and
-  display work and is worth keeping.
-- **Delegated agents must be told what not to touch.** Today's display agent was forbidden from
-  editing `domain/display.py`; it found a real defect there, reported it instead of patching it, and
-  the fix was made deliberately with a spec amendment. That is the outcome the rule exists for.
-- **Every commit carries an honest `Co-Authored-By` trailer** — ADR 0006 § 7 makes provenance
-  load-bearing because the copyright status of AI-generated code is unsettled.
-- **Commit subjects are lowercase, imperative, and state the motive or the non-obvious decision.**
-  Read `git log --oneline -20` before writing one.
-- Documentation is English; the maintainer works in German.
-
-## 6. Standing constraints
-
-- **This is a personal project** built for the maintainer's son. Licensing, commercialisation and
-  publication are deferred by intent (ADR 0006, on hold). Do not treat them as live.
-- **Productive work only** — `AGENTS.md`. Optimal does not mean maximal, and YAGNI still binds.
-- **The repository is private and must stay private** until `CONTRIBUTING.md` with a contributor
-  agreement exists (ADR 0006 § 7). Publishing without it is the one step that cannot be undone.
+- Run quality commands directly, never through a pipe (`MISTAKES.md` M-004).
+- Preserve unrelated user changes and keep commits conceptually narrow.
+- Every AI-authored commit needs an honest `Co-Authored-By` trailer (ADR 0006 § 7).
+- Do not push; the maintainer owns publication.
+- Remaining hardware-only questions include true panel OFF/display-server behaviour, wake/startup
+  timing and calibrated child volume. Do not fabricate results without Reference Hardware.
