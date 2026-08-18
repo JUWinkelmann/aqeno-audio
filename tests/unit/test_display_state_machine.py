@@ -167,6 +167,14 @@ class TestAmbientIsNeverAutomatic:
         assert transition.state is DisplayState.OFF
         assert transition.blocked_reason == "ambient_not_permitted"
 
+    def test_ambient_is_refused_before_the_ui_can_render_it(self) -> None:
+        """Entering AMBIENT before UI_READY would light a panel with nothing on it."""
+        guards = DisplayGuards(ui_ready=False, ambient_enabled=True, ambient_authorised=True)
+        for event in (DisplayEvent.AMBIENT_REQUESTED, DisplayEvent.AMBIENT_SCHEDULE_START):
+            transition = resolve(DisplayState.OFF, event, guards)
+            assert transition.state is DisplayState.OFF
+            assert transition.blocked_reason == "ui_not_ready"
+
     def test_ambient_is_refused_during_playback(self) -> None:
         """Not visual accompaniment to an audio story."""
         guards = DisplayGuards(
@@ -213,6 +221,13 @@ class TestSetupAuthorisation:
         transition = resolve(DisplayState.OFF, DisplayEvent.SETUP_REQUESTED, READY)
         assert transition.state is DisplayState.OFF
         assert transition.blocked_reason == "setup_not_authorised"
+
+    def test_setup_is_refused_before_the_ui_can_render_it(self) -> None:
+        """Adult-initiated and retryable, so blocking beats a lit blank panel."""
+        guards = DisplayGuards(ui_ready=False, setup_authorised=True)
+        transition = resolve(DisplayState.OFF, DisplayEvent.SETUP_REQUESTED, guards)
+        assert transition.state is DisplayState.OFF
+        assert transition.blocked_reason == "ui_not_ready"
 
     @pytest.mark.parametrize(
         "start", [DisplayState.OFF, DisplayState.DIM, DisplayState.INTERACTIVE]

@@ -13,9 +13,20 @@ does not mention.
 
 `OFF` · `DIM` · `INTERACTIVE` · `AMBIENT` · `SETUP`, as defined in `DISPLAY_BEHAVIOR.md`.
 
-Initial state on boot is **`OFF`**. The machine may not enter `INTERACTIVE`, `DIM` or `AMBIENT`
-before readiness state `UI_READY` (`PLATFORM_CONTRACTS.md`). A `WakeRequest` arriving earlier is
-**queued, not discarded**, and applied when `UI_READY` is reached.
+Initial state on boot is **`OFF`**. The machine may not enter `INTERACTIVE`, `DIM`, `AMBIENT` or
+`SETUP` before readiness state `UI_READY` (`READINESS_STATES.md`). Nothing renders before that rung,
+so any of those states would mean a lit panel with nothing on it.
+
+Two different outcomes, deliberately:
+
+- A `WakeRequest` or `TouchOnPanel` arriving earlier is **queued, not discarded**, and applied when
+  `UI_READY` is reached — one pending wake, however many times it is requested.
+- `AmbientRequested`, `AmbientScheduleStart` and `SetupRequested` are **blocked** with reason
+  `ui_not_ready`, not queued. Setup is adult-initiated and retried in a second; an Ambient schedule
+  that opened during boot should not spring on later out of order.
+
+*`SETUP` was added to this rule on 2026-08-18, together with the guard in `domain/display.py`, after
+the display service made the gap visible.*
 
 ## Guards
 
@@ -82,10 +93,10 @@ the display is not involved. This is a decision, not an omission.
    the finger. A child tapping a dark panel must never trigger an action they cannot see. This is a
    hard requirement, not a refinement.
 3. The touch is delivered to the UI normally.
-4. Requires `ambient_enabled && ambient_authorised && !night_active && !playback_active`. If any guard
-   fails, there is no transition and the reason is logged. Ambient is never an automatic fallback for
+4. Requires `ui_ready && ambient_enabled && ambient_authorised && !night_active && !playback_active`.
+   If any guard fails, there is no transition and the reason is logged. Ambient is never an automatic fallback for
    inactivity — the only paths into `AMBIENT` are an explicit request or a configured schedule.
-5. Requires `setup_authorised`. Otherwise no transition.
+5. Requires `ui_ready && setup_authorised`. Otherwise no transition.
 6. **Volume, play/pause, next and previous never change display state and never reset the visual
    inactivity timer.** The timer measures *visual* interaction. This is the dark-room requirement in
    its most literal form: the child turns the volume down at 3 a.m. and the room stays dark. It is

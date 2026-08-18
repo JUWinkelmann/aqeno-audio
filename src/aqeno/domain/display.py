@@ -152,6 +152,8 @@ def _wake(current: DisplayState, guards: DisplayGuards, *, by_touch: bool) -> Di
 
 
 def _enter_ambient(current: DisplayState, guards: DisplayGuards) -> DisplayTransition:
+    if not guards.ui_ready:
+        return _stay(current, reason="ui_not_ready")
     if not guards.ambient_permitted():
         return _stay(current, reason="ambient_not_permitted")
     return DisplayTransition(state=DisplayState.AMBIENT)
@@ -201,6 +203,10 @@ def resolve(current: DisplayState, event: DisplayEvent, guards: DisplayGuards) -
         case DisplayEvent.SETUP_REQUESTED:
             if current is DisplayState.SETUP:
                 return _reset(current)
+            if not guards.ui_ready:
+                # A lit panel with nothing rendered on it is worse than a request
+                # that did not happen. Setup is adult-initiated and can be retried.
+                return _stay(current, reason="ui_not_ready")
             if not guards.setup_authorised:
                 return _stay(current, reason="setup_not_authorised")
             return _reset(DisplayState.SETUP)
