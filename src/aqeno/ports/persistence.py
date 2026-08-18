@@ -24,7 +24,14 @@ from enum import StrEnum, auto
 from typing import Protocol
 
 from aqeno.config.defaults import Settings
-from aqeno.domain.content import ContentId, ContentItem, Fingerprint, MemberFile
+from aqeno.domain.access import (
+    AccessDecision,
+    Audience,
+    Collection,
+    CollectionId,
+    EffectiveAccess,
+)
+from aqeno.domain.content import ContentId, ContentItem, ContentKind, Fingerprint, MemberFile
 from aqeno.domain.profile import Profile
 
 
@@ -84,6 +91,28 @@ class TagMapping:
     content_id: ContentId
 
 
+@dataclass(frozen=True, slots=True)
+class ContentQuery:
+    """Bounded local-index query for management and future richer Device UIs.
+
+    The cursor tuple is the previous row's case-folded title and stable ContentId.
+    It is deliberately persistence-neutral; HTTP encoding belongs to the adapter.
+    """
+
+    limit: int
+    search: str | None = None
+    kind: ContentKind | None = None
+    available: bool | None = None
+    after: tuple[str, ContentId] | None = None
+    profile_name: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ContentPage:
+    items: tuple[ContentItem, ...]
+    total: int
+
+
 class Library(Protocol):
     """Domain-data persistence. One connection/session per open `Library`.
 
@@ -114,6 +143,10 @@ class Library(Protocol):
 
     def list_content(self) -> tuple[ContentItem, ...]: ...
 
+    def query_content(self, query: ContentQuery) -> ContentPage:
+        """Server-side filtering and stable keyset pagination over the local index."""
+        ...
+
     def remove_content(self, content_id: ContentId) -> None:
         """Removes the content item and cascades to its tag mappings and resume
         positions. Never triggered by removing a tag mapping — only the reverse."""
@@ -133,6 +166,12 @@ class Library(Protocol):
         that work's stored member files matched" (CONTENT_INGESTION.md § 4).
         """
         ...
+
+    def find_member_by_path(self, path: str) -> tuple[ContentId, MemberFile] | None:
+        """Scan bookkeeping lookup; paths are locations, never public identity."""
+        ...
+
+    def mark_available(self, content_ids: tuple[ContentId, ...], *, last_seen: float) -> None: ...
 
     def mark_unavailable(self, content_ids: tuple[ContentId, ...]) -> None:
         """Sets `available = False` on every listed work, leaving everything else
@@ -160,6 +199,46 @@ class Library(Protocol):
     def get_profile(self, name: str) -> Profile | None: ...
 
     def list_profiles(self) -> tuple[Profile, ...]: ...
+
+    def remove_profile(self, name: str) -> None: ...
+
+    # -- personal listening state --------------------------------------------
+    def set_favorite(self, profile_name: str, content_id: ContentId, favorite: bool) -> None: ...
+
+    def is_favorite(self, profile_name: str, content_id: ContentId) -> bool: ...
+
+    def list_favorites(self, profile_name: str, query: ContentQuery) -> ContentPage: ...
+
+    # -- content access -------------------------------------------------------
+    def set_content_audience(
+        self, content_ids: tuple[ContentId, ...], audience: Audience
+    ) -> None: ...
+
+    def set_content_overrides(
+        self,
+        content_ids: tuple[ContentId, ...],
+        profile_names: tuple[str, ...],
+        decision: AccessDecision | None,
+    ) -> None: ...
+
+    def get_content_audience(self, content_id: ContentId) -> Audience | None: ...
+
+    def effective_access(self, content_id: ContentId, profile_name: str) -> EffectiveAccess: ...
+
+    def can_profile_access(self, content_id: ContentId, profile_name: str) -> bool: ...
+
+    # -- collections ----------------------------------------------------------
+    def save_collection(self, collection: Collection) -> None: ...
+
+    def get_collection(self, collection_id: CollectionId) -> Collection | None: ...
+
+    def list_collections(self) -> tuple[Collection, ...]: ...
+
+    def remove_collection(self, collection_id: CollectionId) -> None: ...
+
+    def set_collection_audience(self, collection_id: CollectionId, audience: Audience) -> None: ...
+
+    def get_collection_audience(self, collection_id: CollectionId) -> Audience | None: ...
 
     # -- resume ------------------------------------------------------------
     def get_resume(self, content_id: ContentId, profile_name: str) -> timedelta | None: ...

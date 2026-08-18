@@ -459,6 +459,24 @@ def _ingest_candidate(
     clock: Clock,
     artwork_dir: Path,
 ) -> ContentId | None:
+    unchanged_ids: set[ContentId] = set()
+    unchanged = True
+    for path in candidate.files:
+        known = library.find_member_by_path(str(path))
+        try:
+            stat = path.stat()
+        except OSError:
+            unchanged = False
+            break
+        if known is None or known[1].size_bytes != stat.st_size or known[1].mtime != stat.st_mtime:
+            unchanged = False
+            break
+        unchanged_ids.add(known[0])
+    if unchanged and len(unchanged_ids) == 1:
+        content_id = next(iter(unchanged_ids))
+        library.mark_available((content_id,), last_seen=clock.now())
+        return content_id
+
     probes: dict[Path, ProbedFile] = {}
     for path in candidate.files:
         try:
@@ -560,7 +578,12 @@ def run_scan(
 ) -> ScanSummary:
     """Runs off the playback thread; commits per work, never holds a
     transaction across a probe (CONTENT_INGESTION.md § 2)."""
-    previously_known = {item.id for item in library.list_content()}
+    usable_roots = tuple(root.resolve() for root in roots if root.is_dir())
+    previously_known: set[ContentId] = set()
+    for item in library.list_content():
+        members = library.get_member_files(item.id)
+        if any(_under_root(member.path, root) for member in members for root in usable_roots):
+            previously_known.add(item.id)
     touched: set[ContentId] = set()
 
     candidates = discover_work_candidates(roots, follow_symlinks=follow_symlinks)
@@ -580,3 +603,11 @@ def run_scan(
         works_touched=len(touched),
         works_marked_unavailable=len(stale),
     )
+
+
+def _under_root(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root)
+    except (OSError, ValueError):
+        return False
+    return True

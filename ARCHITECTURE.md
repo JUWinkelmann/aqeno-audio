@@ -86,14 +86,16 @@ Kids, Easy and Standard should share components and domain state. Variation is d
 
 The Qt Quick/QML Device UI is an appliance presentation, not an administration application. QML
 renders application state and emits intentions through concrete Python view models; product rules
-stay in Core/Application. Complex adult administration belongs to a separate future Management UI
-and authenticated presentation adapter (ADR 0012). No Management API technology is selected yet.
+stay in Core/Application. Complex administration uses the separately authenticated, local-first
+FastAPI adapter defined by ADR 0018 and `docs/management/LOCAL_MANAGEMENT_API.md`. Its client is
+replaceable and optional; playback never depends on HTTP, LAN or a Management UI (ADR 0012).
 
 ## Local-first boundary
 
 The local device owns enough state to play local/downloaded content, resolve NFC assignments, preserve resume positions and apply local scenes without a cloud service.
 
-Remote management, synchronisation and cloud backup are optional adapters added later.
+Local ownership and administration are exposed by the on-device Management API without a cloud
+service. Remote management, synchronisation and cloud backup are optional adapters added later.
 
 ## Decisions made
 

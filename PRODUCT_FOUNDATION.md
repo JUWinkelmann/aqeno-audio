@@ -282,6 +282,13 @@ Use roles rather than hard-coded parent/child relationships:
 This supports parent → child, an independent Owner/User and an authorised family member assisting
 another adult without encoding those relationships as core roles.
 
+A listening **Profile** is separate from these management roles. It is a local context for media,
+favorites, progress and presentation—not a login, account or authentication identity. Shared
+content is the default; managers can curate inherited groups and cheap per-medium exceptions.
+Every entry path respects the active profile's effective access, and unavailable content is absent
+instead of appearing locked. Management authorization never derives from the selected profile
+(ADR 0019).
+
 Possible management capabilities include content curation, UI complexity, volume limits, usage windows, sleep behaviour, NFC assignment, offline preparation and optional remote content delivery.
 
 > **AQENO enables care, not surveillance.**

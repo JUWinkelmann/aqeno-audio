@@ -85,6 +85,10 @@ Do not skim these. They are contracts, not background.
 For target-group design work, additionally read `docs/product/TARGET_GROUP_UX_CONCEPTS.md`. It is UX
 discovery rather than an implementation contract and must not be used to broaden the current slice.
 
+For local administration or client work, additionally read
+`docs/management/LOCAL_MANAGEMENT_API.md` and `docs/management/API_CLIENT_GUIDE.md`; the generated
+`docs/management/openapi.json` is the machine-readable client contract.
+
 Two further documents are **context, not contracts**: `docs/product/COMPETITIVE_REVIEW.md` records
 what competing products do well and badly, and carries no authority over scope;
 `docs/product/USE_OBSERVATIONS.md` collects evidence from real use and may overturn assumptions in the

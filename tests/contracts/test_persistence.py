@@ -31,7 +31,13 @@ from aqeno.domain.content import (
     ReplayGain,
 )
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
-from aqeno.ports.persistence import DatabaseHealth, Library, SettingsStore, UnknownContentError
+from aqeno.ports.persistence import (
+    ContentQuery,
+    DatabaseHealth,
+    Library,
+    SettingsStore,
+    UnknownContentError,
+)
 
 
 def _content(title: str = "Item") -> ContentItem:
@@ -120,6 +126,22 @@ class TestContent:
         assert got.title == "Renamed"
         assert got.chapters == ()
         assert got.sources == item.sources[:1]
+
+    def test_query_is_filtered_and_stably_keyset_paginated(self, library: Library) -> None:
+        alpha = _content("alpha")
+        alpine = _content("Alpine")
+        beta = _content("Beta")
+        library.save_content(alpha)
+        library.save_content(alpine)
+        library.save_content(beta)
+
+        first = library.query_content(ContentQuery(limit=2, search="al"))
+        assert [item.title for item in first.items] == ["alpha", "Alpine"]
+        assert first.total == 2
+
+        after = (first.items[-1].title.casefold(), first.items[-1].id)
+        second = library.query_content(ContentQuery(limit=2, after=after))
+        assert [item.title for item in second.items] == ["Beta"]
 
 
 class TestScanFields:

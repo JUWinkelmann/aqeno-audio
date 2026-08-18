@@ -8,6 +8,7 @@ Real-container fixtures live in `tests/contracts/test_mutagen_probe.py`.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 
@@ -419,3 +420,63 @@ class TestFailuresDuringAScan:
         _scan(tmp_path, probe, library, clock)  # must not raise
 
         assert library.list_content() == ()
+
+
+class TestLargeAndExternalLibraries:
+    def test_unchanged_candidate_skips_metadata_probe(self, tmp_path: Path) -> None:
+        library = FakeLibrary()
+        clock = FakeClock()
+        path = _touch(tmp_path / "Work" / "only.mp3")
+
+        class CountingProbe(FakeMediaProbe):
+            calls = 0
+
+            def probe(self, path: Path) -> ProbedFile | None:
+                self.calls += 1
+                return super().probe(path)
+
+        probe = CountingProbe()
+        probed = _probed(path, fingerprint=_fingerprint("stable"))
+        probe.add(replace(probed, mtime=path.stat().st_mtime))
+        _scan(tmp_path, probe, library, clock)
+        assert probe.calls == 1
+
+        _scan(tmp_path, probe, library, clock)
+        assert probe.calls == 1
+
+    def test_unavailable_external_root_never_marks_its_indexed_work_removed(
+        self, tmp_path: Path
+    ) -> None:
+        internal = tmp_path / "internal"
+        external = tmp_path / "mounted-nas"
+        internal.mkdir()
+        path = _touch(external / "Work" / "only.mp3")
+        probe = FakeMediaProbe()
+        probe.add(_probed(path, fingerprint=_fingerprint("nas")))
+        library = FakeLibrary()
+        clock = FakeClock()
+
+        run_scan(
+            library=library,
+            probe=probe,
+            clock=clock,
+            roots=(internal, external),
+            follow_symlinks=False,
+            artwork_dir=tmp_path / "artwork",
+        )
+        [item] = library.list_content()
+        path.unlink()
+        path.parent.rmdir()
+        external.rmdir()
+
+        run_scan(
+            library=library,
+            probe=probe,
+            clock=clock,
+            roots=(internal, external),
+            follow_symlinks=False,
+            artwork_dir=tmp_path / "artwork",
+        )
+
+        preserved = library.get_content(item.id)
+        assert preserved is not None and preserved.available is True

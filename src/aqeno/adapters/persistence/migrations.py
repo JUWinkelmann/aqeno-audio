@@ -137,9 +137,94 @@ def _migration_0002_ingestion(conn: sqlite3.Connection) -> None:
         conn.execute(statement)
 
 
+_MIGRATION_0003_STATEMENTS: tuple[str, ...] = (
+    "CREATE INDEX content_title_order ON content (lower(title), id)",
+    "CREATE INDEX content_kind_available ON content (kind, available)",
+    "CREATE INDEX resume_recent ON resume_position (profile_name, updated_at DESC)",
+    "CREATE INDEX member_file_path ON member_file (path)",
+)
+
+
+def _migration_0003_management_index(conn: sqlite3.Connection) -> None:
+    for statement in _MIGRATION_0003_STATEMENTS:
+        conn.execute(statement)
+
+
+_MIGRATION_0004_STATEMENTS: tuple[str, ...] = (
+    """
+    CREATE TABLE collection (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE collection_member (
+        collection_id TEXT NOT NULL REFERENCES collection(id) ON DELETE CASCADE,
+        content_id TEXT NOT NULL REFERENCES content(id) ON DELETE CASCADE,
+        PRIMARY KEY (collection_id, content_id)
+    )
+    """,
+    """
+    CREATE TABLE content_audience (
+        content_id TEXT PRIMARY KEY REFERENCES content(id) ON DELETE CASCADE,
+        mode TEXT NOT NULL CHECK (mode IN ('shared', 'selected_profiles'))
+    )
+    """,
+    """
+    CREATE TABLE content_audience_profile (
+        content_id TEXT NOT NULL REFERENCES content(id) ON DELETE CASCADE,
+        profile_name TEXT NOT NULL REFERENCES profile(name) ON DELETE CASCADE,
+        PRIMARY KEY (content_id, profile_name)
+    )
+    """,
+    """
+    CREATE TABLE content_access_override (
+        content_id TEXT NOT NULL REFERENCES content(id) ON DELETE CASCADE,
+        profile_name TEXT NOT NULL REFERENCES profile(name) ON DELETE CASCADE,
+        decision TEXT NOT NULL CHECK (decision IN ('allow', 'deny')),
+        PRIMARY KEY (content_id, profile_name)
+    )
+    """,
+    """
+    CREATE TABLE collection_audience (
+        collection_id TEXT PRIMARY KEY REFERENCES collection(id) ON DELETE CASCADE,
+        mode TEXT NOT NULL CHECK (mode IN ('shared', 'selected_profiles'))
+    )
+    """,
+    """
+    CREATE TABLE collection_audience_profile (
+        collection_id TEXT NOT NULL REFERENCES collection(id) ON DELETE CASCADE,
+        profile_name TEXT NOT NULL REFERENCES profile(name) ON DELETE CASCADE,
+        PRIMARY KEY (collection_id, profile_name)
+    )
+    """,
+    """
+    CREATE TABLE favorite (
+        profile_name TEXT NOT NULL REFERENCES profile(name) ON DELETE CASCADE,
+        content_id TEXT NOT NULL REFERENCES content(id) ON DELETE CASCADE,
+        PRIMARY KEY (profile_name, content_id)
+    )
+    """,
+    "CREATE INDEX collection_member_content ON collection_member (content_id, collection_id)",
+    "CREATE INDEX favorite_profile ON favorite (profile_name, content_id)",
+    "CREATE INDEX content_override_profile ON content_access_override (profile_name, content_id)",
+    "CREATE INDEX content_audience_profile_lookup "
+    "ON content_audience_profile (profile_name, content_id)",
+    "CREATE INDEX collection_audience_profile_lookup "
+    "ON collection_audience_profile (profile_name, collection_id)",
+)
+
+
+def _migration_0004_profile_content_access(conn: sqlite3.Connection) -> None:
+    for statement in _MIGRATION_0004_STATEMENTS:
+        conn.execute(statement)
+
+
 MIGRATIONS: tuple[tuple[int, Migration], ...] = (
     (1, _migration_0001_initial),
     (2, _migration_0002_ingestion),
+    (3, _migration_0003_management_index),
+    (4, _migration_0004_profile_content_access),
 )
 
 CURRENT_SCHEMA_VERSION = MIGRATIONS[-1][0]

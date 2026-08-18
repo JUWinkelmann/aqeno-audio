@@ -21,6 +21,15 @@ from datetime import timedelta
 from pathlib import Path
 
 from aqeno.adapters.persistence.migrations import apply_migrations
+from aqeno.domain.access import (
+    AccessDecision,
+    AccessSource,
+    Audience,
+    AudienceMode,
+    Collection,
+    CollectionId,
+    EffectiveAccess,
+)
 from aqeno.domain.content import (
     Chapter,
     ContentId,
@@ -35,6 +44,8 @@ from aqeno.domain.content import (
 )
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
 from aqeno.ports.persistence import (
+    ContentPage,
+    ContentQuery,
     DatabaseCorruptError,
     DatabaseHealth,
     TagMapping,
@@ -42,6 +53,57 @@ from aqeno.ports.persistence import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _effective_access_params(profile_name: str) -> tuple[str, str, str, str]:
+    return (profile_name, profile_name, profile_name, profile_name)
+
+
+def _effective_access_sql(content_expression: str) -> str:
+    """Set-oriented implementation of domain/access.py's precedence rule."""
+    return f"""
+    (
+      (SELECT decision FROM content_access_override
+       WHERE content_id = {content_expression} AND profile_name = ?) = 'allow'
+      OR
+      (
+        (SELECT decision FROM content_access_override
+         WHERE content_id = {content_expression} AND profile_name = ?) IS NULL
+        AND
+        (
+          EXISTS (
+            SELECT 1 FROM collection_member cm
+            JOIN collection_audience ca ON ca.collection_id = cm.collection_id
+            LEFT JOIN collection_audience_profile cap
+              ON cap.collection_id = ca.collection_id AND cap.profile_name = ?
+            WHERE cm.content_id = {content_expression}
+              AND (ca.mode = 'shared' OR cap.profile_name IS NOT NULL)
+          )
+          OR
+          (
+            NOT EXISTS (
+              SELECT 1 FROM collection_member cm
+              JOIN collection_audience ca ON ca.collection_id = cm.collection_id
+              WHERE cm.content_id = {content_expression}
+            )
+            AND
+            (
+              NOT EXISTS (SELECT 1 FROM content_audience
+                          WHERE content_id = {content_expression})
+              OR EXISTS (SELECT 1 FROM content_audience
+                         WHERE content_id = {content_expression} AND mode = 'shared')
+              OR EXISTS (SELECT 1 FROM content_audience_profile
+                         WHERE content_id = {content_expression} AND profile_name = ?)
+            )
+          )
+        )
+      )
+    )
+    """
 
 
 def _content_row_to_item(conn: sqlite3.Connection, row: sqlite3.Row) -> ContentItem:
@@ -277,6 +339,27 @@ class SqliteLibrary:
             ).fetchall()
             return tuple(_member_file_row_to_member_file(row) for row in rows)
 
+    def find_member_by_path(self, path: str) -> tuple[ContentId, MemberFile] | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM member_file WHERE path = ? LIMIT 1", (path,)
+            ).fetchone()
+            if row is None:
+                return None
+            return ContentId(uuid.UUID(row["content_id"])), _member_file_row_to_member_file(row)
+
+    def mark_available(self, content_ids: tuple[ContentId, ...], *, last_seen: float) -> None:
+        if not content_ids:
+            return
+
+        def do() -> None:
+            self._conn.executemany(
+                "UPDATE content SET available = 1, last_seen = ? WHERE id = ?",
+                [(last_seen, str(cid.value)) for cid in content_ids],
+            )
+
+        self._write(do)
+
     def mark_unavailable(self, content_ids: tuple[ContentId, ...]) -> None:
         if not content_ids:
             return
@@ -300,6 +383,42 @@ class SqliteLibrary:
         with self._lock:
             rows = self._conn.execute("SELECT * FROM content ORDER BY title").fetchall()
             return tuple(_content_row_to_item(self._conn, row) for row in rows)
+
+    def query_content(self, query: ContentQuery) -> ContentPage:
+        clauses: list[str] = []
+        params: list[object] = []
+        if query.search is not None:
+            clauses.append("lower(title) LIKE ? ESCAPE '\\'")
+            params.append(f"%{_escape_like(query.search.casefold())}%")
+        if query.kind is not None:
+            clauses.append("kind = ?")
+            params.append(query.kind.value)
+        if query.available is not None:
+            clauses.append("available = ?")
+            params.append(int(query.available))
+        if query.profile_name is not None:
+            clauses.append(_effective_access_sql("content.id"))
+            params.extend(_effective_access_params(query.profile_name))
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        with self._lock:
+            total = int(
+                self._conn.execute(f"SELECT COUNT(*) FROM content{where}", params).fetchone()[0]
+            )
+            page_clauses = list(clauses)
+            page_params = list(params)
+            if query.after is not None:
+                after_title, after_id = query.after
+                page_clauses.append("(lower(title), id) > (?, ?)")
+                page_params.extend((after_title, str(after_id.value)))
+            page_where = f" WHERE {' AND '.join(page_clauses)}" if page_clauses else ""
+            page_params.append(query.limit)
+            rows = self._conn.execute(
+                f"SELECT * FROM content{page_where} ORDER BY lower(title), id LIMIT ?",
+                page_params,
+            ).fetchall()
+            return ContentPage(
+                items=tuple(_content_row_to_item(self._conn, row) for row in rows), total=total
+            )
 
     def remove_content(self, content_id: ContentId) -> None:
         self._write(
@@ -408,6 +527,282 @@ class SqliteLibrary:
             rows = self._conn.execute("SELECT * FROM profile ORDER BY name").fetchall()
             return tuple(_profile_row_to_profile(row) for row in rows)
 
+    def remove_profile(self, name: str) -> None:
+        self._write(lambda: self._conn.execute("DELETE FROM profile WHERE name = ?", (name,)))
+
+    # -- personal listening state -----------------------------------------
+
+    def set_favorite(self, profile_name: str, content_id: ContentId, favorite: bool) -> None:
+        def do() -> None:
+            values = (profile_name, str(content_id.value))
+            if favorite:
+                self._conn.execute(
+                    "INSERT OR IGNORE INTO favorite (profile_name, content_id) VALUES (?, ?)",
+                    values,
+                )
+            else:
+                self._conn.execute(
+                    "DELETE FROM favorite WHERE profile_name = ? AND content_id = ?", values
+                )
+
+        self._write(do)
+
+    def is_favorite(self, profile_name: str, content_id: ContentId) -> bool:
+        with self._lock:
+            return (
+                self._conn.execute(
+                    "SELECT 1 FROM favorite WHERE profile_name = ? AND content_id = ?",
+                    (profile_name, str(content_id.value)),
+                ).fetchone()
+                is not None
+            )
+
+    def list_favorites(self, profile_name: str, query: ContentQuery) -> ContentPage:
+        clauses = ["favorite.profile_name = ?", _effective_access_sql("content.id")]
+        params: list[object] = [profile_name, *_effective_access_params(profile_name)]
+        if query.search is not None:
+            clauses.append("lower(content.title) LIKE ? ESCAPE '\\'")
+            params.append(f"%{_escape_like(query.search.casefold())}%")
+        if query.kind is not None:
+            clauses.append("content.kind = ?")
+            params.append(query.kind.value)
+        if query.available is not None:
+            clauses.append("content.available = ?")
+            params.append(int(query.available))
+        where = " AND ".join(clauses)
+        with self._lock:
+            total = int(
+                self._conn.execute(
+                    "SELECT COUNT(*) FROM content "
+                    "JOIN favorite ON favorite.content_id = content.id "
+                    f"WHERE {where}",
+                    params,
+                ).fetchone()[0]
+            )
+            if query.after is not None:
+                clauses.append("(lower(content.title), content.id) > (?, ?)")
+                params.extend((query.after[0], str(query.after[1].value)))
+            params.append(query.limit)
+            rows = self._conn.execute(
+                "SELECT content.* FROM content JOIN favorite ON favorite.content_id = content.id "
+                f"WHERE {' AND '.join(clauses)} ORDER BY lower(content.title), content.id LIMIT ?",
+                params,
+            ).fetchall()
+            return ContentPage(
+                items=tuple(_content_row_to_item(self._conn, row) for row in rows), total=total
+            )
+
+    # -- access ------------------------------------------------------------
+
+    def set_content_audience(self, content_ids: tuple[ContentId, ...], audience: Audience) -> None:
+        def do() -> None:
+            for content_id in content_ids:
+                cid = str(content_id.value)
+                self._conn.execute(
+                    "INSERT INTO content_audience (content_id, mode) VALUES (?, ?) "
+                    "ON CONFLICT(content_id) DO UPDATE SET mode = excluded.mode",
+                    (cid, audience.mode.value),
+                )
+                self._conn.execute(
+                    "DELETE FROM content_audience_profile WHERE content_id = ?", (cid,)
+                )
+                self._conn.executemany(
+                    "INSERT INTO content_audience_profile (content_id, profile_name) VALUES (?, ?)",
+                    [(cid, name) for name in audience.profile_names],
+                )
+
+        self._write(do)
+
+    def set_content_overrides(
+        self,
+        content_ids: tuple[ContentId, ...],
+        profile_names: tuple[str, ...],
+        decision: AccessDecision | None,
+    ) -> None:
+        def do() -> None:
+            values = [
+                (str(content_id.value), profile_name)
+                for content_id in content_ids
+                for profile_name in profile_names
+            ]
+            if decision is None:
+                self._conn.executemany(
+                    "DELETE FROM content_access_override WHERE content_id = ? AND profile_name = ?",
+                    values,
+                )
+            else:
+                self._conn.executemany(
+                    "INSERT INTO content_access_override (content_id, profile_name, decision) "
+                    "VALUES (?, ?, ?) ON CONFLICT(content_id, profile_name) DO UPDATE SET "
+                    "decision = excluded.decision",
+                    [(cid, profile, decision.value) for cid, profile in values],
+                )
+
+        self._write(do)
+
+    def get_content_audience(self, content_id: ContentId) -> Audience | None:
+        cid = str(content_id.value)
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT mode FROM content_audience WHERE content_id = ?", (cid,)
+            ).fetchone()
+            if row is None:
+                return None
+            profiles = self._conn.execute(
+                "SELECT profile_name FROM content_audience_profile WHERE content_id = ? "
+                "ORDER BY profile_name",
+                (cid,),
+            ).fetchall()
+            return Audience(
+                mode=AudienceMode(row["mode"]),
+                profile_names=tuple(profile["profile_name"] for profile in profiles),
+            )
+
+    def effective_access(self, content_id: ContentId, profile_name: str) -> EffectiveAccess:
+        cid = str(content_id.value)
+        with self._lock:
+            override = self._conn.execute(
+                "SELECT decision FROM content_access_override "
+                "WHERE content_id = ? AND profile_name = ?",
+                (cid, profile_name),
+            ).fetchone()
+            if override is not None:
+                decision = AccessDecision(override["decision"])
+                return EffectiveAccess(
+                    allowed=decision is AccessDecision.ALLOW,
+                    source=AccessSource.MEDIA_OVERRIDE,
+                    explicit_decision=decision,
+                )
+            collections = self._conn.execute(
+                "SELECT ca.collection_id, ca.mode, cap.profile_name "
+                "FROM collection_member cm JOIN collection_audience ca "
+                "ON ca.collection_id = cm.collection_id "
+                "LEFT JOIN collection_audience_profile cap "
+                "ON cap.collection_id = ca.collection_id AND cap.profile_name = ? "
+                "WHERE cm.content_id = ?",
+                (profile_name, cid),
+            ).fetchall()
+            if collections:
+                allowed = any(
+                    row["mode"] == AudienceMode.SHARED.value or row["profile_name"] is not None
+                    for row in collections
+                )
+                return EffectiveAccess(
+                    allowed=allowed,
+                    source=AccessSource.COLLECTION,
+                    inherited_collection_ids=tuple(
+                        CollectionId(uuid.UUID(row["collection_id"])) for row in collections
+                    ),
+                )
+            audience = self.get_content_audience(content_id)
+            if audience is not None:
+                return EffectiveAccess(
+                    allowed=(
+                        audience.mode is AudienceMode.SHARED
+                        or profile_name in audience.profile_names
+                    ),
+                    source=AccessSource.MEDIA_AUDIENCE,
+                )
+            return EffectiveAccess(allowed=True, source=AccessSource.SHARED_DEFAULT)
+
+    def can_profile_access(self, content_id: ContentId, profile_name: str) -> bool:
+        with self._lock:
+            row = self._conn.execute(
+                f"SELECT 1 FROM content WHERE id = ? AND {_effective_access_sql('content.id')}",
+                (str(content_id.value), *_effective_access_params(profile_name)),
+            ).fetchone()
+            return row is not None
+
+    # -- collections -------------------------------------------------------
+
+    def save_collection(self, collection: Collection) -> None:
+        def do() -> None:
+            cid = str(collection.id.value)
+            self._conn.execute(
+                "INSERT INTO collection (id, name) VALUES (?, ?) "
+                "ON CONFLICT(id) DO UPDATE SET name = excluded.name",
+                (cid, collection.name),
+            )
+            self._conn.execute("DELETE FROM collection_member WHERE collection_id = ?", (cid,))
+            self._conn.executemany(
+                "INSERT INTO collection_member (collection_id, content_id) VALUES (?, ?)",
+                [(cid, str(content_id.value)) for content_id in collection.content_ids],
+            )
+
+        self._write(do)
+
+    def get_collection(self, collection_id: CollectionId) -> Collection | None:
+        cid = str(collection_id.value)
+        with self._lock:
+            row = self._conn.execute("SELECT * FROM collection WHERE id = ?", (cid,)).fetchone()
+            if row is None:
+                return None
+            members = self._conn.execute(
+                "SELECT content_id FROM collection_member "
+                "WHERE collection_id = ? ORDER BY content_id",
+                (cid,),
+            ).fetchall()
+            return Collection(
+                id=collection_id,
+                name=row["name"],
+                content_ids=tuple(ContentId(uuid.UUID(member["content_id"])) for member in members),
+            )
+
+    def list_collections(self) -> tuple[Collection, ...]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT id FROM collection ORDER BY lower(name), id"
+            ).fetchall()
+        return tuple(
+            collection
+            for row in rows
+            if (collection := self.get_collection(CollectionId(uuid.UUID(row["id"])))) is not None
+        )
+
+    def remove_collection(self, collection_id: CollectionId) -> None:
+        self._write(
+            lambda: self._conn.execute(
+                "DELETE FROM collection WHERE id = ?", (str(collection_id.value),)
+            )
+        )
+
+    def set_collection_audience(self, collection_id: CollectionId, audience: Audience) -> None:
+        def do() -> None:
+            cid = str(collection_id.value)
+            self._conn.execute(
+                "INSERT INTO collection_audience (collection_id, mode) VALUES (?, ?) "
+                "ON CONFLICT(collection_id) DO UPDATE SET mode = excluded.mode",
+                (cid, audience.mode.value),
+            )
+            self._conn.execute(
+                "DELETE FROM collection_audience_profile WHERE collection_id = ?", (cid,)
+            )
+            self._conn.executemany(
+                "INSERT INTO collection_audience_profile "
+                "(collection_id, profile_name) VALUES (?, ?)",
+                [(cid, name) for name in audience.profile_names],
+            )
+
+        self._write(do)
+
+    def get_collection_audience(self, collection_id: CollectionId) -> Audience | None:
+        cid = str(collection_id.value)
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT mode FROM collection_audience WHERE collection_id = ?", (cid,)
+            ).fetchone()
+            if row is None:
+                return None
+            profiles = self._conn.execute(
+                "SELECT profile_name FROM collection_audience_profile WHERE collection_id = ? "
+                "ORDER BY profile_name",
+                (cid,),
+            ).fetchall()
+            return Audience(
+                mode=AudienceMode(row["mode"]),
+                profile_names=tuple(profile["profile_name"] for profile in profiles),
+            )
+
     # -- resume ----------------------------------------------------------------
 
     def get_resume(self, content_id: ContentId, profile_name: str) -> timedelta | None:
@@ -447,7 +842,7 @@ class SqliteLibrary:
 
     # -- internals -------------------------------------------------------------
 
-    def _write(self, fn: Callable[[], None]) -> None:
+    def _write(self, fn: Callable[[], object]) -> None:
         """Runs `fn` in its own transaction.
 
         In `DEGRADED_READ_ONLY` health the write is skipped and logged rather

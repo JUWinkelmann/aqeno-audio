@@ -11,6 +11,7 @@ from aqeno.application.playback import (
     SourceResolutionRequiredError,
 )
 from aqeno.config.defaults import default_settings
+from aqeno.domain.access import Audience, AudienceMode
 from aqeno.domain.content import Chapter, ContentId, ContentItem, ContentKind, HttpSource
 from aqeno.domain.profile import (
     DisplayPolicy,
@@ -135,6 +136,23 @@ def test_unassigned_tag_does_not_interrupt_playback() -> None:
 
     assert rig.session.item == item
     assert rig.audio.position == timedelta(seconds=18)
+    assert rig.audio.state is TransportState.PLAYING
+
+
+def test_nfc_respects_effective_profile_access() -> None:
+    rig = Rig()
+    current = _item()
+    blocked = _item()
+    rig.start(current)
+    rig.library.save_content(blocked)
+    rig.library.map_tag("blocked-token", blocked.id)
+    rig.library.set_content_audience(
+        (blocked.id,), Audience(AudienceMode.SELECTED_PROFILES, ("another-profile",))
+    )
+
+    rig.inputs.emit(NfcPresented("blocked-token"))
+
+    assert rig.session.item == current
     assert rig.audio.state is TransportState.PLAYING
 
 

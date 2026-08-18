@@ -70,6 +70,7 @@ src/aqeno/
     qml/           # appliance views: presentation and user intentions only
     models/        # concrete Python/QML boundary; calls application use cases
     i18n/          # .ts sources, compiled .qm  (ADR 0005)
+  management/      # local FastAPI/OpenAPI presentation adapter (ADR 0018)
   config/          # defaults, validation against CONFIGURATION_DEFAULTS.md
   __main__.py      # composition root: the only place adapters are chosen
 tests/

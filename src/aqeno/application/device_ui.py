@@ -18,7 +18,7 @@ from aqeno.application.playback import PlaybackSession, PlaybackSnapshot
 from aqeno.domain.content import ContentId
 from aqeno.domain.profile import Profile
 from aqeno.ports.audio import TransportState
-from aqeno.ports.persistence import Library
+from aqeno.ports.persistence import ContentQuery, Library
 
 
 class DeviceSurface(StrEnum):
@@ -96,7 +96,11 @@ class DeviceUiState:
     def select_content(self, content_id: ContentId) -> bool:
         """Start an available tile immediately; stale or unavailable IDs are ignored."""
         item = self._library.get_content(content_id)
-        if item is None or not item.available:
+        if (
+            item is None
+            or not item.available
+            or not self._library.can_profile_access(content_id, self._profile.name)
+        ):
             return False
         with self._lock:
             self._surface = DeviceSurface.NOW_PLAYING
@@ -134,7 +138,9 @@ class DeviceUiState:
     def _read_tiles(self) -> tuple[LibraryTile, ...]:
         return tuple(
             LibraryTile(content_id=item.id, title=item.title, artwork=item.artwork)
-            for item in self._library.list_content()
+            for item in self._library.query_content(
+                ContentQuery(limit=100, available=True, profile_name=self._profile.name)
+            ).items
             if item.available
         )
 

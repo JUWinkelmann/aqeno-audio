@@ -10,6 +10,8 @@ from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Protocol, runtime_checkable
 
+import uvicorn
+
 from aqeno.adapters.clock import SystemClock
 from aqeno.adapters.display.none import NullDisplayPanel
 from aqeno.adapters.fakes.audio import FakeAudioEngine
@@ -339,6 +341,13 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="open and close the local core once, then exit",
     )
+    parser.add_argument(
+        "--no-management",
+        action="store_true",
+        help="do not start the optional local Management API adapter",
+    )
+    parser.add_argument("--management-host", default="127.0.0.1")
+    parser.add_argument("--management-port", default=8766, type=int)
     return parser
 
 
@@ -346,6 +355,44 @@ class _DeviceUiRuntime(Protocol):
     def exec(self) -> int: ...
 
     def close(self) -> None: ...
+
+
+@dataclass(slots=True)
+class _ManagementRuntime:
+    server: uvicorn.Server
+    thread: threading.Thread
+    operations: object
+
+    def close(self) -> None:
+        self.server.should_exit = True
+        self.thread.join(timeout=5)
+        close = getattr(self.operations, "close", None)
+        if close is not None:
+            close()
+
+
+def _start_management_api(process: AqenoProcess, *, host: str, port: int) -> _ManagementRuntime:
+    from aqeno.adapters.persistence.toml_settings import TomlSettingsStore
+    from aqeno.management.api import create_app
+    from aqeno.management.runtime import build_context
+
+    capabilities = ("physical_controls",)
+    context = build_context(
+        library=process.library,
+        settings_store=TomlSettingsStore(),
+        inputs=process.inputs,
+        readiness=process.readiness,
+        playback=process.session,
+        display=process.display,
+        capabilities=capabilities,
+    )
+    config = uvicorn.Config(
+        create_app(context), host=host, port=port, access_log=False, log_level="warning"
+    )
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, name="aqeno-management-api", daemon=True)
+    thread.start()
+    return _ManagementRuntime(server=server, thread=thread, operations=context.operations)
 
 
 def _start_device_ui(process: AqenoProcess) -> _DeviceUiRuntime:
@@ -386,7 +433,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     runtime: _DeviceUiRuntime | None = None
+    management: _ManagementRuntime | None = None
     try:
+        if not args.no_management:
+            try:
+                management = _start_management_api(
+                    process, host=args.management_host, port=args.management_port
+                )
+            except Exception:
+                logger.exception("AQENO Management API failed; playback remains available")
         if not args.check:
             if args.fake_hardware is not None and (
                 "all" in args.fake_hardware or "display" in args.fake_hardware
@@ -407,6 +462,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     except KeyboardInterrupt:
         logger.info("AQENO stopping")
     finally:
+        if management is not None:
+            management.close()
         if runtime is not None:
             runtime.close()
         process.close()

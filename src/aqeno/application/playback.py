@@ -245,7 +245,7 @@ class PlaybackSession:
             if profile is None or content_id is None:
                 return
             item = self._library.get_content(content_id)
-            if item is not None:
+            if item is not None and self._library.can_profile_access(content_id, profile.name):
                 self.start(item, profile)
 
     def _on_audio_state(self, state: TransportState) -> None:

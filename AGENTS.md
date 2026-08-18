@@ -224,5 +224,6 @@ Before implementation, read:
 - `docs/implementation/READINESS_STATES.md`
 - `docs/implementation/FIRST_VERTICAL_SLICE.md`
 - `docs/hardware/HARDWARE_REFERENCE.md`
+- `docs/management/LOCAL_MANAGEMENT_API.md` when changing management/application boundaries
 
 The first implementation target is `FIRST_VERTICAL_SLICE.md`. Do not broaden the scope without an explicit roadmap/ADR decision.

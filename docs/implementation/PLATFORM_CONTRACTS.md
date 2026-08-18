@@ -59,7 +59,11 @@ Atomic persistence for:
 - content library;
 - tag mappings;
 - playback/resume;
+- profile favorites, content audiences, collection inheritance and explicit access exceptions;
 - settings.
+
+Library queries accept an optional profile context and evaluate effective access in the persistence
+adapter. Clients and the Device UI must not reconstruct or filter access rules item by item.
 
 Unexpected power loss must not corrupt the library.
 

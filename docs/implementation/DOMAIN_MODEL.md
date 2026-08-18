@@ -20,7 +20,14 @@ Ordered or semantic grouping of ContentItems.
 Current content identity, source resolution, position, queue/context and transport state.
 
 ### Profile
-User-facing capability and presentation configuration.
+Local listening context with user-facing capability and presentation configuration. It is not a
+login, account, cloud identity or management authority. Favorites and playback progress belong to
+this context; media identity remains shared (ADR 0019).
+
+### Content audience
+Shared-by-default or selected-profile visibility for a ContentItem or minimal Collection. An
+explicit media/profile allow or deny overrides inherited Collection access. This is a bounded
+content-curation model, not RBAC or a general ACL engine.
 
 ### Role
 `User`, `Manager`, `Owner`.
@@ -47,6 +54,9 @@ Declared support such as touch, NFC, physical inputs, controllable LEDs, audio o
 
 ## Invariants
 - playback progress belongs to content/profile context, not to an NFC tag;
+- favorites belong to a profile while media identity is shared;
+- every content entry path, including NFC, respects effective profile access;
+- management authorization is independent of the listening profile being managed;
 - deleting/replacing a tag must not delete content;
 - recognising a tag never resolves or acquires content outside its AQENO-local assignment;
 - UI representation is derived from Profile + Content metadata;
