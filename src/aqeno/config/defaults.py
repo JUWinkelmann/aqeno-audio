@@ -194,6 +194,7 @@ class LibrarySettings:
     scan_on_startup: bool = True
     follow_symlinks: bool = False
 
+
 # ---------------------------------------------------------------------------
 # Language — ADR 0005
 # ---------------------------------------------------------------------------
@@ -356,16 +357,14 @@ def _validate_library(raw: Any, warnings: list[str]) -> LibrarySettings:
     scan_on_startup = raw_section.get("scan_on_startup", defaults.scan_on_startup)
     if not isinstance(scan_on_startup, bool):
         warnings.append(
-            f"library.scan_on_startup: expected true/false, got {scan_on_startup!r}; "
-            "using default"
+            f"library.scan_on_startup: expected true/false, got {scan_on_startup!r}; using default"
         )
         scan_on_startup = defaults.scan_on_startup
 
     follow_symlinks = raw_section.get("follow_symlinks", defaults.follow_symlinks)
     if not isinstance(follow_symlinks, bool):
         warnings.append(
-            f"library.follow_symlinks: expected true/false, got {follow_symlinks!r}; "
-            "using default"
+            f"library.follow_symlinks: expected true/false, got {follow_symlinks!r}; using default"
         )
         follow_symlinks = defaults.follow_symlinks
 

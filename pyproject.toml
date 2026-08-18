@@ -7,7 +7,14 @@ name = "aqeno"
 version = "0.1.0"
 description = "Open, adaptive, audio-first player platform"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    # mutagen 1.48.1, GPL-2.0-or-later. Licence recorded per ADR 0004 § 2: the
+    # "no GPL linked into the application" constraint is on hold while nothing is
+    # distributed (ADR 0006), so this is permitted today. It is confined to one
+    # adapter module (adapters/metadata/mutagen_probe.py) behind the MediaProbe
+    # port, so the exposure is bounded by construction (ADR 0014 § 1).
+    "mutagen>=1.47,<2",
+]
 
 # PySide6 and PyGObject are intentionally absent: they come from system packages.
 # See DEVELOPMENT.md — installing them through pip on Debian/Raspberry Pi OS

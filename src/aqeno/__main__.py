@@ -13,10 +13,13 @@ from typing import Protocol, runtime_checkable
 from aqeno.adapters.clock import SystemClock
 from aqeno.adapters.fakes.audio import FakeAudioEngine
 from aqeno.adapters.input.keyboard import KeyboardSimulator
+from aqeno.adapters.metadata import MutagenProbe
 from aqeno.adapters.persistence.sqlite_library import SqliteLibrary, open_library
 from aqeno.adapters.persistence.toml_settings import TomlSettingsStore
+from aqeno.application.ingestion import run_scan
 from aqeno.application.playback import PlaybackSession
 from aqeno.config.defaults import Settings
+from aqeno.config.paths import artwork_dir
 from aqeno.domain.profile import (
     DisplayPolicy,
     ExperienceLevel,
@@ -42,8 +45,14 @@ class AqenoProcess:
     library: SqliteLibrary
     inputs: KeyboardSimulator
     audio: AudioEngine
+    scan_thread: threading.Thread | None = None
+    """The content scan (ADR 0014 § 5). Started off this thread so it never
+    blocks startup; joined here so shutdown never closes the library out from
+    under a write still in flight."""
 
     def close(self) -> None:
+        if self.scan_thread is not None:
+            self.scan_thread.join()
         try:
             self.session.shutdown()
         finally:
@@ -87,10 +96,40 @@ def _audio_engine(fake_hardware: frozenset[str]) -> AudioEngine:
     return GStreamerAudioEngine()
 
 
+def _run_startup_scan(library: SqliteLibrary, settings: Settings) -> None:
+    """Runs on its own thread (ADR 0014 § 5: never the playback/input thread).
+
+    Any failure here is a `DEVICE`-class problem (`FAILURE_STATES.md`) — the
+    scan's own file-level failures are already handled inside `run_scan()`;
+    this guard is only for something unexpected, and it must never take the
+    rest of the process down with it.
+    """
+    try:
+        summary = run_scan(
+            library=library,
+            probe=MutagenProbe(),
+            clock=SystemClock(),
+            roots=settings.library.roots,
+            follow_symlinks=settings.library.follow_symlinks,
+            artwork_dir=artwork_dir(),
+        )
+        logger.info(
+            "content scan complete",
+            extra={
+                "candidates_seen": summary.candidates_seen,
+                "works_touched": summary.works_touched,
+                "works_marked_unavailable": summary.works_marked_unavailable,
+            },
+        )
+    except Exception:
+        logger.exception("content scan failed")
+
+
 def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoProcess:
     settings = TomlSettingsStore().load()
     library = open_library()
     audio: AudioEngine | None = None
+    scan_thread: threading.Thread | None = None
     try:
         profile = library.get_profile(profile_name)
         if profile is None:
@@ -98,6 +137,17 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
                 raise ValueError(f"profile {profile_name!r} does not exist")
             profile = _kids_early_profile(settings)
             library.save_profile(profile)
+
+        # LOCAL_READY: the database is open and the profile is resolved.
+        # Scanning off this thread means it never blocks PLAYBACK_READY below.
+        if settings.library.scan_on_startup:
+            scan_thread = threading.Thread(
+                target=_run_startup_scan,
+                args=(library, settings),
+                name="aqeno-content-scan",
+                daemon=True,
+            )
+            scan_thread.start()
 
         inputs = KeyboardSimulator()
         audio = _audio_engine(fake_hardware)
@@ -110,6 +160,8 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
         )
         session.use_profile(profile)
     except BaseException:
+        if scan_thread is not None:
+            scan_thread.join()
         if isinstance(audio, _Closable):
             audio.close()
         library.close()
@@ -119,7 +171,9 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
         "AQENO local core ready",
         extra={"profile": profile.name, "content_count": len(library.list_content())},
     )
-    return AqenoProcess(session=session, library=library, inputs=inputs, audio=audio)
+    return AqenoProcess(
+        session=session, library=library, inputs=inputs, audio=audio, scan_thread=scan_thread
+    )
 
 
 def _fake_hardware(value: str | None) -> frozenset[str]:
