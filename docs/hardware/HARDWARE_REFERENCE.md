@@ -2,7 +2,8 @@
 
 **Identifier:** AQENO Reference Hardware 1 (`RH1`)
 
-**Status:** Acquired prototype platform; incomplete until audio and remaining components are selected
+**Status:** Acquired prototype platform; RH1 controls adapter implemented, pending on-device
+validation; audio and remaining components are still incomplete
 
 **Date:** 2026-08-17
 
@@ -176,6 +177,7 @@ The existing boundaries are sufficient for RH1:
 - ADR 0010 keeps GPIO, I2C, display power, LEDs and NFC implementations in adapters;
 - ADR 0012 keeps QML/PySide6 outside the Core.
 
-The Vertical Slice needs concrete adapters for the controls and visual hardware when their
-implementation step is reached. It does not need a universal action bus, dynamic input engine,
-persona-specific hardware profiles or adapters for hypothetical external switches.
+The RH1 controls adapter now maps the acquired encoder and NeoKey through this boundary, pending
+on-device I2C validation. Visual hardware and remaining components still need concrete adapters when
+their implementation step is reached. This does not need a universal action bus, dynamic input
+engine, persona-specific hardware profiles or adapters for hypothetical external switches.

@@ -46,6 +46,10 @@ configuration is `AQENO Reference Hardware 1` — the first implementation of th
 not the only possible one. A second platform must be addable by writing adapters, without touching
 `domain/` or `application/`.
 
+RH1 controls use the maintained, MIT-licensed Adafruit Blinka, CircuitPython seesaw and NeoKey
+packages as optional adapter dependencies. They materially reduce board-protocol code and remain
+confined behind `InputBus`; a desktop or headless installation does not install or import them.
+
 ### 3. Optional services — architecturally possible, deliberately absent
 
 Remote management, synchronisation, backup, multi-device, fleet management, integrations.
@@ -105,9 +109,10 @@ runs on".
 
 **Introduce a capability/plugin framework now**, so alternative hardware is a first-class concept.
 Rejected as premature: `AGENTS.md` forbids abstractions before a use case requires them, and there is
-currently exactly one hardware target and zero hardware adapters. The `Capability` concept in
-`DOMAIN_MODEL.md` should be implemented **with the first hardware adapter**, driven by a real second
-case, not invented ahead of it.
+currently exactly one hardware target. Concrete adapter selection in the composition root is enough;
+the first hardware adapter does not create a second use case and therefore does not justify a
+capability registry, plugin mechanism or hardware-profile framework. This clarification aligns with
+ADR 0017's later explicit decision.
 
 **Introduce a local API or service boundary now**, so services can attach later. Rejected: it
 contradicts ADR 0002's in-process decision, adds an authentication surface `AGENTS.md` warns about,

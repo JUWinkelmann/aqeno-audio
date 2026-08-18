@@ -22,6 +22,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11"]
+# RH1 control adapters.  These Adafruit CircuitPython packages and Blinka are
+# MIT-licensed; they stay optional so the headless Core and desktop tests do
+# not acquire a Raspberry Pi/I2C dependency.
+rh1 = [
+    "adafruit-blinka>=8",
+    "adafruit-circuitpython-seesaw>=1",
+    "adafruit-circuitpython-neokey>=1",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

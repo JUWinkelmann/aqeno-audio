@@ -15,7 +15,9 @@ from aqeno.adapters.display.none import NullDisplayPanel
 from aqeno.adapters.fakes.audio import FakeAudioEngine
 from aqeno.adapters.fakes.display import FakeDisplayPanel
 from aqeno.adapters.fakes.led import FakeStatusLeds
+from aqeno.adapters.input import open_reference_input
 from aqeno.adapters.input.keyboard import KeyboardSimulator
+from aqeno.adapters.led.none import NullStatusLeds
 from aqeno.adapters.metadata import MutagenProbe
 from aqeno.adapters.persistence.sqlite_library import SqliteLibrary, open_library
 from aqeno.adapters.persistence.toml_settings import TomlSettingsStore
@@ -35,6 +37,7 @@ from aqeno.domain.profile import (
 )
 from aqeno.ports.audio import AudioEngine
 from aqeno.ports.display import DisplayPanel
+from aqeno.ports.input import InputBus
 from aqeno.ports.led import StatusLeds
 
 logger = logging.getLogger(__name__)
@@ -45,6 +48,11 @@ class _Closable(Protocol):
     def close(self) -> None: ...
 
 
+@runtime_checkable
+class _Startable(Protocol):
+    def start(self) -> None: ...
+
+
 @dataclass(slots=True)
 class AqenoProcess:
     """Resources owned by one running AQENO process."""
@@ -53,7 +61,7 @@ class AqenoProcess:
     display: DisplayService
     readiness: Readiness
     library: SqliteLibrary
-    inputs: KeyboardSimulator
+    inputs: InputBus
     audio: AudioEngine
     device_ui: DeviceUiState
     scan_thread: threading.Thread | None = None
@@ -71,10 +79,14 @@ class AqenoProcess:
                 self.display.shutdown()
             finally:
                 try:
-                    if isinstance(self.audio, _Closable):
-                        self.audio.close()
+                    if isinstance(self.inputs, _Closable):
+                        self.inputs.close()
                 finally:
-                    self.library.close()
+                    try:
+                        if isinstance(self.audio, _Closable):
+                            self.audio.close()
+                    finally:
+                        self.library.close()
 
 
 def _kids_early_profile(settings: Settings) -> Profile:
@@ -122,8 +134,21 @@ def _display_panel(fake_hardware: frozenset[str]) -> DisplayPanel:
 
 
 def _status_leds(fake_hardware: frozenset[str]) -> StatusLeds:
-    """No real LED adapter exists yet either; see `_display_panel`."""
-    return FakeStatusLeds()
+    """Use recording LEDs only for fakes; production has explicit no-LED output."""
+    if "all" in fake_hardware:
+        return FakeStatusLeds()
+    return NullStatusLeds()
+
+
+def _input_bus(
+    fake_hardware: frozenset[str] | None,
+    *,
+    toggle_night: Callable[[], None] | None = None,
+) -> InputBus:
+    """Select fake controls for desktop runs and RH1 controls otherwise."""
+    if fake_hardware is not None and ("all" in fake_hardware or "input" in fake_hardware):
+        return KeyboardSimulator(toggle_night=toggle_night)
+    return open_reference_input()
 
 
 def _run_startup_scan(
@@ -161,12 +186,13 @@ def _run_startup_scan(
         logger.exception("content scan failed")
 
 
-def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoProcess:
+def _open_process(*, profile_name: str, fake_hardware: frozenset[str] | None) -> AqenoProcess:
     settings = TomlSettingsStore().load()
     clock = SystemClock()
     readiness = Readiness(clock)
     library = open_library()
     audio: AudioEngine | None = None
+    inputs: InputBus | None = None
     scan_thread: threading.Thread | None = None
     try:
         profile = library.get_profile(profile_name)
@@ -208,8 +234,9 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
             session.set_night_active(night_active)
             display.set_night_active(night_active)
 
-        inputs = KeyboardSimulator(toggle_night=_toggle_night)
-        audio = _audio_engine(fake_hardware)
+        inputs = _input_bus(fake_hardware, toggle_night=_toggle_night)
+        hardware = fake_hardware or frozenset()
+        audio = _audio_engine(hardware)
         session = PlaybackSession(
             audio=audio,
             library=library,
@@ -219,10 +246,10 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
         )
         session.use_profile(profile)
 
-        panel = _display_panel(fake_hardware)
+        panel = _display_panel(hardware)
         display = DisplayService(
             panel=panel,
-            leds=_status_leds(fake_hardware),
+            leds=_status_leds(hardware),
             clock=clock,
             readiness=readiness,
             profile=profile,
@@ -232,6 +259,8 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
         # Listeners register before the input adapter is considered started
         # (READINESS_STATES.md § 2, § 4; ADR 0011 does not replay input).
         inputs.on_input(display.handle_input)
+        if isinstance(inputs, _Startable):
+            inputs.start()
 
         device_ui = DeviceUiState(
             library=library,
@@ -260,6 +289,8 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
     except BaseException:
         if scan_thread is not None:
             scan_thread.join()
+        if isinstance(inputs, _Closable):
+            inputs.close()
         if isinstance(audio, _Closable):
             audio.close()
         library.close()
@@ -327,12 +358,6 @@ def _start_device_ui(process: AqenoProcess) -> _DeviceUiRuntime:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    if args.fake_hardware is None or not ({"all", "input"} & args.fake_hardware):
-        _parser().error(
-            "Reference Hardware input adapters are not implemented yet; "
-            "include input in --fake-hardware"
-        )
-
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     try:
         process = _open_process(profile_name=args.profile, fake_hardware=args.fake_hardware)
@@ -343,7 +368,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     runtime: _DeviceUiRuntime | None = None
     try:
         if not args.check:
-            if "all" in args.fake_hardware or "display" in args.fake_hardware:
+            if args.fake_hardware is not None and (
+                "all" in args.fake_hardware or "display" in args.fake_hardware
+            ):
                 try:
                     runtime = _start_device_ui(process)
                 except Exception:

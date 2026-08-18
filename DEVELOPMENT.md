@@ -38,6 +38,16 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
+On RH1, install the optional I2C control stack as well:
+
+```bash
+pip install -e ".[dev,rh1]"
+```
+
+The `rh1` packages (`adafruit-blinka`, `adafruit-circuitpython-seesaw` and
+`adafruit-circuitpython-neokey`) are MIT-licensed and are used only by the concrete controls
+adapter. They are not imported by the headless Core.
+
 ## Repository layout
 
 Directories mirror the layers in `ARCHITECTURE.md`. The nesting is the architecture, not filing.
@@ -109,9 +119,10 @@ python -m aqeno --profile kids-early --fake-hardware=input,display,nfc
 python -m aqeno --profile kids-early
 ```
 
-The normal desktop command opens the minimal Kids Early Device UI. Starting without fake input
-still fails explicitly rather than pretending the keyboard is Reference hardware. To run the same
-Core without Qt or a display, select only the fake audio and input boundaries:
+The normal desktop command opens the minimal Kids Early Device UI. It uses the keyboard simulator;
+without `--fake-hardware`, the composition root selects the RH1 I2C controls adapter and the
+headless Core remains available when no display adapter is present. To run the same Core without
+Qt or a display, select only the fake audio and input boundaries:
 
 ```bash
 python -m aqeno --profile kids-early --fake-hardware=audio,input
