@@ -6,12 +6,17 @@ This guide is for a client developer who does not need AQENO's Python code.
 
 - Development: `http://127.0.0.1:8766/api/v1`
 - Trusted LAN: start with `--management-host 0.0.0.0`, then use the device IP.
-- Planned friendly URL: `http://aqeno.local:8766`; mDNS publication is not implemented.
+- Reference-device URL: `http://aqeno.local:8766`, published through Avahi/mDNS.
 - OpenAPI: `/api/openapi.json`; interactive development docs: `/api/docs`.
 - Every v1 request sends `X-AQENO-Management-Key: DEVICE_KEY`.
 
 The prototype key is generated in AQENO's state directory as `management.key` (0600), or supplied
 with `AQENO_MANAGEMENT_KEY`. Do not embed a production device key in a public bundle.
+
+An authorised client can add another local client without creating an account: authenticated
+`POST /pairing-sessions` returns a six-digit code valid for five minutes. The new client submits it
+once to public `POST /pairing-exchange` and receives the device key. Five wrong attempts or one
+successful exchange invalidate the code. Pairing must be initiated deliberately by a Manager.
 
 ## Development server
 
@@ -53,6 +58,7 @@ Token assignment:
 POST /token-captures
 GET  /token-captures/{id}                 until detected
 PUT  /token-captures/{id}/assignment      {"media_id":"UUID"}
+DELETE /token-captures/{id}                cancel and restore normal NFC playback
 ```
 
 SSE can replace waiting polls, but GET the resource after an event. Once assigned, closing the

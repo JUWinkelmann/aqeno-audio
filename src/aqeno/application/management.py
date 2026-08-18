@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import secrets
 import threading
+import time
 import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -48,6 +50,48 @@ class CollectionNotFoundError(ManagementError):
 
 class BulkLimitError(ManagementError):
     code = "bulk_limit_exceeded"
+
+
+class PairingInvalidError(ManagementError):
+    code = "pairing_code_invalid"
+
+
+@dataclass(frozen=True, slots=True)
+class PairingSession:
+    code: str
+    expires_at_monotonic: float
+
+
+class PairingCoordinator:
+    """Bounded one-time handover initiated by an already authorised Manager."""
+
+    def __init__(self, *, lifetime_seconds: int = 300) -> None:
+        self._lifetime_seconds = lifetime_seconds
+        self._session: PairingSession | None = None
+        self._attempts = 0
+        self._lock = threading.Lock()
+
+    def start(self) -> PairingSession:
+        session = PairingSession(
+            code=f"{secrets.randbelow(1_000_000):06d}",
+            expires_at_monotonic=time.monotonic() + self._lifetime_seconds,
+        )
+        with self._lock:
+            self._session = session
+            self._attempts = 0
+        return session
+
+    def exchange(self, code: str) -> None:
+        with self._lock:
+            session = self._session
+            expired = session is None or time.monotonic() > session.expires_at_monotonic
+            matches = session is not None and secrets.compare_digest(code, session.code)
+            if expired or not matches or self._attempts >= 5:
+                self._attempts += 1
+                if expired or self._attempts >= 5:
+                    self._session = None
+                raise PairingInvalidError("Pairing code is invalid or expired.")
+            self._session = None
 
 
 class OperationType(StrEnum):
@@ -222,6 +266,7 @@ class TokenCaptureState(StrEnum):
     WAITING = auto()
     DETECTED = auto()
     ASSIGNED = auto()
+    CANCELLED = auto()
 
 
 @dataclass(frozen=True, slots=True)
@@ -236,12 +281,18 @@ TokenListener = Callable[[TokenCapture], None]
 
 
 class TokenAssignment:
-    def __init__(self, library: Library, input_bus: InputBus) -> None:
+    def __init__(
+        self,
+        library: Library,
+        input_bus: InputBus,
+        capture_active_changed: Callable[[bool], None] | None = None,
+    ) -> None:
         self._library = library
         self._captures: dict[uuid.UUID, TokenCapture] = {}
         self._active: uuid.UUID | None = None
         self._listeners: list[TokenListener] = []
         self._lock = threading.RLock()
+        self._capture_active_changed = capture_active_changed
         input_bus.on_input(self._handle_input)
 
     def on_changed(self, listener: TokenListener) -> None:
@@ -253,6 +304,8 @@ class TokenAssignment:
         with self._lock:
             self._captures[capture.id] = capture
             self._active = capture.id
+        if self._capture_active_changed is not None:
+            self._capture_active_changed(True)
         self._notify(capture)
         return capture
 
@@ -275,8 +328,23 @@ class TokenAssignment:
             self._captures[capture_id] = assigned
             if self._active == capture_id:
                 self._active = None
+        if self._capture_active_changed is not None:
+            self._capture_active_changed(False)
         self._notify(assigned)
         return assigned
+
+    def cancel(self, capture_id: uuid.UUID) -> TokenCapture:
+        capture = self.get_capture(capture_id)
+        cancelled = replace(capture, state=TokenCaptureState.CANCELLED)
+        with self._lock:
+            self._captures[capture_id] = cancelled
+            was_active = self._active == capture_id
+            if was_active:
+                self._active = None
+        if was_active and self._capture_active_changed is not None:
+            self._capture_active_changed(False)
+        self._notify(cancelled)
+        return cancelled
 
     def _handle_input(self, event: InputEvent) -> None:
         if not isinstance(event, NfcPresented):

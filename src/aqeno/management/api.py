@@ -29,6 +29,8 @@ from aqeno.application.management import (
     ManagementError,
     Operation,
     OperationRegistry,
+    PairingCoordinator,
+    PairingInvalidError,
     ProfileContentManagement,
     ProfileNotFoundError,
     TokenAssignment,
@@ -63,6 +65,9 @@ from aqeno.management.schemas import (
     MediaSummary,
     NfcSettings,
     OperationResponse,
+    PairingExchangeRequest,
+    PairingExchangeResponse,
+    PairingSessionResponse,
     PlaybackStatus,
     ProfileDisplay,
     ProfileResource,
@@ -149,6 +154,7 @@ class ManagementContext:
         self.capabilities = capabilities
         self.configuration = ConfigurationManagement(library, settings_store)
         self.profile_content = ProfileContentManagement(library)
+        self.pairing = PairingCoordinator()
         self.events = EventBroker()
         operations.on_changed(self._operation_changed)
         tokens.on_changed(self._token_changed)
@@ -210,7 +216,30 @@ def create_app(context: ManagementContext) -> FastAPI:
             )
             else 409
         )
+        if isinstance(exc, PairingInvalidError):
+            status = 401
         return _error(status, exc.code, str(exc))
+
+    @app.post(
+        "/api/v1/pairing-sessions",
+        response_model=PairingSessionResponse,
+        status_code=201,
+        dependencies=auth,
+        tags=["security"],
+    )
+    def start_pairing() -> PairingSessionResponse:
+        session = context.pairing.start()
+        return PairingSessionResponse(code=session.code, expires_in_seconds=300)
+
+    @app.post(
+        "/api/v1/pairing-exchange",
+        response_model=PairingExchangeResponse,
+        responses=ERROR_RESPONSES,
+        tags=["security"],
+    )
+    def exchange_pairing(request: PairingExchangeRequest) -> PairingExchangeResponse:
+        context.pairing.exchange(request.code)
+        return PairingExchangeResponse(management_key=context.management_key)
 
     @app.exception_handler(RequestValidationError)
     def validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -499,6 +528,16 @@ def create_app(context: ManagementContext) -> FastAPI:
     )
     def get_capture(capture_id: uuid.UUID) -> TokenCaptureResponse:
         return _capture(context.tokens.get_capture(capture_id))
+
+    @app.delete(
+        "/api/v1/token-captures/{capture_id}",
+        response_model=TokenCaptureResponse,
+        dependencies=auth,
+        responses=ERROR_RESPONSES,
+        tags=["tokens"],
+    )
+    def cancel_capture(capture_id: uuid.UUID) -> TokenCaptureResponse:
+        return _capture(context.tokens.cancel(capture_id))
 
     @app.put(
         "/api/v1/token-captures/{capture_id}/assignment",

@@ -34,7 +34,7 @@ mutagen objects, tracebacks and live Python objects do not become identity.
 
 True gaps closed here are server-side library queries, management use cases, async operation state,
 token capture, API authentication/error shapes, incremental unchanged-file scans and non-destructive
-offline-root scans. Chapter editing, first setup, updates, network mutation, mDNS publication and
+offline-root scans. Chapter editing, first setup, updates, network mutation and
 durable operation history remain explicit gaps rather than invented behaviour.
 
 ## Resource model
@@ -62,6 +62,8 @@ OpenAPI document; errors use the common envelope.
 | Method | Path | Purpose | Request / response | Mapping | Auth | Errors | Status |
 |---|---|---|---|---|---|---|---|
 | GET | `/api/v1/device` | device/readiness/storage | — / `DeviceStatus` | Readiness, Library health | KEY | auth | IMPLEMENTED |
+| POST | `/api/v1/pairing-sessions` | issue one-time local code | — / PairingSession | PairingCoordinator | KEY | auth | IMPLEMENTED |
+| POST | `/api/v1/pairing-exchange` | exchange code for device key | code / key | PairingCoordinator | bounded public | invalid/expired | IMPLEMENTED |
 | GET | `/api/v1/diagnostics` | bounded diagnosis | — / `DiagnosticsStatus` | snapshots/health | KEY | auth | IMPLEMENTED |
 | GET | `/api/v1/media-sources` | roots/mount availability | — / `MediaSource[]` | LibrarySettings | KEY | auth | IMPLEMENTED |
 | GET | `/api/v1/library/media` | indexed browse/search | cursor/filter / `MediaPage` | Library query | KEY | cursor | IMPLEMENTED |
@@ -80,6 +82,7 @@ OpenAPI document; errors use the common envelope.
 | DELETE | `/api/v1/tokens/{uid}/assignment` | unassign | — / 204 | unmap_tag | KEY | auth | IMPLEMENTED |
 | POST | `/api/v1/token-captures` | wait for token | — / capture 201 | TokenAssignment | KEY | auth | IMPLEMENTED |
 | GET | `/api/v1/token-captures/{capture_id}` | detection status | — / capture | TokenAssignment | KEY | not found | IMPLEMENTED |
+| DELETE | `/api/v1/token-captures/{capture_id}` | cancel capture | — / capture | TokenAssignment | KEY | not found | IMPLEMENTED |
 | PUT | `/api/v1/token-captures/{capture_id}/assignment` | assign detected token | media ID / capture | map_tag | KEY | state/media | IMPLEMENTED |
 | GET | `/api/v1/playback` | playback snapshot | — / PlaybackStatus | PlaybackSession | KEY | auth | IMPLEMENTED |
 | GET | `/api/v1/settings` | local settings | — / Settings | SettingsStore | KEY | auth | IMPLEMENTED |
@@ -166,16 +169,22 @@ Access additions are `bulk_limit_exceeded`, `collection_not_found` and `profiles
 
 ## Authentication and local threat model
 
-- Default bind is `127.0.0.1:8766`; a Manager passes `--management-host 0.0.0.0` for trusted LAN.
-- All `/api/v1` routes require `X-AQENO-Management-Key` with constant-time comparison.
+- Default development bind is `127.0.0.1:8766`; the reference systemd unit binds the trusted LAN.
+- Management routes require `X-AQENO-Management-Key` with constant-time comparison. Only the
+  bounded one-time pairing exchange is public.
 - A key is generated once with mode 0600, or supplied as `AQENO_MANAGEMENT_KEY` for provisioning.
 - No cookie auth and no permissive CORS are used, avoiding ordinary browser CSRF authority.
 - Upload basenames are sanitised, writes bounded/atomic, and no filesystem browse endpoint exists.
-- Plain HTTP does not protect confidentiality on a hostile LAN. Pairing/TLS/key handover remain
-  required before such networks are supported.
+- Plain HTTP does not protect confidentiality on a hostile LAN. TLS remains required before such
+  networks are supported.
 
 The one prototype key grants trusted management access without inventing accounts or OAuth. Domain
 roles remain User/Manager/Owner.
+
+An authenticated Manager may create a six-digit pairing session lasting five minutes. Its exchange
+is single-use and locks after five incorrect attempts. It transfers the existing device authority;
+it creates no user, profile or durable pairing identity. Avahi publishes `_http._tcp`, while direct
+IP access remains supported.
 
 ## Events, process isolation and versioning
 

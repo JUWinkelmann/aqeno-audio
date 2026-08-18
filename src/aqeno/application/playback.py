@@ -88,6 +88,7 @@ class PlaybackSession:
         self._headphones = False
         self._volume = settings.volume.first_boot
         self._last_failure: AudioFailure | None = None
+        self._token_capture_active = False
         self._listeners: list[PlaybackListener] = []
 
         audio.on_state(self._on_audio_state)
@@ -103,6 +104,11 @@ class PlaybackSession:
     @property
     def volume(self) -> int:
         return self._volume
+
+    def set_token_capture_active(self, active: bool) -> None:
+        """Suppress NFC playback while management is deliberately reading a token."""
+        with self._lock:
+            self._token_capture_active = active
 
     @property
     def last_failure(self) -> AudioFailure | None:
@@ -240,6 +246,8 @@ class PlaybackSession:
 
     def _launch_tag(self, tag_id: str) -> None:
         with self._lock:
+            if self._token_capture_active:
+                return
             profile = self._profile
             content_id = self._library.resolve_tag(tag_id)
             if profile is None or content_id is None:

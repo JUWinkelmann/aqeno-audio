@@ -1,0 +1,24 @@
+[Unit]
+Description=AQENO audio player
+After=local-fs.target sound.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=aqeno
+Group=aqeno
+WorkingDirectory=/opt/aqeno
+EnvironmentFile=-/etc/aqeno/aqeno.env
+ExecStart=/opt/aqeno/.venv/bin/python -m aqeno --management-host 0.0.0.0
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/aqeno /var/cache/aqeno
+
+[Install]
+WantedBy=multi-user.target

@@ -24,7 +24,7 @@ Device UI never wait for HTTP readiness. The adapter consumes application servic
 snapshots; it never exposes SQLite rows, configuration files, filesystem browsing or Python domain
 objects as JSON.
 
-All routes require a management key in `X-AQENO-Management-Key`. Cookie authentication is not used,
+All management routes require a management key in `X-AQENO-Management-Key`. Cookie authentication is not used,
 so browser ambient authority and CSRF are avoided; CORS is disabled by default. The development
 server binds to loopback unless a Manager deliberately binds it to the LAN. A generated device key
 is stored locally with owner-only permissions. This is the minimum prototype trust boundary, not an
@@ -48,10 +48,11 @@ playback.
   explicitly reviewed compatible migration.
 - FastAPI, Starlette/Pydantic transitively, Uvicorn and python-multipart become runtime dependencies.
   Their licences and exact release versions must be retained in release compliance.
-- The API key protects LAN mutation without inventing users. Stronger setup/pairing and certificate
-  transport remain later security work before exposure beyond a deliberately trusted LAN.
-- mDNS publication, Wi-Fi/captive-portal setup, updates, favourites, messaging, Connect and remote
-  access are not added by this decision.
+- The API key protects LAN mutation without inventing users. An authorised Manager may create a
+  short-lived, single-use code to pair another local client. Certificate transport remains later
+  security work before exposure beyond a deliberately trusted LAN.
+- Avahi publishes the local HTTP endpoint. Wi-Fi/captive-portal setup, updates, messaging, Connect
+  and remote access are not added by this decision.
 
 ## Rejected alternatives
 

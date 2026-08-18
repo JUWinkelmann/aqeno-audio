@@ -116,6 +116,20 @@ class TokenCaptureResponse(ApiModel):
     assigned_media_id: UUID | None
 
 
+class PairingSessionResponse(ApiModel):
+    code: str
+    expires_in_seconds: int
+
+
+class PairingExchangeRequest(ApiModel):
+    code: str = Field(pattern=r"^[0-9]{6}$")
+
+
+class PairingExchangeResponse(ApiModel):
+    management_key: str
+    header_name: Literal["X-AQENO-Management-Key"] = "X-AQENO-Management-Key"
+
+
 class TokenAssignmentRequest(ApiModel):
     media_id: UUID
 

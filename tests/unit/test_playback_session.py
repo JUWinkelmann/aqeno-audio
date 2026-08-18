@@ -5,6 +5,7 @@ from datetime import timedelta
 import pytest
 
 from aqeno.adapters.fakes import FakeAudioEngine, FakeClock, FakeInputBus, FakeLibrary
+from aqeno.application.management import TokenAssignment, TokenCaptureState
 from aqeno.application.playback import (
     PlaybackSession,
     PlaybackSnapshot,
@@ -154,6 +155,29 @@ def test_nfc_respects_effective_profile_access() -> None:
 
     assert rig.session.item == current
     assert rig.audio.state is TransportState.PLAYING
+
+
+def test_management_token_capture_does_not_launch_an_existing_assignment() -> None:
+    rig = Rig()
+    current = _item()
+    assigned = _item()
+    rig.start(current)
+    rig.library.save_content(assigned)
+    rig.library.map_tag("known-token", assigned.id)
+    assignments = TokenAssignment(rig.library, rig.inputs, rig.session.set_token_capture_active)
+    capture = assignments.start_capture()
+
+    rig.inputs.emit(NfcPresented("known-token"))
+
+    assert rig.session.item == current
+    assert rig.audio.state is TransportState.PLAYING
+    # The same presentation is still delivered to management for reassignment.
+    assert assignments.get_capture(capture.id).state is TokenCaptureState.DETECTED
+
+    assignments.cancel(capture.id)
+    rig.audio.force_next_capabilities(AudioCapabilities(seekable=True, duration=assigned.duration))
+    rig.inputs.emit(NfcPresented("known-token"))
+    assert rig.session.item == assigned
 
 
 def test_short_music_restarts_instead_of_resuming() -> None:

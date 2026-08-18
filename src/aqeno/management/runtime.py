@@ -69,7 +69,11 @@ def build_context(
             artwork_dir=artwork_dir(),
         ),
         operations=operations,
-        tokens=TokenAssignment(library, inputs),
+        tokens=TokenAssignment(
+            library,
+            inputs,
+            playback.set_token_capture_active if playback is not None else None,
+        ),
         assets=assets,
         management_key=key,
         device_id=device_id,

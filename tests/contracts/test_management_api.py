@@ -187,6 +187,14 @@ def test_token_capture_assignment_is_immediate_and_survives_browser_close(tmp_pa
     assert api.library.resolve_tag("04-A1-B2-C3") == item.id
 
 
+def test_token_capture_can_be_cancelled(tmp_path: Path) -> None:
+    api = ApiFixture(tmp_path)
+    capture_id = api.client.post("/api/v1/token-captures", headers=HEADERS).json()["id"]
+    cancelled = api.client.delete(f"/api/v1/token-captures/{capture_id}", headers=HEADERS)
+    assert cancelled.status_code == 200
+    assert cancelled.json()["state"] == "cancelled"
+
+
 def test_settings_are_product_schemas_and_persist_atomically_through_store(tmp_path: Path) -> None:
     api = ApiFixture(tmp_path)
     current = api.client.get("/api/v1/settings", headers=HEADERS).json()
