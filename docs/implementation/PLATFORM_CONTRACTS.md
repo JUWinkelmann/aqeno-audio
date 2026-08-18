@@ -16,12 +16,22 @@ No application code should depend on GPIO pin numbers.
 Delivery follows ADR 0011: synchronous registration-order delivery, without replay or coalescing.
 
 ## Display contract
+
+**Amended 2026-08-18 by ADR 0016.** The adapter receives panel power and a resolved brightness, not a
+logical display state — otherwise every adapter would carry its own copy of profile-dependent
+brightness policy. LEDs are a separate port driven by the same policy, because on Reference Hardware 1
+they are separate devices on a separate bus.
+
 Adapter capabilities:
-- set logical state: OFF / DIM / INTERACTIVE / AMBIENT / SETUP;
-- set brightness where supported;
-- report touch/wake events;
-- guarantee that OFF means no intended visible output;
-- control associated user-facing LEDs through the same visual policy.
+- set panel power on/off;
+- set brightness 0–100 where supported;
+- report touch events, delivered to the display service rather than to the UI;
+- report whether it can achieve **authoritative off** — no intended visible output — rather than only
+  zero backlight;
+- user-facing LEDs through the LED contract below, under the same visual policy.
+
+The display state machine (`DISPLAY_STATE_MACHINE.md`) resolves state and guards to that power and
+brightness. Nothing outside `adapters/` sets either directly.
 
 ## LED contract
 User-facing LEDs are semantic indicators, not hard-coded GPIO effects.
