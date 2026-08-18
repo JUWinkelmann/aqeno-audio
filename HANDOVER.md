@@ -15,8 +15,9 @@ implementation specifications. Documentation is English; the maintainer communic
 
 ## Live state
 
-Steps 7 and 9 are complete. Step 10 is active as a Reference Hardware feasibility and adapter-scope
-assessment; do not invent unverified board or display behaviour.
+Steps 7 and 9 are complete. Step 10 has the desktop-tested RH1 controls implementation in `851898c`.
+Remaining Step 10 work requires physical RH1 evidence or unselected hardware and is recorded below
+rather than guessed. The worktree is clean except for this handover checkpoint.
 
 Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff format --check` and
 `mypy` pass.
@@ -32,7 +33,7 @@ Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff f
 | 7 — Kids Early Device UI | done (`6e295a0`) |
 | 8 — display policy | done (`f88365f`, `cc493c7`) |
 | 9 — end-to-end tests | done (`707de90`) |
-| 10 — Reference Hardware adapters | feasibility/scope assessment in progress |
+| 10 — Reference Hardware adapters | controls done (`851898c`); physical/display work externally gated |
 
 ## Step log
 
@@ -104,6 +105,30 @@ Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff f
 - Display power/brightness cannot be implemented honestly until the exact display revision and
   display-server path are known and tested. LED colour/meaning is likewise not invented merely to
   illuminate acquired pixels; true dark remains preferable.
+- The delegated implementation added a lazy-driver `I2cSeesawInputBus`, deterministic edge/delta
+  tests, an explicit null LED adapter, RH1 optional dependencies and composition-root start/close.
+- Primary review corrected two contract violations before acceptance: it replaced an unverified
+  `digitalio.Pull` path with Adafruit's documented seesaw `INPUT_PULLUP` setup, and restored ADR
+  0011's synchronous fail-fast listener behaviour instead of swallowing listener exceptions.
+- ADR 0010 now records the optional MIT driver dependencies and removes its stale suggestion that
+  the first hardware adapter should trigger a capability framework; ADR 0017 and the current human
+  decision explicitly reject that generalisation.
+- Final desktop result: 959 tests passed, 1 hardware test deselected; ruff, format and mypy passed.
+- Committed as `851898c connect RH1 controls without coupling the core` with honest AI co-authorship.
+
+### External verification boundary
+
+- Install the optional `rh1` dependencies on the Raspberry Pi and verify both boards coexist on the
+  assembled I²C bus at `0x36` and `0x30`, including direction, press edges and sustained polling.
+- Record the exact acquired display revision. Choose/verify its display-server integration before a
+  real panel adapter can truthfully report authoritative OFF, brightness or touch routing (G24).
+- Status LED output needs observed true-off behaviour and a deliberately chosen semantic indication;
+  AQENO currently uses `NullStatusLeds` on real composition rather than illuminating pixels without
+  a product reason.
+- NFC, VEML7700, final audio path and power components are not selected/acquired or remain explicit
+  feasibility candidates. No adapter should pretend they exist.
+- Hardware-only boot/wake timing, full-dark output and child-safe calibrated volume remain physical
+  measurements. The single deselected test is intentionally in that class.
 
 ## Accepted display and hardware decisions already in the repository
 
@@ -119,9 +144,9 @@ Quality result after review: **946 passed, 1 deselected**; `ruff check`, `ruff f
 
 ## Next action
 
-1. Review the delegated RH1 control adapter, composition-root degradation and dependencies.
-2. Run full checks and commit if the adapter remains hardware-isolated and headless-safe.
-3. Stop only at the genuine display/physical-hardware boundary and record it precisely.
+1. On the assembled RH1, perform the verification above and record evidence before extending Step 10.
+2. Until then, the next productive software task requires a new scoped instruction or new hardware
+   evidence; do not invent the missing adapter behaviour.
 
 ## Standing reminders
 
