@@ -21,7 +21,10 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field, fields
 from enum import StrEnum, auto
+from pathlib import Path
 from typing import Any
+
+from aqeno.config.paths import media_dir
 
 
 @dataclass(frozen=True, slots=True)
@@ -175,6 +178,23 @@ class NfcSettings:
 NFC_RANGES: dict[str, IntRange] = {"debounce_ms": IntRange(500, 5000)}
 
 # ---------------------------------------------------------------------------
+# § 8 Library and scanning — ADR 0014, CONTENT_INGESTION.md § 1
+# ---------------------------------------------------------------------------
+
+_LIBRARY_ROOTS_COUNT_RANGE = IntRange(1, 8)
+
+
+def default_library_roots() -> tuple[Path, ...]:
+    return (media_dir(),)
+
+
+@dataclass(frozen=True, slots=True)
+class LibrarySettings:
+    roots: tuple[Path, ...] = field(default_factory=default_library_roots)
+    scan_on_startup: bool = True
+    follow_symlinks: bool = False
+
+# ---------------------------------------------------------------------------
 # Language — ADR 0005
 # ---------------------------------------------------------------------------
 
@@ -205,6 +225,7 @@ class Settings:
     resume: ResumeSettings = field(default_factory=ResumeSettings)
     sleep_timer: SleepTimerSettings = field(default_factory=SleepTimerSettings)
     nfc: NfcSettings = field(default_factory=NfcSettings)
+    library: LibrarySettings = field(default_factory=LibrarySettings)
     language: str = field(default_factory=default_language)
 
 
@@ -312,6 +333,47 @@ def _validate_sleep_timer(raw: Any, warnings: list[str]) -> SleepTimerSettings:
     )
 
 
+def _validate_library(raw: Any, warnings: list[str]) -> LibrarySettings:
+    defaults = LibrarySettings()
+    raw_section = raw if isinstance(raw, dict) else {}
+    if raw is not None and not isinstance(raw, dict):
+        warnings.append(f"library: expected a table, got {type(raw).__name__}; using defaults")
+
+    roots_raw = raw_section.get("roots", None)
+    if roots_raw is None:
+        roots = defaults.roots
+    elif (
+        isinstance(roots_raw, list | tuple)
+        and _LIBRARY_ROOTS_COUNT_RANGE.contains(len(roots_raw))
+        and all(isinstance(r, str) and r for r in roots_raw)
+        and all(Path(r).is_absolute() for r in roots_raw)
+    ):
+        roots = tuple(Path(r) for r in roots_raw)
+    else:
+        warnings.append("library.roots: expected 1-8 absolute paths; using default")
+        roots = defaults.roots
+
+    scan_on_startup = raw_section.get("scan_on_startup", defaults.scan_on_startup)
+    if not isinstance(scan_on_startup, bool):
+        warnings.append(
+            f"library.scan_on_startup: expected true/false, got {scan_on_startup!r}; "
+            "using default"
+        )
+        scan_on_startup = defaults.scan_on_startup
+
+    follow_symlinks = raw_section.get("follow_symlinks", defaults.follow_symlinks)
+    if not isinstance(follow_symlinks, bool):
+        warnings.append(
+            f"library.follow_symlinks: expected true/false, got {follow_symlinks!r}; "
+            "using default"
+        )
+        follow_symlinks = defaults.follow_symlinks
+
+    return LibrarySettings(
+        roots=roots, scan_on_startup=scan_on_startup, follow_symlinks=follow_symlinks
+    )
+
+
 def validate(raw: dict[str, Any] | None) -> tuple[Settings, list[str]]:
     """Validate a raw parsed-TOML mapping against every range in this module.
 
@@ -329,6 +391,7 @@ def validate(raw: dict[str, Any] | None) -> tuple[Settings, list[str]]:
             section_name, section_type, ranges, raw.get(section_name), warnings
         )
     kwargs["sleep_timer"] = _validate_sleep_timer(raw.get("sleep_timer"), warnings)
+    kwargs["library"] = _validate_library(raw.get("library"), warnings)
 
     language = raw.get("language", default_language())
     if language not in SUPPORTED_LANGUAGES:

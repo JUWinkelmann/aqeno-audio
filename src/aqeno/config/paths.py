@@ -42,3 +42,21 @@ def settings_path() -> Path:
 
 def database_path() -> Path:
     return data_dir() / "aqeno.db"
+
+
+def media_dir() -> Path:
+    """Default library root — CONTENT_INGESTION.md § 1.
+
+    `AQENO_MEDIA_DIR` overrides it directly (no `aqeno` suffix appended, same
+    convention as the other `AQENO_*_DIR` overrides) so tests never touch real
+    media.
+    """
+    override = os.environ.get("AQENO_MEDIA_DIR")
+    if override:
+        return Path(override)
+    return data_dir() / "media"
+
+
+def artwork_dir() -> Path:
+    """Extracted embedded artwork lives here — CONTENT_INGESTION.md § 7."""
+    return data_dir() / "artwork"
