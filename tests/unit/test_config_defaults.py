@@ -34,7 +34,14 @@ class TestDefaultsMatchTheDocument:
             90,
             120,
         )
-        assert (d.night_override, d.dim_hold_standard, d.setup_idle, d.setup_idle_night) == (
+        assert (
+            d.night_override,
+            d.dim_hold_kids_early,
+            d.dim_hold_standard,
+            d.setup_idle,
+            d.setup_idle_night,
+        ) == (
+            10,
             10,
             15,
             300,
@@ -47,6 +54,7 @@ class TestDefaultsMatchTheDocument:
         assert b.interactive_other_kids == 80
         assert b.interactive_easy == 85
         assert b.interactive_standard == 85
+        assert b.dim_kids_early == 8
         assert b.dim_standard == 10
         assert b.ambient_kids_early == 40
         assert b.ambient_standard == 50
@@ -90,14 +98,24 @@ class TestRangesMatchTheDocument:
         assert DISPLAY_TIMEOUT_RANGES["night_override"].minimum == 5
         assert DISPLAY_TIMEOUT_RANGES["night_override"].maximum == 30
         assert DISPLAY_TIMEOUT_RANGES["dim_hold_standard"].maximum == 60
+        assert (
+            DISPLAY_TIMEOUT_RANGES["dim_hold_kids_early"].minimum,
+            DISPLAY_TIMEOUT_RANGES["dim_hold_kids_early"].maximum,
+        ) == (5, 30)
         assert DISPLAY_TIMEOUT_RANGES["setup_idle"].minimum == 60
         assert DISPLAY_TIMEOUT_RANGES["setup_idle"].maximum == 900
         assert DISPLAY_TIMEOUT_RANGES["setup_idle_night"].minimum == 30
         assert DISPLAY_TIMEOUT_RANGES["setup_idle_night"].maximum == 300
 
     def test_brightness_range_is_the_logical_scale(self) -> None:
-        for rng in BRIGHTNESS_RANGES.values():
+        for name, rng in BRIGHTNESS_RANGES.items():
+            if name == "dim_kids_early":
+                continue
             assert (rng.minimum, rng.maximum) == (0, 100)
+        assert (
+            BRIGHTNESS_RANGES["dim_kids_early"].minimum,
+            BRIGHTNESS_RANGES["dim_kids_early"].maximum,
+        ) == (1, 20)
 
     def test_volume_ranges(self) -> None:
         assert (VOLUME_RANGES["child_maximum"].minimum, VOLUME_RANGES["child_maximum"].maximum) == (

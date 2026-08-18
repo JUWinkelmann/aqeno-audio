@@ -22,7 +22,7 @@ from aqeno.adapters.fakes import (
     FakeStatusLeds,
 )
 from aqeno.application.display import DisplayService
-from aqeno.application.playback import PlaybackSession
+from aqeno.application.playback import PlaybackSession, PlaybackSnapshot
 from aqeno.application.readiness import Readiness, ReadinessState
 from aqeno.config.defaults import default_settings
 from aqeno.domain.content import ContentId, ContentItem, ContentKind, HttpSource
@@ -40,10 +40,10 @@ def _profile() -> Profile:
         display=DisplayPolicy(
             inactivity_timeout=timedelta(seconds=30),
             night_timeout=timedelta(seconds=10),
-            allows_dim=False,
-            dim_hold=None,
+            allows_dim=True,
+            dim_hold=timedelta(seconds=10),
             interactive_brightness=70,
-            dim_brightness=0,
+            dim_brightness=8,
             ambient_brightness=40,
             night_brightness=5,
             led_brightness=20,
@@ -95,10 +95,17 @@ def test_dark_room_playback_stays_controllable_with_the_panel_off() -> None:
     assert audio.state is TransportState.PLAYING
     assert display.snapshot.state is DisplayState.INTERACTIVE
 
-    # Inactivity elapses: a Kids profile goes straight to OFF.
+    # Playback recedes through a short glanceable DIM phase, then goes fully dark.
     panel.calls.clear()
     leds.calls.clear()
     clock.advance(timedelta(seconds=31))
+
+    assert display.snapshot.state is DisplayState.DIM
+    assert panel.brightness == 8
+
+    panel.calls.clear()
+    leds.calls.clear()
+    clock.advance(timedelta(seconds=11))
 
     assert display.snapshot.state is DisplayState.OFF
     assert panel.calls == [("power", False)]
@@ -122,3 +129,44 @@ def test_dark_room_playback_stays_controllable_with_the_panel_off() -> None:
     # audio playing again, and the volume step actually moved the volume.
     assert audio.state is TransportState.PLAYING
     assert session.volume == default_settings().volume.first_boot + settings.volume.encoder_step
+
+
+def test_night_skips_glanceable_and_stays_dark() -> None:
+    clock = FakeClock()
+    readiness = Readiness(clock)
+    readiness.advance(ReadinessState.LOCAL_READY)
+    readiness.advance(ReadinessState.PLAYBACK_READY)
+    readiness.advance(ReadinessState.UI_READY)
+    panel = FakeDisplayPanel()
+    leds = FakeStatusLeds()
+    display = DisplayService(
+        panel=panel,
+        leds=leds,
+        clock=clock,
+        readiness=readiness,
+        profile=_profile(),
+        settings=default_settings(),
+    )
+    display.handle_playback_changed(
+        PlaybackSnapshot(
+            transport=TransportState.PLAYING,
+            content_id=ContentId(),
+            title="Bedtime Story",
+            chapter_title=None,
+            position=timedelta(0),
+            duration=timedelta(minutes=20),
+            volume=40,
+            failure_code=None,
+            can_toggle_playback=True,
+            can_skip_forward=True,
+            can_skip_back=True,
+        )
+    )
+    display.set_night_active(True)
+    display.handle_event(DisplayEvent.WAKE_REQUEST)
+
+    clock.advance(timedelta(seconds=11))
+
+    assert display.snapshot.state is DisplayState.OFF
+    assert panel.power_on is False
+    assert leds.brightness == 0

@@ -220,8 +220,9 @@ def resolve(current: DisplayState, event: DisplayEvent, guards: DisplayGuards) -
             if current is DisplayState.DIM:
                 return _stay(DisplayState.OFF)
             if current is DisplayState.INTERACTIVE:
-                # Kids profiles go straight to OFF: DISPLAY_BEHAVIOR.md § Kids default.
-                if guards.profile_allows_dim:
+                # Glanceable DIM is playback context, never an automatic idle
+                # surface. Night/Bedtime keeps authority and goes fully dark.
+                if guards.profile_allows_dim and guards.playback_active and not guards.night_active:
                     return _stay(DisplayState.DIM)
                 return _stay(DisplayState.OFF)
             # Note 9: inactivity does not apply in AMBIENT. OFF and SETUP: n/a.

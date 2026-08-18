@@ -19,6 +19,7 @@ from aqeno.config.defaults import Settings, default_settings
 from aqeno.domain.content import ContentId
 from aqeno.domain.display import DisplayEvent, DisplayState
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
+from aqeno.ports.ambient_light import AmbientLight
 from aqeno.ports.audio import TransportState
 
 INTERACTIVE_BRIGHTNESS = 70
@@ -99,6 +100,7 @@ def _service(
     panel: FakeDisplayPanel | None = None,
     leds: FakeStatusLeds | None = None,
     ui_ready: bool = True,
+    ambient_light: AmbientLight | None = None,
 ) -> tuple[DisplayService, FakeDisplayPanel, FakeStatusLeds, FakeClock, Readiness]:
     clock = clock if clock is not None else FakeClock()
     readiness = Readiness(clock)
@@ -115,6 +117,7 @@ def _service(
         readiness=readiness,
         profile=profile if profile is not None else _profile(),
         settings=settings if settings is not None else default_settings(),
+        ambient_light=ambient_light,
     )
     return service, panel, leds, clock, readiness
 
@@ -292,6 +295,7 @@ class TestBrightnessTable:
             profile=_profile(allows_dim=True, dim_hold=timedelta(seconds=15))
         )
         service.handle_event(DisplayEvent.WAKE_REQUEST)
+        service.handle_playback_changed(_playing())
 
         service.handle_event(DisplayEvent.INACTIVITY_ELAPSED)
 
@@ -380,6 +384,67 @@ class TestDegradedPanel:
             _service(panel=FakeDisplayPanel(authoritative_off=False))
         warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
         assert len(warnings) == 1
+
+    def test_panel_failure_does_not_escape_into_playback_policy(self) -> None:
+        class FailingPanel(FakeDisplayPanel):
+            def set_power(self, on: bool) -> None:
+                raise OSError("panel disconnected")
+
+        service, _, _, _, _ = _service(panel=FailingPanel())
+
+        service.handle_playback_changed(_playing())
+        service.handle_event(DisplayEvent.WAKE_REQUEST)
+
+        assert service.snapshot.wake_target == "now_playing"
+
+
+class TestAmbientLightPolicy:
+    class Sensor:
+        def __init__(self, lux: float) -> None:
+            self.lux = lux
+
+        def read_lux(self) -> float:
+            return self.lux
+
+    def test_dark_reading_reduces_only_dim_output(self) -> None:
+        sensor = self.Sensor(5.0)
+        service, panel, _, _, _ = _service(
+            profile=_profile(allows_dim=True, dim_hold=timedelta(seconds=15)),
+            ambient_light=sensor,
+        )
+        service.handle_event(DisplayEvent.WAKE_REQUEST)
+        service.sample_ambient_light()
+        assert panel.brightness == INTERACTIVE_BRIGHTNESS
+
+        service.handle_playback_changed(_playing())
+        service.handle_event(DisplayEvent.INACTIVITY_ELAPSED)
+
+        assert service.snapshot.state is DisplayState.DIM
+        assert panel.brightness == DIM_BRIGHTNESS // 2
+
+    def test_hysteresis_prevents_dim_brightness_flapping(self) -> None:
+        sensor = self.Sensor(5.0)
+        service, panel, _, _, _ = _service(
+            profile=_profile(allows_dim=True, dim_hold=timedelta(seconds=15)),
+            ambient_light=sensor,
+        )
+        service.handle_event(DisplayEvent.WAKE_REQUEST)
+        service.handle_playback_changed(_playing())
+        service.handle_event(DisplayEvent.INACTIVITY_ELAPSED)
+        service.sample_ambient_light()
+        panel.calls.clear()
+
+        sensor.lux = 14.0
+        for _ in range(8):
+            service.sample_ambient_light()
+
+        assert panel.calls == []
+
+        sensor.lux = 30.0
+        for _ in range(8):
+            service.sample_ambient_light()
+
+        assert panel.brightness == DIM_BRIGHTNESS
 
 
 class TestTimers:

@@ -32,6 +32,7 @@ from aqeno.domain.display import (
     wake_target,
 )
 from aqeno.domain.profile import Profile
+from aqeno.ports.ambient_light import AmbientLight
 from aqeno.ports.audio import TransportState
 from aqeno.ports.clock import Clock
 from aqeno.ports.display import DisplayPanel
@@ -48,6 +49,10 @@ from aqeno.ports.input import (
 from aqeno.ports.led import StatusLeds
 
 logger = logging.getLogger(__name__)
+
+_AMBIENT_LIGHT_ALPHA = 0.25
+_DARK_LUX_ENTER = 10.0
+_DARK_LUX_EXIT = 15.0
 
 _INPUT_EVENT_MAP: dict[type, DisplayEvent] = {
     VolumeDelta: DisplayEvent.VOLUME_DELTA,
@@ -98,6 +103,7 @@ class DisplayService:
         readiness: Readiness,
         profile: Profile,
         settings: Settings,
+        ambient_light: AmbientLight | None = None,
     ) -> None:
         self._panel = panel
         self._leds = leds
@@ -105,6 +111,7 @@ class DisplayService:
         self._readiness = readiness
         self._profile = profile
         self._settings = settings
+        self._ambient_light = ambient_light
         self._lock = threading.RLock()
 
         self._state = DisplayState.OFF
@@ -114,6 +121,8 @@ class DisplayService:
         self._timer_handle: object | None = None
         self._listeners: list[DisplayListener] = []
         self._ui_touch_listener: UiTouchListener | None = None
+        self._smoothed_lux: float | None = None
+        self._ambient_dark = False
 
         # Sentinels, not real values: force the first `_apply_outputs()` to make
         # its calls explicitly rather than assuming the adapter already agrees
@@ -121,17 +130,26 @@ class DisplayService:
         self._last_power: bool | None = None
         self._last_brightness: int | None = None
         self._last_led: int | None = None
+        self._panel_failed = False
 
-        capabilities = panel.capabilities()
-        if not capabilities.authoritative_off:
-            logger.warning(
-                "display panel cannot guarantee authoritative OFF; a zero backlight "
-                "is not a true dark panel (ADR 0016 § 1, gap G24)"
-            )
+        try:
+            capabilities = panel.capabilities()
+            if not capabilities.authoritative_off:
+                logger.warning(
+                    "display panel cannot guarantee authoritative OFF; a zero backlight "
+                    "is not a true dark panel (ADR 0016 § 1, gap G24)"
+                )
+        except Exception:
+            logger.exception("display panel unavailable; continuing headless")
+            self._panel_failed = True
 
         self._apply_outputs(self._guards())
         readiness.on_reached(ReadinessState.UI_READY, self._apply_pending_wake)
-        panel.on_touch(self.handle_touch)
+        if not self._panel_failed:
+            try:
+                panel.on_touch(self.handle_touch)
+            except Exception:
+                logger.exception("display touch unavailable; continuing without touch")
 
     # -- presentation ------------------------------------------------------
 
@@ -195,6 +213,30 @@ class DisplayService:
             self.handle_event(
                 DisplayEvent.NIGHT_ACTIVATED if active else DisplayEvent.NIGHT_DEACTIVATED
             )
+
+    def sample_ambient_light(self) -> None:
+        """Apply one calm sensor sample to display output.
+
+        RH1 owns when samples are requested. The service only performs the
+        minimum interpretation required to prevent a DIM panel oscillating near
+        a threshold: an exponential smoothing step and a 10/15 lux hysteresis.
+        """
+        if self._ambient_light is None:
+            return
+        lux = max(0.0, self._ambient_light.read_lux())
+        with self._lock:
+            if self._smoothed_lux is None:
+                self._smoothed_lux = lux
+            else:
+                self._smoothed_lux += _AMBIENT_LIGHT_ALPHA * (lux - self._smoothed_lux)
+
+            previous = self._ambient_dark
+            if self._ambient_dark:
+                self._ambient_dark = self._smoothed_lux < _DARK_LUX_EXIT
+            else:
+                self._ambient_dark = self._smoothed_lux <= _DARK_LUX_ENTER
+            if self._ambient_dark != previous:
+                self._apply_outputs(self._guards())
 
     # -- the machine -----------------------------------------------------------
 
@@ -291,19 +333,24 @@ class DisplayService:
         power, brightness = self._power_and_brightness(guards)
         led_brightness = self._led_brightness(guards)
 
-        if power != self._last_power:
-            self._panel.set_power(power)
-            self._last_power = power
-            if not power:
-                # Brightness is meaningless while off; force it to be re-applied
-                # explicitly the next time the panel powers on rather than relying
-                # on the adapter to remember (invariant 5: no flash on entering OFF,
-                # invariant 6: no partially painted frame on leaving it).
-                self._last_brightness = None
+        if not self._panel_failed:
+            try:
+                if power != self._last_power:
+                    self._panel.set_power(power)
+                    self._last_power = power
+                    if not power:
+                        # Brightness is meaningless while off; force it to be re-applied
+                        # explicitly the next time the panel powers on rather than relying
+                        # on the adapter to remember (invariant 5: no flash on entering OFF,
+                        # invariant 6: no partially painted frame on leaving it).
+                        self._last_brightness = None
 
-        if power and brightness != self._last_brightness:
-            self._panel.set_brightness(brightness)
-            self._last_brightness = brightness
+                if power and brightness != self._last_brightness:
+                    self._panel.set_brightness(brightness)
+                    self._last_brightness = brightness
+            except Exception:
+                logger.exception("display panel failed; continuing headless")
+                self._panel_failed = True
 
         if led_brightness != self._last_led:
             self._leds.set_brightness(led_brightness)
@@ -321,7 +368,10 @@ class DisplayService:
             case DisplayState.OFF:
                 return False, 0
             case DisplayState.DIM:
-                return True, night_or(policy.dim_brightness)
+                brightness = policy.dim_brightness
+                if self._ambient_dark:
+                    brightness = max(1, brightness // 2)
+                return True, night_or(brightness)
             case DisplayState.AMBIENT:
                 # Unreachable while night_active (invariant 8); no night column to read.
                 return True, policy.ambient_brightness

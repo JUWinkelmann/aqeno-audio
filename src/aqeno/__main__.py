@@ -6,11 +6,12 @@ import argparse
 import logging
 import threading
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Protocol, runtime_checkable
 
 from aqeno.adapters.clock import SystemClock
+from aqeno.adapters.display.none import NullDisplayPanel
 from aqeno.adapters.fakes.audio import FakeAudioEngine
 from aqeno.adapters.fakes.display import FakeDisplayPanel
 from aqeno.adapters.fakes.led import FakeStatusLeds
@@ -82,10 +83,10 @@ def _kids_early_profile(settings: Settings) -> Profile:
         display=DisplayPolicy(
             inactivity_timeout=timedelta(seconds=settings.display.kids_early),
             night_timeout=timedelta(seconds=settings.display.night_override),
-            allows_dim=False,
-            dim_hold=None,
+            allows_dim=True,
+            dim_hold=timedelta(seconds=settings.display.dim_hold_kids_early),
             interactive_brightness=settings.brightness.interactive_kids_early,
-            dim_brightness=0,
+            dim_brightness=settings.brightness.dim_kids_early,
             ambient_brightness=settings.brightness.ambient_kids_early,
             night_brightness=settings.brightness.night_minimum,
             led_brightness=settings.brightness.led_normal,
@@ -108,9 +109,14 @@ def _audio_engine(fake_hardware: frozenset[str]) -> AudioEngine:
 
 
 def _display_panel(fake_hardware: frozenset[str]) -> DisplayPanel:
-    """No real panel adapter exists yet — the display-server question is gap G24,
-    undecided (ADR 0016 § Consequences). Every run is faked until that lands."""
-    return FakeDisplayPanel()
+    """Select one panel once; runtime hotplug is outside ADR 0017."""
+    if "all" in fake_hardware or "display" in fake_hardware:
+        return FakeDisplayPanel()
+
+    # No real panel adapter exists until gap G24 is resolved. Absence is an
+    # explicit, first-class configuration rather than a fake panel in disguise.
+    logger.info("no display detected; starting headless")
+    return NullDisplayPanel()
 
 
 def _status_leds(fake_hardware: frozenset[str]) -> StatusLeds:
@@ -160,6 +166,24 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
             if profile_name != "kids-early":
                 raise ValueError(f"profile {profile_name!r} does not exist")
             profile = _kids_early_profile(settings)
+            library.save_profile(profile)
+        elif (
+            profile.name == "kids-early"
+            and profile.level is ExperienceLevel.KIDS_EARLY
+            and not profile.display.allows_dim
+        ):
+            # The prototype profile predates ADR 0017. There was no Manager UI
+            # capable of choosing this value, so upgrading the built-in profile
+            # cannot overwrite a user decision.
+            profile = replace(
+                profile,
+                display=replace(
+                    profile.display,
+                    allows_dim=True,
+                    dim_hold=timedelta(seconds=settings.display.dim_hold_kids_early),
+                    dim_brightness=settings.brightness.dim_kids_early,
+                ),
+            )
             library.save_profile(profile)
 
         # LOCAL_READY: the database is open and the profile is resolved.

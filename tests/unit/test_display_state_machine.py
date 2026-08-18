@@ -23,7 +23,9 @@ ALL_STATES = list(DisplayState)
 ALL_EVENTS = list(DisplayEvent)
 
 READY = DisplayGuards(ui_ready=True)
-READY_WITH_DIM = DisplayGuards(ui_ready=True, profile_allows_dim=True)
+READY_WITH_PLAYBACK_DIM = DisplayGuards(
+    ui_ready=True, playback_active=True, profile_allows_dim=True
+)
 READY_FOR_SETUP = DisplayGuards(ui_ready=True, setup_authorised=True)
 READY_FOR_AMBIENT = DisplayGuards(ui_ready=True, ambient_enabled=True, ambient_authorised=True)
 
@@ -128,15 +130,27 @@ class TestNfc:
 
 
 class TestInactivity:
-    def test_kids_profile_goes_straight_to_off(self) -> None:
+    def test_idle_profile_goes_straight_to_off(self) -> None:
         transition = resolve(DisplayState.INTERACTIVE, DisplayEvent.INACTIVITY_ELAPSED, READY)
         assert transition.state is DisplayState.OFF
 
-    def test_dim_is_used_only_where_the_profile_allows_it(self) -> None:
+    def test_dim_is_used_only_during_playback_where_the_profile_allows_it(self) -> None:
         transition = resolve(
-            DisplayState.INTERACTIVE, DisplayEvent.INACTIVITY_ELAPSED, READY_WITH_DIM
+            DisplayState.INTERACTIVE,
+            DisplayEvent.INACTIVITY_ELAPSED,
+            READY_WITH_PLAYBACK_DIM,
         )
         assert transition.state is DisplayState.DIM
+
+    def test_night_skips_dim_even_during_playback(self) -> None:
+        guards = DisplayGuards(
+            ui_ready=True,
+            playback_active=True,
+            profile_allows_dim=True,
+            night_active=True,
+        )
+        transition = resolve(DisplayState.INTERACTIVE, DisplayEvent.INACTIVITY_ELAPSED, guards)
+        assert transition.state is DisplayState.OFF
 
     def test_dim_elapses_to_off(self) -> None:
         assert resolve(DisplayState.DIM, DisplayEvent.DIM_ELAPSED, READY).state is DisplayState.OFF

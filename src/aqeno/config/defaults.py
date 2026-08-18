@@ -52,6 +52,7 @@ class DisplayTimeoutSettings:
     easy: int = 90
     standard: int = 120
     night_override: int = 10
+    dim_hold_kids_early: int = 10
     dim_hold_standard: int = 15
     setup_idle: int = 300
     setup_idle_night: int = 60
@@ -64,6 +65,7 @@ DISPLAY_TIMEOUT_RANGES: dict[str, IntRange] = {
     "easy": IntRange(15, 600),
     "standard": IntRange(15, 900),
     "night_override": IntRange(5, 30),
+    "dim_hold_kids_early": IntRange(5, 30),
     "dim_hold_standard": IntRange(5, 60),
     "setup_idle": IntRange(60, 900),
     "setup_idle_night": IntRange(30, 300),
@@ -80,8 +82,8 @@ class BrightnessSettings:
     interactive_other_kids: int = 80
     interactive_easy: int = 85
     interactive_standard: int = 85
+    dim_kids_early: int = 8
     dim_standard: int = 10
-    """Only Standard ever reaches DIM; other profiles never read this."""
     ambient_kids_early: int = 40
     ambient_other_kids: int = 40
     ambient_easy: int = 50
@@ -97,6 +99,7 @@ beyond this scale for any brightness value, including the LED normal brightness.
 BRIGHTNESS_RANGES: dict[str, IntRange] = {
     f.name: _BRIGHTNESS_SCALE for f in fields(BrightnessSettings)
 }
+BRIGHTNESS_RANGES["dim_kids_early"] = IntRange(1, 20)
 
 # ---------------------------------------------------------------------------
 # § 3 Volume
