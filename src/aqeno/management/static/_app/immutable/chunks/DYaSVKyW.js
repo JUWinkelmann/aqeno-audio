@@ -1,4 +1,0 @@
-import{P as e}from"./NFI2qbet.js";function t(t){let n=`${e.baseUrl}/events`;new EventSource(n,{withCredentials:!0}).close();let r=!1,i=new AbortController;return(async()=>{try{let e=await fetch(n,{credentials:`include`,signal:i.signal});if(!e.ok||!e.body)return;let a=e.body.getReader(),o=new TextDecoder,s=``;for(;!r;){let{done:e,value:n}=await a.read();if(e)break;s+=o.decode(n,{stream:!0});let r=s.split(`
-
-`);s=r.pop()??``;for(let e of r){let n=e.split(`
-`),r=null,i=`{}`;for(let e of n)e.startsWith(`event: `)&&(r=e.slice(7)),e.startsWith(`data: `)&&(i=e.slice(6));if(r)try{t({type:r,data:JSON.parse(i)})}catch{}}}}catch{}})(),()=>{r=!0,i.abort()}}export{t};

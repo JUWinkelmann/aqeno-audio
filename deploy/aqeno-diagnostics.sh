@@ -10,6 +10,12 @@ echo
 echo "Recent AQENO log"
 journalctl -u aqeno.service --no-pager -n 80
 echo
+echo "Audio devices"
+aplay -l || true
+echo
+echo "Expected RH1 audio card"
+aplay -L 2>/dev/null | grep -A2 'CARD=sndrpihifiberry' || true
+echo
 echo "Management listener"
 ss -ltnp 'sport = :8766' || true
 echo

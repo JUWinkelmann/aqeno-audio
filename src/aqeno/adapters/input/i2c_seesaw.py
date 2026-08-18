@@ -9,19 +9,84 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from collections.abc import Callable, Sequence
 from typing import Protocol
 
 from aqeno.ports.input import (
-    InputEvent,
-    InputListener,
-    Next,
-    Previous,
-    TogglePlayback,
-    VolumeDelta,
+    ControlCapability,
+    ControlEventType,
+    ControlInput,
+    ControlInputListener,
+    ControlType,
+    LogicalControl,
 )
 
 logger = logging.getLogger(__name__)
+
+LONG_PRESS_SECONDS = 0.8
+"""One product threshold for every RH1 push control."""
+
+RH1_CONTROL_CAPABILITIES = (
+    ControlCapability(
+        LogicalControl.PRIMARY_LEFT,
+        ControlType.BUTTON,
+        "Linke Taste",
+        (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
+        True,
+    ),
+    ControlCapability(
+        LogicalControl.PRIMARY_ENCODER,
+        ControlType.ROTARY_ENCODER,
+        "Drehknopf",
+        (
+            ControlEventType.ROTATE_LEFT,
+            ControlEventType.ROTATE_RIGHT,
+            ControlEventType.SHORT_PRESS,
+            ControlEventType.LONG_PRESS,
+        ),
+        True,
+    ),
+    ControlCapability(
+        LogicalControl.PRIMARY_RIGHT,
+        ControlType.BUTTON,
+        "Rechte Taste",
+        (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
+        True,
+    ),
+)
+
+
+class PressGestureRecognizer:
+    """Derive exactly one short or long gesture from button edges and duration."""
+
+    def __init__(self, *, threshold: float = LONG_PRESS_SECONDS) -> None:
+        if threshold <= 0:
+            raise ValueError("long press threshold must be positive")
+        self._threshold = threshold
+        self._started_at: float | None = None
+        self._long_emitted = False
+
+    def prime(self, pressed: bool, now: float) -> None:
+        self._started_at = now if pressed else None
+        self._long_emitted = pressed
+
+    def update(self, pressed: bool, now: float) -> ControlEventType | None:
+        if pressed:
+            if self._started_at is None:
+                self._started_at = now
+                self._long_emitted = False
+            if not self._long_emitted and now - self._started_at >= self._threshold:
+                self._long_emitted = True
+                return ControlEventType.LONG_PRESS
+            return None
+
+        if self._started_at is None:
+            return None
+        was_long = self._long_emitted
+        self._started_at = None
+        self._long_emitted = False
+        return None if was_long else ControlEventType.SHORT_PRESS
 
 
 class _Encoder(Protocol):
@@ -49,6 +114,8 @@ class I2cSeesawInputBus:
         keys: _Keys,
         poll_interval: float = 0.02,
         wait: Callable[[float], bool | None] | None = None,
+        monotonic: Callable[[], float] = time.monotonic,
+        long_press_seconds: float = LONG_PRESS_SECONDS,
     ) -> None:
         if poll_interval <= 0:
             raise ValueError("poll_interval must be positive")
@@ -57,15 +124,24 @@ class I2cSeesawInputBus:
         self._poll_interval = poll_interval
         self._stop = threading.Event()
         self._wait = wait or self._stop.wait
-        self._listeners: list[InputListener] = []
+        self._listeners: list[ControlInputListener] = []
         self._listeners_lock = threading.Lock()
         self._thread: threading.Thread | None = None
         self._started = False
         self._last_position: int | None = None
-        self._button_pressed = False
         self._keys_pressed: tuple[bool, ...] = ()
+        self._monotonic = monotonic
+        self._encoder_press = PressGestureRecognizer(threshold=long_press_seconds)
+        self._key_presses = {
+            0: PressGestureRecognizer(threshold=long_press_seconds),
+            2: PressGestureRecognizer(threshold=long_press_seconds),
+        }
 
-    def on_input(self, listener: InputListener) -> None:
+    @property
+    def controls(self) -> tuple[ControlCapability, ...]:
+        return RH1_CONTROL_CAPABILITIES
+
+    def on_control_input(self, listener: ControlInputListener) -> None:
         with self._listeners_lock:
             self._listeners.append(listener)
 
@@ -96,31 +172,37 @@ class I2cSeesawInputBus:
         position = self._encoder.position()
         button_pressed = self._encoder.pressed()
         keys_pressed = tuple(bool(value) for value in self._keys.pressed_keys())
+        now = self._monotonic()
 
         if self._last_position is None:
             self._last_position = position
-            self._button_pressed = button_pressed
             self._keys_pressed = keys_pressed
+            self._encoder_press.prime(button_pressed, now)
+            for index, recognizer in self._key_presses.items():
+                recognizer.prime(index < len(keys_pressed) and keys_pressed[index], now)
             return
 
         delta = self._last_position - position
         self._last_position = position
         if delta:
-            # The seesaw encoder increases in the opposite direction from the
-            # product's clockwise-positive convention.
-            self._emit(VolumeDelta(delta))
+            # Adafruit's official example normalizes this board as
+            # ``position = -encoder.position``. Keep that hardware detail here.
+            rotation_event = (
+                ControlEventType.ROTATE_RIGHT if delta > 0 else ControlEventType.ROTATE_LEFT
+            )
+            for _ in range(abs(delta)):
+                self._emit(ControlInput(LogicalControl.PRIMARY_ENCODER, rotation_event))
 
-        if button_pressed and not self._button_pressed:
-            self._emit(TogglePlayback())
-        self._button_pressed = button_pressed
+        encoder_event = self._encoder_press.update(button_pressed, now)
+        if encoder_event is not None:
+            self._emit(ControlInput(LogicalControl.PRIMARY_ENCODER, encoder_event))
 
-        for index, pressed in enumerate(keys_pressed):
-            if not pressed or index >= len(self._keys_pressed) or self._keys_pressed[index]:
-                continue
-            if index == 0:
-                self._emit(Previous())
-            elif index == 2:
-                self._emit(Next())
+        key_controls = {0: LogicalControl.PRIMARY_LEFT, 2: LogicalControl.PRIMARY_RIGHT}
+        for index, recognizer in self._key_presses.items():
+            pressed = index < len(keys_pressed) and keys_pressed[index]
+            key_event = recognizer.update(pressed, now)
+            if key_event is not None:
+                self._emit(ControlInput(key_controls[index], key_event))
         self._keys_pressed = keys_pressed
 
     def _run(self) -> None:
@@ -134,7 +216,7 @@ class I2cSeesawInputBus:
             if self._wait(self._poll_interval):
                 break
 
-    def _emit(self, event: InputEvent) -> None:
+    def _emit(self, event: ControlInput) -> None:
         with self._listeners_lock:
             listeners = tuple(self._listeners)
         for listener in listeners:
@@ -167,13 +249,15 @@ class _NeoKey:
 
 def open_reference_input() -> I2cSeesawInputBus:
     """Construct the RH1 control adapter, importing hardware drivers lazily."""
-    import board
-    from adafruit_neokey.neokey1x4 import NeoKey1x4
-    from adafruit_seesaw import digitalio, rotaryio, seesaw
+    import board  # type: ignore[import-not-found]
+    from adafruit_neokey.neokey1x4 import NeoKey1x4  # type: ignore[import-not-found]
+    from adafruit_seesaw import digitalio, rotaryio, seesaw  # type: ignore[import-not-found]
 
     i2c = board.I2C()
     encoder_seesaw = seesaw.Seesaw(i2c, addr=0x36)
     encoder = rotaryio.IncrementalEncoder(encoder_seesaw)
+    # Adafruit PID 5880: push button is seesaw pin 24. The board's NeoPixel is
+    # pin 6 and is owned by the separate RH1 LED adapter.
     encoder_seesaw.pin_mode(24, encoder_seesaw.INPUT_PULLUP)
     button = digitalio.DigitalIO(encoder_seesaw, 24)
     keys = NeoKey1x4(i2c, addr=0x30)

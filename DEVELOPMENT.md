@@ -168,26 +168,45 @@ the one product requirement the desktop cannot answer — along with the boot bu
 
 ### Getting code onto the Pi
 
-The Pi is a git clone, not a copy target. Set it up once:
+RH1 is a deployment target; the development checkout remains the source of truth. The reference
+installer creates an unprivileged SSH account in the bounded `aqeno-deploy` group and installs one
+fixed root helper. Configure the host locally (the file is ignored by Git):
 
 ```bash
-# on the Pi
-git clone git@github.com:JUWinkelmann/aqeno-audio.git
-cd aqeno-audio
-python3 -m venv --system-site-packages .venv
-.venv/bin/pip install -e ".[dev]"
+cp deploy/rh1.env.example deploy/rh1.local
+# edit host/user/optional key path; use SSH keys, never a password in this file
 ```
 
-Then each time:
+The fast loop builds the Admin assets, delta-transfers source/build output to a bounded staging path,
+activates `/opt/aqeno/dev`, restarts the service and performs the local API health check:
 
 ```bash
-git pull && .venv/bin/python -m aqeno --profile kids-early
+make pi-dev
+make pi-status
+make pi-logs          # follow; Ctrl-C stops only the local SSH command
+make pi-restart
+make pi-health
 ```
 
-The repository is private, so the Pi needs its own read-only deploy key, or SSH agent forwarding
-(`ssh -A`) when you connect. For uncommitted work in progress, `rsync -av --exclude .venv --exclude
-.git ./ pi:aqeno-audio/` is fine — but prefer committing, since narrow commits are what make an
-AI-assisted change revertible (`MISTAKES.md` M-001).
+Regularly test the real immutable release shape:
+
+```bash
+make pi-deploy
+make pi-health
+make pi-diagnostics
+```
+
+`pi-deploy` builds a wheel plus Admin bundle, installs a new
+`/opt/aqeno/releases/<version-build>/`, atomically switches `current`, and returns to the previous
+release if its restart/health check fails. Neither path transfers, mirrors or removes `/aqeno-data`.
+`rsync --delete` is confined to newly uploaded staging or `/opt/aqeno/dev`; the privileged helper
+rejects paths outside `/var/tmp/aqeno-upload`. It exposes only deploy, status, logs, restart, health
+and diagnostics — no arbitrary root command. Coding agents may use those Make targets with the same
+SSH key and bounded sudo rule; they do not need root SSH or unrestricted sudo.
+
+Typical hardware iteration is: change → local tests → `make pi-dev` → physical test →
+`make pi-logs` → correct → `make pi-dev`. The SD card remains in RH1. `localhost` development and
+Vite hot reload remain separate and require no Avahi, port 80, sudo or host-name changes.
 
 ## Testing
 

@@ -226,6 +226,16 @@ class TestNightForcesLedsOff:
 
         assert service.snapshot.state is DisplayState.OFF
 
+    def test_night_overrides_a_clear_user_illumination_preference(self) -> None:
+        service, _, leds, _, _ = _service()
+        service.handle_event(DisplayEvent.WAKE_REQUEST)
+        service.set_illumination_preference("clear")
+        assert leds.brightness == LED_NORMAL
+
+        service.set_night_active(True)
+
+        assert leds.brightness == 0
+
 
 class TestDarkRoomIsQuiet:
     """Invariant 3 at the service level: Group B is fully functional in OFF and

@@ -12,6 +12,7 @@ from aqeno.adapters.fakes import FakeClock
 from aqeno.adapters.fakes.input import FakeInputBus
 from aqeno.adapters.fakes.persistence import FakeLibrary, FakeSettingsStore
 from aqeno.adapters.local_assets import LocalAssetStore
+from aqeno.application.control_mapping import MappedInputBus
 from aqeno.application.management import (
     IngestionManagement,
     LibraryManagement,
@@ -23,7 +24,17 @@ from aqeno.config.defaults import default_settings
 from aqeno.domain.content import ContentId, ContentItem, ContentKind, Fingerprint, LocalFileSource
 from aqeno.management.api import ManagementContext, create_app
 from aqeno.management.auth import AdminAuth
-from aqeno.ports.input import Next, NfcPresented, Previous, TogglePlayback
+from aqeno.ports.input import (
+    ControlCapability,
+    ControlEventType,
+    ControlInput,
+    ControlType,
+    LogicalControl,
+    Next,
+    NfcPresented,
+    Previous,
+    TogglePlayback,
+)
 from aqeno.ports.media_probe import ProbedFile
 
 KEY = "test-management-key"
@@ -46,6 +57,50 @@ class UploadedFileProbe:
         )
 
 
+class PhysicalControls:
+    def __init__(self) -> None:
+        self._listeners = []
+
+    @property
+    def controls(self) -> tuple[ControlCapability, ...]:
+        return (
+            ControlCapability(
+                LogicalControl.PRIMARY_LEFT,
+                ControlType.BUTTON,
+                "Linke Taste",
+                (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
+                True,
+            ),
+            ControlCapability(
+                LogicalControl.PRIMARY_ENCODER,
+                ControlType.ROTARY_ENCODER,
+                "Drehknopf",
+                (
+                    ControlEventType.ROTATE_LEFT,
+                    ControlEventType.ROTATE_RIGHT,
+                    ControlEventType.SHORT_PRESS,
+                    ControlEventType.LONG_PRESS,
+                ),
+                True,
+            ),
+            ControlCapability(
+                LogicalControl.PRIMARY_RIGHT,
+                ControlType.BUTTON,
+                "Rechte Taste",
+                (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
+                True,
+            ),
+        )
+
+    def on_control_input(self, listener: object) -> None:
+        self._listeners.append(listener)
+
+    def emit(self, event: ControlInput) -> None:
+        for listener in tuple(self._listeners):
+            assert callable(listener)
+            listener(event)
+
+
 def _item(title: str) -> ContentItem:
     return ContentItem(
         id=ContentId(),
@@ -63,10 +118,15 @@ class ApiFixture:
         *,
         admin_dir: Path | None = None,
         development_origins: tuple[str, ...] = (),
+        physical_controls: bool = False,
     ) -> None:
         self.library = FakeLibrary()
         self.settings_store = FakeSettingsStore()
         self.inputs = FakeInputBus()
+        self.physical = PhysicalControls()
+        self.controls = (
+            MappedInputBus(self.physical, self.settings_store) if physical_controls else None
+        )
         self.operations = OperationRegistry()
         self.assets = LocalAssetStore(
             media_root=tmp_path / "media", artwork_root=tmp_path / "artwork"
@@ -92,6 +152,7 @@ class ApiFixture:
             data_dir=tmp_path,
             admin_dir=admin_dir,
             development_origins=development_origins,
+            controls=self.controls,
         )
         self.client = TestClient(create_app(self.context))
 
@@ -382,13 +443,78 @@ def test_token_capture_can_be_cancelled(tmp_path: Path) -> None:
 
 
 def test_settings_are_product_schemas_and_persist_atomically_through_store(tmp_path: Path) -> None:
-    api = ApiFixture(tmp_path)
+    api = ApiFixture(tmp_path, physical_controls=True)
+    assert api.controls is not None
+    api.controls.update_binding(
+        LogicalControl.PRIMARY_RIGHT,
+        ControlEventType.SHORT_PRESS,
+        "playback.play_pause",
+    )
     current = api.client.get("/api/v1/settings", headers=HEADERS).json()
+    assert "controls" not in current
     current["volume"]["child_maximum"] = 60
     saved = api.client.put("/api/v1/settings", json=current, headers=HEADERS)
     assert saved.status_code == 200
     assert api.settings_store.load().volume.child_maximum == 60
+    assert (
+        next(
+            item
+            for item in api.controls.bindings()
+            if item.control is LogicalControl.PRIMARY_RIGHT
+            and item.event is ControlEventType.SHORT_PRESS
+        ).action_id
+        == "playback.play_pause"
+    )
     assert saved.json()["apply_mode"] == "restart_required"
+
+
+def test_physical_controls_are_capability_driven_and_persist_immediately(tmp_path: Path) -> None:
+    api = ApiFixture(tmp_path, physical_controls=True)
+    resource = api.client.get("/api/v1/controls", headers=HEADERS)
+    assert resource.status_code == 200
+    body = resource.json()
+    encoder = next(item for item in body["controls"] if item["id"] == "primary_encoder")
+    assert encoder == {
+        "id": "primary_encoder",
+        "type": "rotary_encoder",
+        "label": "Drehknopf",
+        "events": ["rotate_left", "rotate_right", "short_press", "long_press"],
+        "illumination": True,
+    }
+
+    changed = api.client.patch(
+        "/api/v1/controls/primary_encoder/mappings/long_press",
+        json={"action_id": "display.wake"},
+        headers=HEADERS,
+    )
+    assert changed.status_code == 200
+    assert any(
+        item
+        == {
+            "control_id": "primary_encoder",
+            "event": "long_press",
+            "action_id": "display.wake",
+            "supported": True,
+        }
+        for item in changed.json()["mappings"]
+    )
+
+    incompatible = api.client.patch(
+        "/api/v1/controls/primary_encoder/mappings/rotate_left",
+        json={"action_id": "playback.next"},
+        headers=HEADERS,
+    )
+    assert incompatible.status_code == 422
+    assert incompatible.json()["error"]["code"] == "invalid_control_mapping"
+
+    reset = api.client.post("/api/v1/controls/reset", headers=HEADERS)
+    assert reset.status_code == 200
+    assert any(
+        item["control_id"] == "primary_encoder"
+        and item["event"] == "long_press"
+        and item["action_id"] is None
+        for item in reset.json()["mappings"]
+    )
 
 
 def test_openapi_is_the_complete_client_boundary_and_excludes_future_cloud(tmp_path: Path) -> None:
@@ -399,6 +525,9 @@ def test_openapi_is_the_complete_client_boundary_and_excludes_future_cloud(tmp_p
     assert "/api/v1/token-captures/{capture_id}/assignment" in paths
     assert "/api/v1/library/media" in paths
     assert "/api/v1/settings" in paths
+    assert "/api/v1/controls" in paths
+    assert "/api/v1/controls/{control_id}/mappings/{event}" in paths
+    assert "/api/v1/controls/reset" in paths
     assert "/api/v1/content-access/bulk" in paths
     assert "/api/v1/collections/{collection_id}/audience" in paths
     assert "/api/v1/profiles/{name}/favorites/{media_id}" in paths

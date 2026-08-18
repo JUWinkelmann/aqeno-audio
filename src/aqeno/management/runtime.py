@@ -10,6 +10,7 @@ from aqeno.adapters.clock import SystemClock
 from aqeno.adapters.local_assets import LocalAssetStore
 from aqeno.adapters.metadata.mutagen_probe import MutagenProbe
 from aqeno.appliance.storage import capacity_status
+from aqeno.application.control_mapping import MappedInputBus
 from aqeno.application.display import DisplayService
 from aqeno.application.management import (
     IngestionManagement,
@@ -75,7 +76,10 @@ def build_context(
     device_id = uuid.UUID(
         _local_value(local_state / "identity" / "device-id", "AQENO_DEVICE_ID", uuid.uuid4)
     )
-    auth = AdminAuth(credential_path=admin_credential_path(), inputs=inputs)
+    confirmation_inputs = (
+        inputs.confirmation_inputs if isinstance(inputs, MappedInputBus) else inputs
+    )
+    auth = AdminAuth(credential_path=admin_credential_path(), inputs=confirmation_inputs)
     configured_admin = os.environ.get("AQENO_ADMIN_DIR")
     repository_admin = Path(__file__).parents[3] / "admin" / "build"
     packaged_admin = Path(__file__).parent / "static"
@@ -124,6 +128,7 @@ def build_context(
         readiness=readiness,
         playback=playback,
         display=display,
+        controls=inputs if isinstance(inputs, MappedInputBus) else None,
         capabilities=capabilities,
         admin_dir=admin_dir,
         development_origins=development_origins,

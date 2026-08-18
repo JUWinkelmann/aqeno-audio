@@ -8,6 +8,7 @@
 .env
 .env.*
 *.local
+deploy/rh1.local
 
 # Local runtime state (never commit device state or media)
 /var/

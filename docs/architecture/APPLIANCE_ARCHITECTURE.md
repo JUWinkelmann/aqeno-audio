@@ -99,6 +99,11 @@ kernel/systemd -> validate and mount AQENO-DATA -> AQENO process
               -> network/external sources when available
 ```
 
+Display-capable platforms may cover unavoidable OS startup with a branded platform presentation.
+It is neither a Core state nor a readiness dependency. RH1 uses Plymouth only after its real display
+path is validated; the first Device UI frame dismisses it with no minimum duration. Headless AQENO
+does not install or wait for boot graphics.
+
 Missing or invalid AQENO-DATA is a named data failure. AQENO must not initialize an empty database on
 SYSTEM. NAS mounts are not boot dependencies. A broken UI or Management surface leaves playback and
 physical controls alive, as already required by `READINESS_STATES.md`.

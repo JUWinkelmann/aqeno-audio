@@ -1,0 +1,1 @@
+import{A as e,G as t,O as n,ct as r,q as i}from"../chunks/CEfr_G8o.js";import"../chunks/xihTtKlq.js";import{t as a}from"../chunks/Bh1gpajj.js";var o=e(`<div class="mx-auto max-w-3xl space-y-4"><a href="/library" class="text-sm text-accent">← Mediathek</a> <!></div>`);function s(e){var s=o(),c=i(t(s),2);a(c,{}),r(s),n(e,s)}export{s as component};

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
@@ -17,13 +18,15 @@ from aqeno.adapters.display.none import NullDisplayPanel
 from aqeno.adapters.fakes.audio import FakeAudioEngine
 from aqeno.adapters.fakes.display import FakeDisplayPanel
 from aqeno.adapters.fakes.led import FakeStatusLeds
-from aqeno.adapters.input import open_reference_input
+from aqeno.adapters.input import UnavailablePhysicalInput, open_reference_input
 from aqeno.adapters.input.keyboard import KeyboardSimulator
+from aqeno.adapters.led import open_reference_leds
 from aqeno.adapters.led.none import NullStatusLeds
 from aqeno.adapters.metadata import MutagenProbe
 from aqeno.adapters.persistence.sqlite_library import SqliteLibrary, open_library
 from aqeno.adapters.persistence.toml_settings import TomlSettingsStore
 from aqeno.appliance.storage import validate_data_volume
+from aqeno.application.control_mapping import MappedInputBus
 from aqeno.application.device_ui import DeviceUiState
 from aqeno.application.display import DisplayService
 from aqeno.application.ingestion import run_scan
@@ -41,7 +44,7 @@ from aqeno.domain.profile import (
 )
 from aqeno.ports.audio import AudioEngine
 from aqeno.ports.display import DisplayPanel
-from aqeno.ports.input import InputBus
+from aqeno.ports.input import InputBus, PhysicalInputSource
 from aqeno.ports.led import StatusLeds
 
 logger = logging.getLogger(__name__)
@@ -123,7 +126,7 @@ def _audio_engine(fake_hardware: frozenset[str]) -> AudioEngine:
 
     from aqeno.adapters.audio.gstreamer_engine import GStreamerAudioEngine
 
-    return GStreamerAudioEngine()
+    return GStreamerAudioEngine(alsa_device=os.environ.get("AQENO_ALSA_DEVICE") or None)
 
 
 def _display_panel(fake_hardware: frozenset[str]) -> DisplayPanel:
@@ -141,7 +144,11 @@ def _status_leds(fake_hardware: frozenset[str]) -> StatusLeds:
     """Use recording LEDs only for fakes; production has explicit no-LED output."""
     if "all" in fake_hardware:
         return FakeStatusLeds()
-    return NullStatusLeds()
+    try:
+        return open_reference_leds()
+    except Exception:
+        logger.exception("RH1 illumination unavailable; continuing with LEDs off")
+        return NullStatusLeds()
 
 
 def _input_bus(
@@ -152,7 +159,12 @@ def _input_bus(
     """Select fake controls for desktop runs and RH1 controls otherwise."""
     if fake_hardware is not None and ("all" in fake_hardware or "input" in fake_hardware):
         return KeyboardSimulator(toggle_night=toggle_night)
-    return open_reference_input()
+    try:
+        source: PhysicalInputSource = open_reference_input()
+    except Exception:
+        logger.exception("RH1 physical controls unavailable; continuing without controls")
+        source = UnavailablePhysicalInput()
+    return MappedInputBus(source, TomlSettingsStore())
 
 
 def _run_startup_scan(
@@ -377,7 +389,11 @@ def _start_management_api(process: AqenoProcess, *, host: str, port: int) -> _Ma
     from aqeno.management.api import create_app
     from aqeno.management.runtime import build_context
 
-    capabilities = ("physical_controls",)
+    capabilities = (
+        ("physical_controls",)
+        if isinstance(process.inputs, MappedInputBus) and process.inputs.controls
+        else ()
+    )
     context = build_context(
         library=process.library,
         settings_store=TomlSettingsStore(),
@@ -402,7 +418,20 @@ def _start_device_ui(process: AqenoProcess) -> _DeviceUiRuntime:
     # below composition and only called when a panel was selected.
     from aqeno.ui.runtime import start_device_ui
 
-    runtime = start_device_ui(process)
+    handover = None
+    if os.environ.get("AQENO_BOOT_PRESENTATION") == "plymouth":
+        from aqeno.adapters.platform import PlymouthHandover
+
+        handover = PlymouthHandover()
+    try:
+        runtime = start_device_ui(
+            process,
+            on_first_frame=handover.complete if handover is not None else None,
+        )
+    except BaseException:
+        if handover is not None:
+            handover.fail()
+        raise
     if isinstance(process.inputs, KeyboardSimulator):
         from aqeno.adapters.input.desktop_qt import QtDesktopInputSource
 

@@ -2,8 +2,8 @@
 
 **Identifier:** AQENO Reference Hardware 1 (`RH1`)
 
-**Status:** Acquired prototype platform; controls adapter implemented, pending on-device validation;
-display and audio hardware acquired, integration unverified
+**Status:** Prototype platform; controls adapter implemented, pending on-device validation; MiniAmp
+selected as RH1 audio, physical receipt/integration evidence still to record
 
 **Date:** 2026-08-18
 
@@ -21,7 +21,7 @@ experience. Domain and application code consume user intentions and product stat
 boards, buses, addresses, pins and physical mappings. No generic hardware-profile or persona system
 is implied.
 
-## Acquired components
+## RH1 components
 
 | Component | Quantity | Product identifier | Role |
 |---|---:|---|---|
@@ -34,16 +34,19 @@ is implied.
 | Qwiic SHIM for Raspberry Pi | 1 | SparkFun DEV-15794 | Solderless Raspberry Pi I2C/Qwiic connection |
 | STEMMA QT/Qwiic hub | 1 | Adafruit 5625 | Central I2C distribution and free branches |
 | 300 mm STEMMA QT/Qwiic cable | 3 | Adafruit 5384 | Solderless JST-SH wiring |
-| Stereo I2S Class-D amplifier | 1 | Soldered MAX98357, 3 W; product 333355 | Final prototype audio amplifier with screw terminals |
+| Stereo I2S amplifier | 1 | HiFiBerry MiniAmp | 2 x 3 W RH1 audio output; preassembled 40-pin module |
 | Mini speaker, 3 W / 4 ohm | 2 | QUARKZMAN, 44 x 31 x 15 mm | Left/right prototype speakers |
 | Speaker lead and connector | 2 | JST-PH 2.0, 100 mm; supplied with speakers | Removable speaker connection |
 
 The display's exact SKU/revision and the Raspberry Pi's RAM variant should be added when confirmed
 from the physical units. Its reported 800 x 480 resolution, 60 Hz refresh, capacitive 5-point touch
 and MIPI DSI connection are the RH1 design target; they do not establish authoritative panel-off or
-Linux touch/display-server behaviour. The amplifier's exact Linux/I2S presentation and stereo
-channel arrangement must be verified from the unit and vendor documentation before an adapter or
-wiring contract is recorded. Unknown inventory details must not be guessed.
+Linux touch/display-server behaviour. The MiniAmp uses the kernel-supported `hifiberry-dac` overlay;
+its actual ALSA presentation, channel arrangement and safe acoustic range still require RH1
+validation. Unknown inventory details must not be guessed.
+
+Most components above are on hand from the prototype inventory. The MiniAmp is the selected audio
+reference; receipt and exact board revision are not claimed until recorded from the unit.
 
 No NFC reader has been acquired. `NFC_REFERENCE_CANDIDATE.md` records the PN532/SPI spike candidate;
 it is not part of RH1 until that spike passes.
@@ -55,9 +58,9 @@ Raspberry Pi 4B
 │
 ├── 7-inch Touch Display
 │
-├── Soldered Stereo I2S MAX98357 amplifier
-│   ├── QUARKZMAN 3 W / 4 ohm speaker (left)
-│   └── QUARKZMAN 3 W / 4 ohm speaker (right)
+├── HiFiBerry MiniAmp on the 40-pin header
+│   ├── JST-PH2.0 adapter → QUARKZMAN 3 W / 4 ohm speaker (left)
+│   └── JST-PH2.0 adapter → QUARKZMAN 3 W / 4 ohm speaker (right)
 │
 ├── candidate PN532 NFC reader via SPI (not acquired / not Reference-supported)
 │
@@ -80,23 +83,78 @@ Raspberry Pi 4B
         └── free branch → future hardware if a real use case requires it
 ```
 
+The Qwiic SHIM is the thin, HAT-stackable DEV-15794. It carries the Pi I2C bus and power beside the
+MiniAmp; it does not consume any of the MiniAmp's I2S/control GPIOs.
+
+## RH1 resource map
+
+| Resource | Physical pins/interface | Owner(s) | State |
+|---|---|---|---|
+| MIPI DSI | dedicated DSI connector | FREENOVE display | exclusive, no GPIO-header conflict |
+| I2C1 SDA/SCL | GPIO2/3, pins 3/5 | Qwiic SHIM → 5880 (`0x36`) + NeoKey (`0x30`) | shared bus; addresses distinct |
+| I2S PCM clock/data | GPIO18-21, pins 12/35/38/40 | HiFiBerry MiniAmp | exclusive to audio |
+| amplifier mute | GPIO16, pin 36 | HiFiBerry MiniAmp | exclusive/reserved by MiniAmp |
+| amplifier shutdown | GPIO26, pin 37 | HiFiBerry MiniAmp | exclusive/reserved by MiniAmp |
+| HAT identity | GPIO0/1, pins 27/28 | HAT EEPROM convention | reserved; Qwiic controls do not use it |
+| 5 V | pins 2/4 | MiniAmp power; Qwiic SHIM regulator input | shared power rail, not a signal conflict |
+| 3.3 V | Qwiic regulator output | Qwiic peripherals | shared Qwiic power; current budget still to validate |
+| GND | GPIO-header ground pins | MiniAmp + Qwiic SHIM | shared reference |
+| remaining GPIO | all not named above | unassigned | unused by RH1 |
+
+This map follows HiFiBerry's MiniAmp GPIO contract: GPIO18-21 are I2S, GPIO16 is mute and GPIO26 is
+shutdown. A shared rail or bus is not a conflict. Any new module must be checked against this table
+before it is called RH1-compatible.
+
+Primary vendor evidence: [MiniAmp data sheet](https://www.hifiberry.com/docs/data-sheets/datasheet-miniamp/),
+[HiFiBerry GPIO use](https://www.hifiberry.com/docs/hardware/gpio-usage-of-hifiberry-boards/),
+[HiFiBerry Linux configuration](https://www.hifiberry.com/docs/software/configuring-linux-3-18-x/),
+[SparkFun Qwiic SHIM](https://www.sparkfun.com/sparkfun-qwiic-shim-for-raspberry-pi.html) and
+[Adafruit 5880 pinout](https://learn.adafruit.com/adafruit-i2c-qt-rotary-encoder/pinouts).
+
+## RH1 audio platform configuration
+
+Raspberry Pi OS Lite uses its in-kernel driver with `dtoverlay=hifiberry-dac`; onboard audio is
+disabled with `dtparam=audio=off`. AQENO selects the ALSA device by stable card ID
+`plughw:CARD=sndrpihifiberry,DEV=0`, never by `hw:0`/`hw:1`. Logical volume remains GStreamer/AQENO
+pipeline gain because the MiniAmp has no integrated hardware volume control. The reference platform
+configuration lives under `deploy/rh1/`; Domain and Application do not mention HiFiBerry.
+
+The existing first-boot volume (40%), Kids ceiling (70%) and Night ceiling (35%) remain conservative
+software defaults. They are not acoustic safety certification; final limits require measurements
+with the assembled MiniAmp, speakers and enclosure.
+
+## No-solder acceptance gate
+
+RH1 must be assemblable without soldering or crimping. Audio uses the preassembled MiniAmp and
+ready-made JST-PH2.0-to-speaker-terminal adapters; controls use Qwiic and socketed switches. No
+breadboard or Dupont wiring is accepted for the audio path. Modules stay connectorized and
+replaceable.
+
+Before another component becomes RH1-compatible, record: electrical compatibility; GPIO/bus use;
+I2C address where relevant; power; mechanical fit; connector types; solder/crimp requirements;
+Linux/kernel support; availability/replaceability; and interaction with every resource in the RH1
+map. This is an acceptance checklist, not a hardware framework.
+
 The hub creates physical connection capacity, not product scope. Reserved keys and free branches
 remain unused until a tested interaction needs them.
 
 ## Reference interaction mapping
 
-| Physical event | Adapter output | Product meaning |
+| Physical event | Adapter output | RH1 default action |
 |---|---|---|
-| Encoder clockwise/counter-clockwise | `VolumeDelta(delta)` | Relative volume change |
-| Encoder press | `TogglePlayback` | Play or pause according to current playback state |
-| NeoKey Previous | `Previous` | Contextual previous/rewind behaviour decided above the adapter |
-| NeoKey Next | `Next` | Contextual next/skip behaviour decided above the adapter |
+| Encoder counter-clockwise/clockwise | `primary_encoder.rotate_left` / `.rotate_right` | Volume down/up |
+| Encoder short press | `primary_encoder.short_press` | Play/Pause |
+| Encoder long press (≥800 ms) | `primary_encoder.long_press` | unassigned/configurable |
+| NeoKey Previous short/long press | `primary_left.short_press` / `.long_press` | Previous / unassigned |
+| NeoKey Next short/long press | `primary_right.short_press` / `.long_press` | Next / unassigned |
 | Touch | presentation intention / `WakeRequest` as applicable | Contextual Device UI interaction |
 | Future NFC reader presents/removes UID | `NfcPresented` / `NfcRemoved` | Resolve an AQENO-local token assignment |
 
-The mapping ends at semantic events. Core code never receives “Cherry key 3”, a GPIO number, Qwiic
-address or NeoKey coordinate. `Previous` and `Next` semantics depend on content context and remain an
-application/domain decision.
+The hardware adapter ends at logical input events. The persistent AQENO mapping layer then emits
+semantic application intentions. Core code never receives “Cherry key 3”, a GPIO number, Qwiic
+address or NeoKey coordinate. The Adafruit 5880 adapter owns its official seesaw details: default
+address `0x36`, push button pin 24 and NeoPixel pin 6. It normalizes the board's reported direction
+before anything above the adapter sees left/right.
 
 `PrimaryAction` and `Acknowledge` are plausible future intentions but are not Vertical Slice events.
 They must not be added merely to occupy reserve keys or anticipate alternative hardware.
@@ -138,12 +196,11 @@ The Waveshare 5-inch HDMI AMOLED is a possible **RH2** display candidate for lat
 records an experiment option only: it is not a hardware decision, does not replace the acquired RH1
 touch display and creates no current adapter or purchasing requirement.
 
-The amplifier and speakers are acquired, but acquisition is not integration evidence. Before the
-audio path is accepted, record the Pi connection, required Linux configuration, actual left/right
-behaviour, clean startup/shutdown, usable gain range, sustained thermal/power behaviour and measured
-sound pressure. Until then, an already available USB or HDMI audio output remains acceptable for
-software work. The final audio path must not consume or electrically conflict with the practical
-connection path for Reference controls.
+The MiniAmp and speakers are selected, but acquisition is not integration evidence. Before the audio
+path is accepted, boot with the Qwiic SHIM and MiniAmp installed, verify the stable ALSA card,
+left/right/stereo output, rotary volume and play/pause, Qwiic controls, touch, reboot and offline local
+playback. Record clean startup/shutdown, usable gain, sustained thermal/power behaviour and measured
+sound pressure. Until then, USB or HDMI audio remains acceptable for software work.
 
 ## Known prototype constraints
 
@@ -160,7 +217,7 @@ connection path for Reference controls.
 - The current control placement, key order, switch feel and enclosure ergonomics require user testing.
 - Logical volume limits are not hearing-safety claims until the complete amplifier/speaker path is
   measured and calibrated as specified in `CONFIGURATION_DEFAULTS.md`.
-- The MAX98357 board's advertised rating and the speakers' nominal ratings do not establish safe,
+- The MiniAmp's advertised rating and the speakers' nominal ratings do not establish safe,
   distortion-free or thermally sustainable output in the assembled enclosure.
 - Raspberry Pi boot time and power behaviour must be measured on the assembled unit rather than
   inferred from desktop tests.
@@ -201,8 +258,8 @@ The existing boundaries are sufficient for RH1:
 - ADR 0010 keeps GPIO, I2C, display power, LEDs and NFC implementations in adapters;
 - ADR 0012 keeps QML/PySide6 outside the Core.
 
-The RH1 controls adapter now maps the acquired encoder and NeoKey through this boundary, pending
-on-device I2C validation. The display, amplifier and speakers are acquired but still need verified
-platform integration; acquisition alone does not justify concrete adapter behaviour. This does not
-need a universal action bus, dynamic input engine, persona-specific hardware profiles or adapters
-for hypothetical external switches.
+The RH1 controls adapter now emits logical controls and the local mapping layer supplies product
+actions, pending on-device I2C validation. The display and selected audio path still need verified
+platform integration; selection or acquisition alone does not justify concrete adapter behaviour.
+This does not need a universal action bus, dynamic input engine, persona-specific hardware profiles
+or adapters for hypothetical external switches.

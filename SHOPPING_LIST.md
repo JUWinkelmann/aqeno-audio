@@ -2,7 +2,7 @@
 
 This list is for the **Reference prototype**, not final production hardware.
 
-## Acquired
+## Acquired / selected for RH1
 
 | Qty | Item | Purpose |
 |---:|---|---|
@@ -15,12 +15,14 @@ This list is for the **Reference prototype**, not final production hardware.
 | 1 | SparkFun Qwiic SHIM DEV-15794 | Solderless Pi I2C/Qwiic connection |
 | 1 | Adafruit STEMMA QT/Qwiic Hub PID 5625 | I2C distribution |
 | 3 | Adafruit 300 mm STEMMA QT/Qwiic cables PID 5384 | Solderless bus wiring |
-| 1 | Soldered Stereo I2S MAX98357, 3 W (333355) | Prototype stereo amplifier |
+| 1 | HiFiBerry MiniAmp, stereo 2 x 3 W | RH1 audio amplifier; preassembled, no soldering |
+| 2 | Ready-made JST-PH2.0-to-speaker-terminal adapter | Replaceable speaker connection without soldering/crimping |
 | 2 | QUARKZMAN 3 W / 4 ohm speakers, 44 x 31 x 15 mm | Stereo output |
 | 2 | Supplied JST-PH 2.0 leads, 100 mm | Removable speaker connection |
 
-Inventory means physically present, not electrically or acoustically validated. The exact display
-revision, Pi RAM variant and amplifier integration details remain to be recorded from the units.
+The original components are physically present. The MiniAmp and ready-made adapters are the selected
+replacement audio path; receipt/exact revision must be recorded from the units before they are called
+on hand. Selection never counts as electrical or acoustic validation.
 
 ## Buy only when required for assembly or verification
 

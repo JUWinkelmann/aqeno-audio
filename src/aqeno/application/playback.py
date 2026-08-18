@@ -17,7 +17,10 @@ from aqeno.ports.input import (
     InputEvent,
     Next,
     NfcPresented,
+    Pause,
+    Play,
     Previous,
+    Stop,
     TogglePlayback,
     VolumeDelta,
 )
@@ -210,6 +213,15 @@ class PlaybackSession:
                 self._notify_changed()
         elif isinstance(event, TogglePlayback):
             self.toggle_playback()
+        elif isinstance(event, Play):
+            if self._audio.state is TransportState.PAUSED:
+                self._audio.play()
+        elif isinstance(event, Pause):
+            if self._audio.state is TransportState.PLAYING:
+                self._persist_position()
+                self._audio.pause()
+        elif isinstance(event, Stop):
+            self.stop()
         elif isinstance(event, Next):
             self.next()
         elif isinstance(event, Previous):

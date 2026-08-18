@@ -7,8 +7,14 @@ from desktop simulation alone.
 
 - clean Raspberry Pi OS image; I²C, SPI and I²S deliberately enabled;
 - AQENO installed at `/opt/aqeno`, systemd and Avahi units installed;
-- cold boot shows no desktop, taskbar, cursor, terminal or window decoration;
+- once the canonical logo and real DSI path are available, install the Plymouth theme and verify cold
+  boot shows only the dark AQENO visual—no Pi rainbow, desktop, taskbar, cursor, terminal or window
+  decoration;
 - physical controls become responsive, then playback, then Device UI; record each timestamp;
+- record power-on → first AQENO visual, UI process, first QML frame, Core ready and locally usable;
+- verify first frame dismisses Plymouth immediately with no fixed delay, black gap or mode switch;
+- test the documented debug boot by restoring visible boot detail; headless boot must not require
+  Plymouth;
 - `http://aqeno.local` opens Admin without an IP address or port;
 - initial ownership and password recovery require Previous → Encoder → Next at the device;
 - Admin UI and `/api/v1` share port 80/origin; direct IP port 80 works only as recovery;
@@ -18,8 +24,10 @@ from desktop simulation alone.
 
 ## Controls and light
 
-- left/right MX keys always mean Previous/Next;
-- encoder rotation changes volume and press toggles Play/Pause;
+- verify the left/right MX defaults (Previous/Next), change one allowed mapping, reboot, then restore
+  defaults;
+- encoder rotation changes volume, short press toggles Play/Pause, and long press never also emits
+  short press;
 - bounce, rapid input and simultaneous presses are harmless;
 - encoder/NeoKey feedback is restrained, semantic and completely off in Bedtime;
 - controls retain meaning while the display is OFF and do not wake it routinely.
@@ -33,7 +41,9 @@ from desktop simulation alone.
 
 ## Audio
 
-- verify I²S channel mapping through MAX98357 and both 4 Ω speakers;
+- verify `sndrpihifiberry` detection and I²S left/right/stereo output through the MiniAmp and both
+  4 Ω speakers;
+- verify the Qwiic SHIM, 5880 and NeoKey in parallel with MiniAmp GPIO16/18-21/26 reserved;
 - measure useful volume range, distortion, idle noise and startup/shutdown transients;
 - calibrate child/night/headphone ceilings rather than treating logical values as dB;
 - verify pause/resume, chapter boundaries, long playback and recovery after source loss.

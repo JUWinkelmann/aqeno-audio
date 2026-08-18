@@ -211,3 +211,22 @@ Added 2026-08-18 with ADR 0014. Specified in full, with the reasoning, in
 
 A configured root that does not exist is skipped and logged, not created. Media location is a Manager
 setting rather than a fixed path because content usually arrives on removable storage.
+
+## 9. Physical controls
+
+Mappings are device-wide Manager settings. They survive restart, Repair and state backup; they are
+not tied to a listening profile or concrete I2C/GPIO identity.
+
+| Control event | Default | Editable |
+|---|---|---|
+| left short press | Previous | Manager |
+| encoder rotate left/right | Volume down/up | Manager |
+| encoder short press | Play/Pause | Manager |
+| right short press | Next | Manager |
+| all current long presses | unassigned | Manager |
+| long-press threshold | **800 ms** | Fixed |
+| illumination | **subtle** (`off` / `subtle` / `clear`) | Manager |
+
+Night and display `OFF` still force true LED off; the illumination preference cannot override that
+product policy. Missing current mappings resolve to the validated defaults in memory without
+rewriting uncertain persisted state. Explicitly unassigned mappings remain unassigned.

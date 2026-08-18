@@ -58,7 +58,7 @@ runs as `aqeno`. Platform/bootstrap files under `/etc/aqeno` are root-owned and 
 
 | Class | Includes | Repair | State backup | Full backup |
 |---|---|---|---|---|
-| A — irreplaceable | DB, profiles, favorites, progress, token/access rules, corrected metadata, settings, original custom artwork | preserve | include | include |
+| A — irreplaceable | DB, profiles, favorites, progress, token/access rules, corrected metadata, settings including logical control mappings, original custom artwork | preserve | include | include |
 | B — user media | locally imported/managed audio | preserve | exclude, inventory only | include on request |
 | C — reconstructable | extracted artwork, thumbnails, generated search/index caches | may clear | exclude | exclude |
 | D — ephemeral | partial uploads, processing and backup/restore staging | may clear safely | exclude | exclude |
@@ -153,6 +153,11 @@ Same-device, new-card and replacement-Pi restores use this flow. A future suppor
 restore the same portable state; its adapter maps hardware-independent preferences to its devices.
 Platform-specific configuration is detected again. NAS items remain indexed and unavailable until
 their source is reconfigured/reconnected; they are never deleted merely because restore is offline.
+
+Logical control mappings are portable AQENO preferences. Restore preserves mappings for logical
+controls even when the target hardware does not expose them; unavailable entries remain dormant.
+Unknown actions are not executed or silently remapped. A compatible replacement control can reuse
+the semantic mapping without carrying I2C addresses, GPIO numbers or board identities in the backup.
 
 ## 8. Repair and reset
 

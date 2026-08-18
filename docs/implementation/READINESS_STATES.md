@@ -157,16 +157,23 @@ does. Transport does not wait for a screen.
 
 ## 5. What is shown during startup
 
-**Nothing.** No splash screen, no logo, no progress bar, no spinner, no "starting up" text.
+On a supported display-capable appliance, the platform may show one quiet AQENO boot presentation
+while Linux and AQENO are already starting. It is not a display-domain state and never gates Core,
+playback or the readiness ladder. There is no minimum duration, percentage, technical status text or
+fixed timer: the first valid Device UI frame ends the presentation immediately. Headless platforms
+show nothing and have no Plymouth dependency.
 
-The display is `OFF` until `UI_READY` and then shows the actual surface — populated, or the calm empty
-state when the library is empty (`FAILURE_STATES.md` row 11). An appliance does not narrate its own
-boot, a progress indicator in a dark bedroom is light nobody asked for (`PRODUCT_FOUNDATION.md` § 6),
-and a spinner would make a fast startup *feel* slower by drawing attention to it.
+The boot visual uses the canonical AQENO brand asset on a dark background. This supersedes the prior
+"show nothing" decision because the current human appliance requirement explicitly chooses branded
+startup. It does not supersede visual quiet: the presentation stays dark, motion is optional and
+subtle, and boot never lights user-facing LEDs. The first QML frame uses the same dark base so the
+handover need not expose a console, cursor or mode change.
 
-If the ladder stops before `UI_READY`, the panel stays dark. The child experiences a device that does
-not respond; the Manager finds the reason in the log and, later, in the management surface. That is the
-same calm-failure shape as everywhere else in `FAILURE_STATES.md`.
+If UI startup fails, the platform must not leave a normal-looking splash indefinitely. It ends the
+splash and enters the bounded degraded/recovery path; technical output remains available through the
+documented debug boot rather than becoming normal product UX. RH1's Plymouth theme is enabled only
+after the canonical logo asset and real DSI Device UI/display adapter have passed the hardware
+handover test. Until then the installer fails closed instead of installing placeholder branding.
 
 ## 6. Degradation is a second axis
 

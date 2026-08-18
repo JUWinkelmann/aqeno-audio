@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import pytest
 
 from aqeno.adapters.input.i2c_seesaw import I2cSeesawInputBus
-from aqeno.ports.input import Next, Previous, TogglePlayback, VolumeDelta
+from aqeno.ports.input import ControlEventType, ControlInput, LogicalControl
 
 
 @dataclass
@@ -34,7 +34,7 @@ def test_first_sample_sets_baselines_without_emitting() -> None:
     keys = Keys((True, False, False, False))
     bus = I2cSeesawInputBus(encoder=encoder, keys=keys)
     received = []
-    bus.on_input(received.append)
+    bus.on_control_input(received.append)
 
     bus.poll_once()
 
@@ -45,7 +45,7 @@ def test_encoder_delta_is_full_and_clockwise_positive() -> None:
     encoder = Encoder(current=4)
     bus = I2cSeesawInputBus(encoder=encoder, keys=Keys())
     received = []
-    bus.on_input(received.append)
+    bus.on_control_input(received.append)
 
     bus.poll_once()
     encoder.current = 1
@@ -53,15 +53,18 @@ def test_encoder_delta_is_full_and_clockwise_positive() -> None:
     encoder.current = 6
     bus.poll_once()
 
-    assert received == [VolumeDelta(3), VolumeDelta(-5)]
+    assert received == [
+        *[ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_RIGHT)] * 3,
+        *[ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT)] * 5,
+    ]
 
 
-def test_button_and_supported_keys_emit_only_on_press_edges() -> None:
+def test_button_and_supported_keys_emit_short_press_on_release() -> None:
     encoder = Encoder()
     keys = Keys()
     bus = I2cSeesawInputBus(encoder=encoder, keys=keys)
     received = []
-    bus.on_input(received.append)
+    bus.on_control_input(received.append)
 
     bus.poll_once()
     encoder.is_pressed = True
@@ -71,31 +74,69 @@ def test_button_and_supported_keys_emit_only_on_press_edges() -> None:
     encoder.is_pressed = False
     keys.current = (False, False, False, False)
     bus.poll_once()
+
+    assert received == [
+        ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.SHORT_PRESS),
+        ControlInput(LogicalControl.PRIMARY_LEFT, ControlEventType.SHORT_PRESS),
+        ControlInput(LogicalControl.PRIMARY_RIGHT, ControlEventType.SHORT_PRESS),
+    ]
+
+
+def test_long_press_fires_once_and_never_also_fires_short_press() -> None:
+    now = 0.0
+    encoder = Encoder()
+    bus = I2cSeesawInputBus(
+        encoder=encoder,
+        keys=Keys(),
+        monotonic=lambda: now,
+        long_press_seconds=0.8,
+    )
+    received = []
+    bus.on_control_input(received.append)
+
+    bus.poll_once()
     encoder.is_pressed = True
-    keys.current = (True, False, False, False)
+    bus.poll_once()
+    now = 0.81
+    bus.poll_once()
+    now = 1.2
+    bus.poll_once()
+    encoder.is_pressed = False
     bus.poll_once()
 
-    assert received == [TogglePlayback(), Previous(), Next(), TogglePlayback(), Previous()]
+    assert received == [ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.LONG_PRESS)]
 
 
 def test_listener_order_is_synchronous_and_registration_does_not_replay() -> None:
     encoder = Encoder()
     bus = I2cSeesawInputBus(encoder=encoder, keys=Keys())
     received: list[tuple[str, object]] = []
-    bus.on_input(lambda event: received.append(("first", event)))
+    bus.on_control_input(lambda event: received.append(("first", event)))
 
     bus.poll_once()
     encoder.current = 2
     bus.poll_once()
 
-    bus.on_input(lambda event: received.append(("second", event)))
+    bus.on_control_input(lambda event: received.append(("second", event)))
     encoder.current = 3
     bus.poll_once()
 
     assert received == [
-        ("first", VolumeDelta(-2)),
-        ("first", VolumeDelta(-1)),
-        ("second", VolumeDelta(-1)),
+        *[
+            (
+                "first",
+                ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT),
+            )
+        ]
+        * 2,
+        (
+            "first",
+            ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT),
+        ),
+        (
+            "second",
+            ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT),
+        ),
     ]
 
 
@@ -111,8 +152,8 @@ def test_listener_failure_stops_synchronous_delivery() -> None:
         nonlocal reached_later_listener
         reached_later_listener = True
 
-    bus.on_input(fail)
-    bus.on_input(later)
+    bus.on_control_input(fail)
+    bus.on_control_input(later)
     bus.poll_once()
     encoder.current = 1
 

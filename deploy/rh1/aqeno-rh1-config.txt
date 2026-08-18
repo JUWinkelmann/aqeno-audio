@@ -1,0 +1,6 @@
+# AQENO Reference Hardware 1 — managed by configure-platform.sh.
+# Qwiic controls use I2C GPIO2/3; MiniAmp uses I2S GPIO18-21 plus GPIO16/26.
+dtparam=i2c_arm=on
+dtparam=audio=off
+dtoverlay=hifiberry-dac
+disable_splash=1

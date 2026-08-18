@@ -48,7 +48,7 @@ briefly justified by liability reasoning; the better reason stands on its own.
 - **Closed implementation contracts:** input delivery, failure states, resume, readiness and content
   ingestion are specified and implemented.
 - **Open physical decisions/evidence:** exact FREENOVE display revision and display-server path,
-  authoritative panel off, final I2S wiring/audio behaviour, NFC selection, power, boot/wake timing,
+  authoritative panel off, MiniAmp I2S/audio behaviour, NFC selection, power, boot/wake timing,
   LED true-off behaviour and calibrated child volume.
 
 Do not decide a technology by committing code. Writing code first *is* the decision, and it would be

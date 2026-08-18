@@ -43,8 +43,9 @@ OpenAPI paths remain below `/api`; direct SPA routes fall back to
 The reference installer runs the build once. `AQENO_ADMIN_DIR` can point to another static build
 directory for packaging, but the browser client remains replaceable and contains no backend logic.
 Release packaging also carries a generated copy below `aqeno.management/static`, so a wheel does not
-need Node or the source checkout at runtime. The repository build takes precedence during local
-development.
+need Node or the source checkout at runtime. Run `npm run build:package` when that packaged fallback
+must be refreshed; the script first completes a Vite build and then replaces only the derived static
+package directory. The repository build takes precedence during local development.
 
 ## Scripts
 
@@ -52,6 +53,7 @@ development.
 |---|---|
 | `npm run dev` | Development server |
 | `npm run build` | Static SPA build |
+| `npm run build:package` | Build and refresh the wheel's generated Admin fallback |
 | `npm run generate:api` | Regenerate TypeScript types from OpenAPI |
 | `npm run check` | Typecheck |
 | `npm test` | Unit tests |

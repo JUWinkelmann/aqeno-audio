@@ -19,8 +19,10 @@ Steps 7 and 9 are complete. Step 10 has the desktop-tested RH1 controls implemen
 Remaining Step 10 work requires physical RH1 evidence or unselected hardware and is recorded below
 rather than guessed.
 
-Quality result after review: **959 passed, 1 deselected**; `ruff check`, `ruff format --check` and
-`mypy` pass.
+The current software slice adds configurable logical physical controls, bounded RH1 remote deployment,
+the HiFiBerry MiniAmp platform path and a fail-closed Plymouth handover. Verification is green:
+**1083 passed, 1 hardware test deselected**; canonical mypy, Ruff, Admin checks/build and all five
+browser E2E tests pass. The physical RH1 acceptance boundary below remains open.
 
 | Slice step | State |
 |---|---|
@@ -33,7 +35,7 @@ Quality result after review: **959 passed, 1 deselected**; `ruff check`, `ruff f
 | 7 — Kids Early Device UI | done (`6e295a0`) |
 | 8 — display policy | done (`f88365f`, `cc493c7`) |
 | 9 — end-to-end tests | done (`707de90`) |
-| 10 — Reference Hardware adapters | controls done (`851898c`); physical/display work externally gated |
+| 10 — Reference Hardware adapters | configurable controls/LED software done; physical/display evidence externally gated |
 
 ## Step log
 
@@ -122,13 +124,18 @@ Quality result after review: **959 passed, 1 deselected**; `ruff check`, `ruff f
   assembled I²C bus at `0x36` and `0x30`, including direction, press edges and sustained polling.
 - Record the exact acquired display revision. Choose/verify its display-server integration before a
   real panel adapter can truthfully report authoritative OFF, brightness or touch routing (G24).
-- Status LED output needs observed true-off behaviour and a deliberately chosen semantic indication;
-  AQENO currently uses `NullStatusLeds` on real composition rather than illuminating pixels without
-  a product reason.
-- The Soldered Stereo I2S MAX98357 amplifier and two QUARKZMAN 3 W / 4 ohm speakers are acquired;
+- The RH1 semantic LED adapter now implements fixed warm `off`/`subtle`/`clear` output and Night/OFF
+  override. Actual NeoPixel true-off, brightness and electrical behaviour still require RH1 evidence;
+  initialization failure degrades to `NullStatusLeds` without affecting playback.
+- The HiFiBerry MiniAmp and two QUARKZMAN 3 W / 4 ohm speakers are the selected RH1 audio path; the
+  previous Soldered MAX98357 is no longer part of RH1 because it required soldering. MiniAmp receipt,
+  wiring and physical validation remain to be recorded;
   their wiring, Linux audio path, channel behaviour, sustained output and calibration are unverified.
 - NFC, VEML7700 and final power components remain unselected or explicit feasibility candidates. No
   adapter should pretend they exist.
+- A conditional Plymouth theme and first-frame handover exist, but remain disabled: the repository
+  has no canonical AQENO SVG and G24 still lacks the real FREENOVE DSI adapter. No placeholder brand
+  asset or false successful handover is installed.
 - Hardware-only boot/wake timing, full-dark output and child-safe calibrated volume remain physical
   measurements. The single deselected test is intentionally in that class.
 
@@ -146,9 +153,10 @@ Quality result after review: **959 passed, 1 deselected**; `ruff check`, `ruff f
 
 ## Next action
 
-1. On the assembled RH1, perform the verification above and record evidence before extending Step 10.
-2. Until then, the next productive software task requires a new scoped instruction or new hardware
-   evidence; do not invent the missing adapter behaviour.
+1. Install the MiniAmp, Qwiic controls and speakers on RH1; run the documented stereo/control/offline
+   acceptance sequence and record measured evidence.
+2. Supply the canonical AQENO SVG and resolve G24's real DSI adapter before enabling the Plymouth
+   presentation and measuring splash-to-first-frame handover.
 
 ## Standing reminders
 

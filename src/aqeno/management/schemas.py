@@ -237,6 +237,43 @@ class SettingsResource(ApiModel):
     apply_mode: Literal["restart_required"] = "restart_required"
 
 
+class ControlCapabilityResource(ApiModel):
+    id: str
+    type: Literal["button", "rotary_encoder"]
+    label: str
+    events: list[str]
+    illumination: bool
+
+
+class ControlActionResource(ApiModel):
+    id: str
+    label: str
+    category: str
+    compatible_events: list[str]
+
+
+class ControlBindingResource(ApiModel):
+    control_id: str
+    event: str
+    action_id: str | None
+    supported: bool
+
+
+class ControlsResource(ApiModel):
+    controls: list[ControlCapabilityResource]
+    actions: list[ControlActionResource]
+    mappings: list[ControlBindingResource]
+    illumination: Literal["off", "subtle", "clear"]
+
+
+class ControlBindingPatch(ApiModel):
+    action_id: str | None
+
+
+class IlluminationPatch(ApiModel):
+    illumination: Literal["off", "subtle", "clear"]
+
+
 class ProfileDisplay(ApiModel):
     inactivity_timeout_seconds: int = Field(ge=5, le=900)
     night_timeout_seconds: int = Field(ge=5, le=30)

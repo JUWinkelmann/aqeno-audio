@@ -74,6 +74,14 @@ browser has no effect: AQENO Core owns the persisted mapping and subsequent play
 For settings/profile edits, GET the complete typed resource, change known fields and PUT it back.
 Responses currently state `apply_mode: restart_required`; clients must not claim immediate apply.
 
+Physical controls are separate because availability and compatible gestures are device
+capabilities. GET `/controls`, render the returned controls/events, and offer only actions whose
+`compatible_events` contains that event. PATCH one mapping with `{"action_id": "..."}` (or `null`
+for unassigned); POST `/controls/reset` restores only control defaults. Illumination accepts `off`,
+`subtle` or `clear`. These changes are immediate and do not require a restart. Never hard-code that
+all AQENO hardware has two buttons or a pressable encoder, and never expose the internal settings
+encoding.
+
 Profiles are local listening contexts, never login identities. Use `profile_name` on library queries
 so filtering remains server-side. Favorites live below `/profiles/{name}/favorites`; resume for a
 work is read below `/profiles/{name}/progress/{media_id}`.
@@ -112,6 +120,10 @@ workflow state, `413` upload size, `429` temporary login throttling and `422` sc
 
 `GET /events` is authenticated SSE. v1 events are `operation.changed`, `token.capture_changed` and
 `playback.changed`. Polling remains fully supported.
+
+Live physical-control highlighting is not a v1 event. The current Admin confirms a saved mapping and
+the user tests it at the device; adding input telemetry requires a bounded explicit contract rather
+than leaking the local input stream.
 
 Use [openapi.json](./openapi.json) as source of truth. A generated TypeScript type/client package is
 a useful separate artifact; generated code is disposable and must not replace OpenAPI. Preserve UUID

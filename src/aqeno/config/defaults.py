@@ -199,6 +199,26 @@ class LibrarySettings:
 
 
 # ---------------------------------------------------------------------------
+# Physical controls — device-wide product semantics, never GPIO/I2C details
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class ControlSettings:
+    bindings: tuple[str, ...] = (
+        "primary_left|short_press|playback.previous",
+        "primary_left|long_press|",
+        "primary_encoder|rotate_left|volume.down",
+        "primary_encoder|rotate_right|volume.up",
+        "primary_encoder|short_press|playback.play_pause",
+        "primary_encoder|long_press|",
+        "primary_right|short_press|playback.next",
+        "primary_right|long_press|",
+    )
+    illumination: str = "subtle"
+
+
+# ---------------------------------------------------------------------------
 # Language — ADR 0005
 # ---------------------------------------------------------------------------
 
@@ -230,6 +250,7 @@ class Settings:
     sleep_timer: SleepTimerSettings = field(default_factory=SleepTimerSettings)
     nfc: NfcSettings = field(default_factory=NfcSettings)
     library: LibrarySettings = field(default_factory=LibrarySettings)
+    controls: ControlSettings = field(default_factory=ControlSettings)
     language: str = field(default_factory=default_language)
 
 
@@ -376,6 +397,28 @@ def _validate_library(raw: Any, warnings: list[str]) -> LibrarySettings:
     )
 
 
+def _validate_controls(raw: Any, warnings: list[str]) -> ControlSettings:
+    defaults = ControlSettings()
+    raw_section = raw if isinstance(raw, dict) else {}
+    if raw is not None and not isinstance(raw, dict):
+        warnings.append("controls: expected a table; using defaults")
+
+    bindings = raw_section.get("bindings", defaults.bindings)
+    if not (
+        isinstance(bindings, list | tuple)
+        and len(bindings) <= 64
+        and all(isinstance(item, str) and item.count("|") >= 2 for item in bindings)
+    ):
+        warnings.append("controls.bindings: expected at most 64 encoded bindings; using defaults")
+        bindings = defaults.bindings
+
+    illumination = raw_section.get("illumination", defaults.illumination)
+    if illumination not in {"off", "subtle", "clear"}:
+        warnings.append("controls.illumination: expected off, subtle or clear; using default")
+        illumination = defaults.illumination
+    return ControlSettings(bindings=tuple(bindings), illumination=illumination)
+
+
 def validate(raw: dict[str, Any] | None) -> tuple[Settings, list[str]]:
     """Validate a raw parsed-TOML mapping against every range in this module.
 
@@ -394,6 +437,7 @@ def validate(raw: dict[str, Any] | None) -> tuple[Settings, list[str]]:
         )
     kwargs["sleep_timer"] = _validate_sleep_timer(raw.get("sleep_timer"), warnings)
     kwargs["library"] = _validate_library(raw.get("library"), warnings)
+    kwargs["controls"] = _validate_controls(raw.get("controls"), warnings)
 
     language = raw.get("language", default_language())
     if language not in SUPPORTED_LANGUAGES:

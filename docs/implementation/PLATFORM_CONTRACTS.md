@@ -1,7 +1,33 @@
 # AQENO Platform Contracts
 
-## Input events
-Hardware and simulators emit the same semantic events:
+## Physical controls and input events
+
+Concrete hardware first emits a normalized `ControlInput(logical_control, event)` through
+`PhysicalInputSource`. Stable RH1 logical controls are `primary_left`, `primary_encoder` and
+`primary_right`; they are not NeoKey channels, I2C addresses or GPIO pins. Available controls and
+events come from the source's capabilities rather than being assumed by the Administration.
+
+Buttons expose `short_press` and `long_press`. A rotary control may additionally expose
+`rotate_left` and `rotate_right`; illumination is a separate capability. The one current long-press
+threshold is 800 ms. A release produces either short or long, never both.
+
+The device-wide `MappedInputBus` resolves those physical events through the controlled AQENO action
+registry, locally and without HTTP/network involvement. Defaults are:
+
+| Logical event | AQENO action |
+|---|---|
+| `primary_left.short_press` | `playback.previous` |
+| `primary_encoder.rotate_left` / `rotate_right` | `volume.down` / `volume.up` |
+| `primary_encoder.short_press` | `playback.play_pause` |
+| `primary_right.short_press` | `playback.next` |
+| every current long press | unassigned |
+
+Allowed actions are fixed product actions, never shell commands, URLs, scripts or arbitrary API
+calls. Mappings are persistent device settings, not profile settings. Missing hardware leaves a
+mapping intact and unavailable; unknown actions restored from a newer version remain unsupported
+and are never silently remapped. A reset restores only these mappings and illumination preference.
+
+After mapping, Application listeners receive the existing semantic events:
 
 - `VolumeDelta(delta)`
 - `TogglePlayback`
@@ -13,7 +39,10 @@ Hardware and simulators emit the same semantic events:
 
 No application code should depend on GPIO pin numbers.
 
-Delivery follows ADR 0011: synchronous registration-order delivery, without replay or coalescing.
+Delivery at both boundaries follows ADR 0011: synchronous registration-order delivery, without
+replay or coalescing. The fixed Previous → Encoder → Next ownership-confirmation sequence observes
+logical RH1 short presses before configurable action mapping, so a custom mapping cannot disable
+local Administration setup or recovery.
 
 ## Display contract
 
@@ -38,9 +67,12 @@ User-facing LEDs are semantic indicators, not hard-coded GPIO effects.
 
 Required operations:
 - set brightness 0–100%;
-- set logical colour where RGB is available;
 - true OFF;
-- optional pulse/fade only when policy permits.
+
+Current Manager preferences are `off`, `subtle` and `clear`. Product/display policy resolves these
+to brightness; concrete RGB colour remains the AQENO design policy inside the adapter, not a raw
+user setting. A later temporary product-status cue may override the preference only while active
+and must then return to it; no current feature needs such a cue.
 
 Night/Dark-Room policy has authority to force all user-facing LEDs OFF.
 
@@ -52,6 +84,9 @@ Night/Dark-Room policy has authority to force all user-facing LEDs OFF.
 - volume;
 - state/error callbacks;
 - no UI-specific behaviour.
+
+The platform chooses a stable Linux audio device name. AQENO never relies on a numeric ALSA card
+index and Core never names the MiniAmp or any other concrete output.
 
 ## Persistence contract
 Atomic persistence for:

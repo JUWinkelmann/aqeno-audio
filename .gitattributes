@@ -1,0 +1,3 @@
+# Generated/minified Admin bundles can contain significant whitespace inside
+# multiline JavaScript literals. Source files remain subject to normal checks.
+src/aqeno/management/static/** -whitespace

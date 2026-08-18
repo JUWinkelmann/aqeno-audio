@@ -123,6 +123,7 @@ class DisplayService:
         self._ui_touch_listener: UiTouchListener | None = None
         self._smoothed_lux: float | None = None
         self._ambient_dark = False
+        self._illumination_preference = settings.controls.illumination
 
         # Sentinels, not real values: force the first `_apply_outputs()` to make
         # its calls explicitly rather than assuming the adapter already agrees
@@ -131,6 +132,7 @@ class DisplayService:
         self._last_brightness: int | None = None
         self._last_led: int | None = None
         self._panel_failed = False
+        self._leds_failed = False
 
         try:
             capabilities = panel.capabilities()
@@ -213,6 +215,13 @@ class DisplayService:
             self.handle_event(
                 DisplayEvent.NIGHT_ACTIVATED if active else DisplayEvent.NIGHT_DEACTIVATED
             )
+
+    def set_illumination_preference(self, preference: str) -> None:
+        if preference not in {"off", "subtle", "clear"}:
+            raise ValueError("unsupported illumination preference")
+        with self._lock:
+            self._illumination_preference = preference
+            self._apply_outputs(self._guards())
 
     def sample_ambient_light(self) -> None:
         """Apply one calm sensor sample to display output.
@@ -352,9 +361,13 @@ class DisplayService:
                 logger.exception("display panel failed; continuing headless")
                 self._panel_failed = True
 
-        if led_brightness != self._last_led:
-            self._leds.set_brightness(led_brightness)
-            self._last_led = led_brightness
+        if not self._leds_failed and led_brightness != self._last_led:
+            try:
+                self._leds.set_brightness(led_brightness)
+                self._last_led = led_brightness
+            except Exception:
+                logger.exception("status LEDs failed; continuing without illumination")
+                self._leds_failed = True
 
     def _power_and_brightness(self, guards: DisplayGuards) -> tuple[bool, int]:
         """`DISPLAY_STATE_MACHINE.md` § Brightness, read from the profile's already
@@ -383,4 +396,8 @@ class DisplayService:
         regardless of display state."""
         if self._state is DisplayState.OFF or guards.night_active:
             return 0
+        if self._illumination_preference == "off":
+            return 0
+        if self._illumination_preference == "subtle":
+            return min(10, self._profile.display.led_brightness)
         return self._profile.display.led_brightness

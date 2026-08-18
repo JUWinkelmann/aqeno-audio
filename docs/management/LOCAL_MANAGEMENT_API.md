@@ -97,6 +97,10 @@ part of generated browser auth types. Every implemented route is in OpenAPI; err
 | GET | `/api/v1/playback` | playback snapshot | — / PlaybackStatus | PlaybackSession | SESSION | auth | IMPLEMENTED |
 | GET | `/api/v1/settings` | local settings | — / Settings | SettingsStore | SESSION | auth | IMPLEMENTED |
 | PUT | `/api/v1/settings` | validate/persist settings | Settings / Settings | validate/store | SESSION | range | IMPLEMENTED |
+| GET | `/api/v1/controls` | actual logical controls, actions and mappings | — / Controls | MappedInputBus capabilities | SESSION | unavailable | IMPLEMENTED |
+| PATCH | `/api/v1/controls/{control_id}/mappings/{event}` | assign one allowed action | action ID / Controls | device mapping | SESSION | compatibility | IMPLEMENTED |
+| POST | `/api/v1/controls/reset` | restore RH1 product defaults | — / Controls | device mapping | SESSION | unavailable | IMPLEMENTED |
+| PATCH | `/api/v1/controls/illumination` | set off/subtle/clear preference | preference / Controls | settings + display policy | SESSION | validation | IMPLEMENTED |
 | GET | `/api/v1/profiles` | configurations | — / Profile[] | Library profiles | SESSION | auth | IMPLEMENTED |
 | GET | `/api/v1/profiles/{name}` | one profile | — / Profile | Library | SESSION | not found | IMPLEMENTED |
 | PUT | `/api/v1/profiles/{name}` | persist policies | Profile / Profile | domain values | SESSION | policy | IMPLEMENTED |
@@ -121,6 +125,12 @@ part of generated browser auth types. Every implemented route is in OpenAPI; err
 Deleting a media object removes its AQENO index identity, token assignments and resume state through
 existing persistence semantics. It does not currently delete arbitrary source files. That destructive
 storage policy needs a separate decision.
+
+Physical-control administration is capability-driven. The response groups events under logical
+controls and exposes only the compiled safe AQENO action registry. It contains no I2C/GPIO details
+and accepts no command, URL or script. Updates persist immediately and are evaluated locally; the
+Admin browser and network are not in the input path. The generic Settings resource intentionally
+does not expose the compact mapping persistence encoding.
 
 ## List and scale contract
 

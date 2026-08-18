@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=AQENO
+Description=Quiet AQENO appliance startup
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/aqeno
+ScriptFile=/usr/share/plymouth/themes/aqeno/aqeno.script

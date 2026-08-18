@@ -48,6 +48,15 @@ The minimum system roles are:
 The exact packages and versions are a reproducible platform manifest established during the RH1
 spike. Packages are not installed merely because a desktop image normally includes them.
 
+For RH1 with a validated display path, Plymouth is the platform presentation implementation.
+Firmware rainbow, normal kernel/systemd status and cursor are hidden by managed boot configuration;
+this changes no Core dependency. `AQENO_BOOT_PRESENTATION=plymouth` connects the first Qt frame to
+one fixed `plymouth quit --retain-splash` command, never a sleep. The theme is built from the
+canonical SVG logo and refuses a placeholder. It is not enabled by the general reference installer
+while G24 (real DSI/display-power adapter) and the official logo asset remain open. A debug boot
+removes `quiet splash` from the one-line Pi `cmdline.txt` (the theme installer keeps a pre-AQENO
+copy); serial/SSH diagnostics remain separate from normal product presentation.
+
 ## 3. Packaging and release layout
 
 Use a wheel and versioned application releases, not a container and not a mutable Git checkout:
@@ -90,8 +99,17 @@ writes. The installer never partitions/formats by default and never treats unkno
 The current `deploy/install-reference-service.sh` is still a reference bootstrap helper rather than
 the complete installer contract. It now fails closed without a marked AQENO-DATA mount, installs a
 versioned release atomically, builds the Admin client and installs bounded systemd/Avahi integration.
-It also invokes the resumable non-destructive prototype-data migration before activation. Platform
-compatibility discovery, dry-run and full installer phase journaling remain unimplemented.
+It also invokes the resumable non-destructive prototype-data migration before activation, applies
+the checked RH1 boot fragment (I2C, onboard-audio disable and `hifiberry-dac`) only after verifying a
+Pi 4B, and installs a bounded SSH deployment helper. Platform compatibility beyond RH1, dry-run and
+full installer phase journaling remain unimplemented.
+
+The development host owns `deploy/rh1.local` (ignored by Git): host, unprivileged user, SSH port and
+optional identity path. `make pi-dev` delta-deploys only source and built Admin assets into
+`/opt/aqeno/dev`; `make pi-deploy` builds a wheel and exercises the immutable release/current-link
+contract. Both stage below `/var/tmp/aqeno-upload`, use the fixed `aqeno-devctl` operation set and
+perform a local health check. The helper has no Data operation and accepts no shell command, service
+name or destination path from the caller. RH1 is a test target, never the repository source of truth.
 
 ## 5. Service and privilege contract
 

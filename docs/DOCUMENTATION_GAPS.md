@@ -298,6 +298,12 @@ pinned build, how updates are delivered, and how LGPL replaceability is guarante
 device. The display-server choice in particular determines whether authoritative panel `OFF` works
 at all, so it must be spiked early despite being nominally a packaging concern.
 
+**2026-08-18 update:** packaging now has the versioned `/opt/aqeno/releases` reference path and RH1
+has a conditional Plymouth theme/handover implementation. This does not close G24: the exact FREENOVE
+revision, real DSI panel adapter, authoritative off, DRM/eglfs handover and canonical AQENO SVG logo
+are still missing physical/brand inputs. The appliance installer therefore does not enable Plymouth
+and will not manufacture placeholder branding.
+
 ---
 
 ## Recommended closing order

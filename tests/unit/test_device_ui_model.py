@@ -127,6 +127,7 @@ def test_ui_runtime_marks_readiness_without_automatically_waking_display(monkeyp
         def __init__(self) -> None:
             self.visible = False
             self.activated = False
+            self.frameSwapped = Signal()
 
         def setProperty(self, name: str, value: object) -> None:  # noqa: N802
             assert name == "visible"
@@ -134,6 +135,17 @@ def test_ui_runtime_marks_readiness_without_automatically_waking_display(monkeyp
 
         def requestActivate(self) -> None:  # noqa: N802
             self.activated = True
+
+    class Signal:
+        def __init__(self) -> None:
+            self.callback = None
+
+        def connect(self, callback) -> None:
+            self.callback = callback
+
+        def emit(self) -> None:
+            assert self.callback is not None
+            self.callback()
 
     class Context:
         def setContextProperty(self, name: str, value: object) -> None:  # noqa: N802
@@ -171,8 +183,17 @@ def test_ui_runtime_marks_readiness_without_automatically_waking_display(monkeyp
     monkeypatch.setattr(runtime, "QQmlApplicationEngine", Engine)
     monkeypatch.setattr(runtime, "DeviceUiModel", lambda state: object())
 
-    ui = runtime.DeviceUiRuntime(Process())  # type: ignore[arg-type]
+    first_frames = []
+    ui = runtime.DeviceUiRuntime(  # type: ignore[arg-type]
+        Process(), on_first_frame=lambda: first_frames.append("ready")
+    )
 
     assert Process.readiness.advanced == [runtime.ReadinessState.UI_READY]
     assert ui._engine.root.visible is True
     assert ui._engine.root.activated is True
+    assert first_frames == []
+
+    ui._engine.root.frameSwapped.emit()
+    ui._engine.root.frameSwapped.emit()
+
+    assert first_frames == ["ready"]

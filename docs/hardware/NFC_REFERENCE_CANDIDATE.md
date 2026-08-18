@@ -15,8 +15,8 @@ Why this candidate:
   request/reset wiring to avoid clock-stretching problems
   ([Adafruit wiring guide](https://learn.adafruit.com/adafruit-pn532-rfid-nfc?view=all),
   [Python guide](https://learn.adafruit.com/adafruit-pn532-rfid-nfc/python-circuitpython)).
-- SPI keeps NFC off RH1's existing Qwiic/I²C chain. The current controls remain on GPIO 2/3, I²S
-  audio uses its own pins, and the DSI display remains independent.
+- SPI keeps NFC off RH1's existing Qwiic/I²C chain. The current controls remain on GPIO 2/3,
+  MiniAmp I²S audio uses its own pins, and the DSI display remains independent.
 
 This is not a no-solder Qwiic module. Do not buy an unrelated I²C RFID EEPROM board: a tag/EEPROM
 device is not a reader. Before promoting PN532 to Reference, the spike must prove reliable UID reads,

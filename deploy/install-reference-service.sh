@@ -20,7 +20,7 @@ if [[ ! -f "${data_root}/volume.json" ]]; then
   echo "AQENO-DATA marker is missing; provision and validate Data first." >&2
   exit 1
 fi
-for required_command in npm python3 hostnamectl systemctl mountpoint; do
+for required_command in aplay curl gst-inspect-1.0 npm python3 hostnamectl rsync runuser systemctl mountpoint visudo; do
   if ! command -v "${required_command}" >/dev/null; then
     echo "Required command is missing: ${required_command}" >&2
     exit 1
@@ -71,12 +71,24 @@ if [[ ! -d "${release_root}" ]]; then
   fi
   install -d -o root -g root -m 0755 "${install_root}/releases" "${staging_root}"
   python3 -m venv --system-site-packages "${staging_root}/venv"
-  "${staging_root}/venv/bin/pip" install "${source_root}"
+  "${staging_root}/venv/bin/pip" install "${source_root}[rh1]"
   "${staging_root}/venv/bin/python" -c 'import aqeno'
   install -d -o root -g root -m 0755 "${staging_root}/admin"
   cp -a "${source_root}/admin/build/." "${staging_root}/admin/"
   mv "${staging_root}" "${release_root}"
 fi
+
+# One mutable developer runtime is provisioned once. Fast deploys replace only
+# its source/Admin payload and never need network package installation.
+if [[ ! -x ${install_root}/dev/venv/bin/python ]]; then
+  install -d -o root -g root -m 0755 "${install_root}/dev"
+  python3 -m venv --system-site-packages "${install_root}/dev/venv"
+  "${install_root}/dev/venv/bin/pip" install "${source_root}[rh1]"
+fi
+dev_site_packages=$("${install_root}/dev/venv/bin/python" -c \
+  'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+install -o root -g root -m 0644 "${source_root}/deploy/rh1/aqeno-dev-sitecustomize.py" \
+  "${dev_site_packages}/sitecustomize.py"
 
 install -d -o aqeno -g aqeno -m 0750 \
   "${data_root}/state/config" "${data_root}/state/artwork/original" \
@@ -103,11 +115,33 @@ if [[ ! -e "${platform_config}" ]]; then
 fi
 # shellcheck disable=SC1090
 source "${platform_config}"
+if [[ ${AQENO_PLATFORM:-} != rh1 ]]; then
+  echo "This reference installer supports only AQENO_PLATFORM=rh1." >&2
+  exit 1
+fi
 if [[ ! ${AQENO_HOSTNAME:-} =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]]; then
   echo "Invalid AQENO_HOSTNAME in ${platform_config}." >&2
   exit 1
 fi
+if [[ ! ${AQENO_DEPLOY_USER:-} =~ ^[a-z_][a-z0-9_-]*$ ]]; then
+  echo "Invalid AQENO_DEPLOY_USER in ${platform_config}." >&2
+  exit 1
+fi
+if ! id "${AQENO_DEPLOY_USER}" >/dev/null 2>&1; then
+  useradd --create-home --shell /bin/bash "${AQENO_DEPLOY_USER}"
+fi
+getent group aqeno-deploy >/dev/null || groupadd --system aqeno-deploy
+usermod -a -G aqeno-deploy "${AQENO_DEPLOY_USER}"
+install -d -o root -g root -m 0755 /usr/local/libexec
+install -o root -g root -m 0755 \
+  "${source_root}/deploy/rh1/aqeno-devctl" /usr/local/libexec/aqeno-devctl
+install -o root -g root -m 0440 \
+  "${source_root}/deploy/rh1/aqeno-deploy.sudoers" /etc/sudoers.d/aqeno-deploy
+visudo -cf /etc/sudoers.d/aqeno-deploy >/dev/null
 hostnamectl set-hostname "${AQENO_HOSTNAME}"
+"${source_root}/deploy/rh1/configure-platform.sh"
+gst-inspect-1.0 playbin3 >/dev/null
+gst-inspect-1.0 alsasink >/dev/null
 ln -sfn "releases/${release_id}" "${install_root}/current.next"
 mv -Tf "${install_root}/current.next" "${install_root}/current"
 install -o root -g root -m 0644 "${source_root}/deploy/systemd/aqeno.service" /etc/systemd/system/aqeno.service

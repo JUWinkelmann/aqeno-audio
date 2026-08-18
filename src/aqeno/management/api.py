@@ -9,7 +9,7 @@ import shutil
 import time
 import uuid
 from collections.abc import Iterator
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import timedelta
 from pathlib import Path
 from typing import Annotated, Any, Literal, cast
@@ -30,6 +30,7 @@ from aqeno.adapters.local_assets import (
     LocalAssetStore,
     UploadTooLargeError,
 )
+from aqeno.application.control_mapping import MappedInputBus
 from aqeno.application.display import DisplayService
 from aqeno.application.management import (
     CollectionNotFoundError,
@@ -72,6 +73,11 @@ from aqeno.management.schemas import (
     CollectionResource,
     CollectionWrite,
     ConfirmationResponse,
+    ControlActionResource,
+    ControlBindingPatch,
+    ControlBindingResource,
+    ControlCapabilityResource,
+    ControlsResource,
     DeviceStatus,
     DiagnosticsStatus,
     DisplaySettings,
@@ -79,6 +85,7 @@ from aqeno.management.schemas import (
     ErrorBody,
     ErrorResponse,
     FavoriteResource,
+    IlluminationPatch,
     InitialPasswordRequest,
     LibrarySettings,
     MediaDetail,
@@ -105,6 +112,7 @@ from aqeno.management.schemas import (
     TokenResource,
     VolumeSettings,
 )
+from aqeno.ports.input import ControlEventType, LogicalControl
 from aqeno.ports.persistence import ContentQuery, Library, SettingsStore
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
@@ -163,6 +171,7 @@ class ManagementContext:
         readiness: Readiness | None = None,
         playback: PlaybackSession | None = None,
         display: DisplayService | None = None,
+        controls: MappedInputBus | None = None,
         capabilities: tuple[str, ...] = (),
         admin_dir: Path | None = None,
         development_origins: tuple[str, ...] = (),
@@ -181,6 +190,7 @@ class ManagementContext:
         self.readiness = readiness
         self.playback = playback
         self.display = display
+        self.controls = controls
         self.capabilities = capabilities
         self.admin_dir = admin_dir
         self.development_origins = development_origins
@@ -811,8 +821,77 @@ def create_app(context: ManagementContext) -> FastAPI:
                 "Settings violate AQENO limits.",
                 {"warnings": warnings},
             )
+        # Control bindings have their own capability-aware API. A general
+        # settings round-trip must preserve them and must not expose the
+        # adapter's compact persistence encoding as an HTTP contract.
+        configured = replace(
+            configured,
+            controls=context.configuration.settings().controls,
+        )
         context.configuration.save_settings(configured)
+        if context.controls is not None:
+            context.controls.replace_settings(configured)
         return _settings_resource(configured)
+
+    @app.get(
+        "/api/v1/controls",
+        response_model=ControlsResource,
+        dependencies=auth,
+        responses=ERROR_RESPONSES,
+        tags=["controls"],
+    )
+    def controls() -> ControlsResource:
+        if context.controls is None:
+            raise ApiError(404, "controls_unavailable", "Physical controls are not available.")
+        return _controls_resource(context.controls)
+
+    @app.patch(
+        "/api/v1/controls/{control_id}/mappings/{event}",
+        response_model=ControlsResource,
+        dependencies=auth,
+        responses=ERROR_RESPONSES,
+        tags=["controls"],
+    )
+    def patch_control_mapping(
+        control_id: str, event: str, resource: ControlBindingPatch
+    ) -> ControlsResource:
+        if context.controls is None:
+            raise ApiError(404, "controls_unavailable", "Physical controls are not available.")
+        try:
+            context.controls.update_binding(
+                LogicalControl(control_id), ControlEventType(event), resource.action_id
+            )
+        except ValueError as exc:
+            raise ApiError(422, "invalid_control_mapping", str(exc)) from exc
+        return _controls_resource(context.controls)
+
+    @app.post(
+        "/api/v1/controls/reset",
+        response_model=ControlsResource,
+        dependencies=auth,
+        responses=ERROR_RESPONSES,
+        tags=["controls"],
+    )
+    def reset_control_mappings() -> ControlsResource:
+        if context.controls is None:
+            raise ApiError(404, "controls_unavailable", "Physical controls are not available.")
+        context.controls.reset()
+        return _controls_resource(context.controls)
+
+    @app.patch(
+        "/api/v1/controls/illumination",
+        response_model=ControlsResource,
+        dependencies=auth,
+        responses=ERROR_RESPONSES,
+        tags=["controls"],
+    )
+    def patch_control_illumination(resource: IlluminationPatch) -> ControlsResource:
+        if context.controls is None:
+            raise ApiError(404, "controls_unavailable", "Physical controls are not available.")
+        context.controls.set_illumination(resource.illumination)
+        if context.display is not None:
+            context.display.set_illumination_preference(resource.illumination)
+        return _controls_resource(context.controls)
 
     @app.get(
         "/api/v1/profiles",
@@ -1248,6 +1327,40 @@ def _settings_resource(settings: Settings) -> SettingsResource:
             follow_symlinks=settings.library.follow_symlinks,
         ),
         language=settings.language,  # type: ignore[arg-type]
+    )
+
+
+def _controls_resource(controls: MappedInputBus) -> ControlsResource:
+    return ControlsResource(
+        controls=[
+            ControlCapabilityResource(
+                id=item.control.value,
+                type=cast(Literal["button", "rotary_encoder"], item.type.value),
+                label=item.label,
+                events=[event.value for event in item.events],
+                illumination=item.illumination,
+            )
+            for item in controls.controls
+        ],
+        actions=[
+            ControlActionResource(
+                id=item.id,
+                label=item.label,
+                category=item.category,
+                compatible_events=[event.value for event in item.compatible_events],
+            )
+            for item in controls.actions
+        ],
+        mappings=[
+            ControlBindingResource(
+                control_id=item.control.value,
+                event=item.event.value,
+                action_id=item.action_id,
+                supported=item.supported,
+            )
+            for item in controls.bindings()
+        ],
+        illumination=controls.illumination,  # type: ignore[arg-type]
     )
 
 

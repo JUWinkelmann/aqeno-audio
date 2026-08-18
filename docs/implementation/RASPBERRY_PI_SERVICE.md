@@ -24,6 +24,12 @@ The supported base must already provide systemd (including `systemd-socket-proxy
 only while this development installer builds the Admin artifact. Missing prerequisites fail before
 the release is activated.
 
+RH1 platform setup verifies the Pi 4B, enables I2C, disables onboard audio and applies
+`dtoverlay=hifiberry-dac` through an idempotent managed `config.txt` block. The original boot config
+is retained once as `.pre-aqeno`; a conflicting HiFiBerry overlay stops installation for inspection.
+AQENO selects `plughw:CARD=sndrpihifiberry,DEV=0` by card ID, not numeric order. A reboot is required
+after first overlay installation; `deploy/aqeno-diagnostics.sh` reports the actual ALSA cards.
+
 The installer also performs a locked `npm ci`, checks/tests the Admin client and produces the static
 `admin/build/`. FastAPI serves that build at `/`; Node and Vite are build-time tools only and are not
 started by systemd. If the build is absent, API/playback still start and the missing Web surface is
@@ -31,6 +37,8 @@ an explicit deployment defect rather than a playback dependency.
 
 The reference environment selects Qt `eglfs` and hides the pointer. The service starts from
 `multi-user.target`, so no desktop, taskbar or window manager is part of the appliance path.
+The separate boot-presentation installer remains fail-closed until a canonical AQENO SVG logo and
+the real RH1 DSI/display-power path are present; ordinary development never installs Plymouth.
 
 The centrally configured hostname is `AQENO_HOSTNAME` in `/etc/aqeno/platform.env`; its RH1 default
 is `aqeno`. The AQENO process listens only on `127.0.0.1:8766`. `aqeno-web.socket` exposes port 80 through
@@ -49,3 +57,8 @@ provisioning, not the AQENO API process.
 
 The service writes only below `/aqeno-data` and does not run as root. Playback starts before optional
 network readiness; neither Avahi nor the HTTP socket adds `network-online.target` ordering.
+
+For iteration, copy `deploy/rh1.env.example` to ignored `deploy/rh1.local` and use `make pi-dev`,
+`pi-status`, `pi-logs`, `pi-health` and periodic `pi-deploy`. The unprivileged deploy user can invoke
+only the fixed `aqeno-devctl` operation set. Uploads stage below `/var/tmp/aqeno-upload`; neither the
+fast nor release path can name, synchronize or remove `/aqeno-data`.

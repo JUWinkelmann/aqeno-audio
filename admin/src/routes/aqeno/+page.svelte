@@ -6,6 +6,7 @@
 	import { userMessageForError } from '$lib/api/errors';
 	import SettingsForm from '$lib/components/settings/SettingsForm.svelte';
 	import SourceList from '$lib/components/device/SourceList.svelte';
+	import ControlsPanel from '$lib/components/device/ControlsPanel.svelte';
 	import Button from '$lib/ui/Button.svelte';
 	import { formatBytes } from '$lib/utils/format';
 	import type { components } from '$lib/api/schema';
@@ -25,14 +26,23 @@
 		queryFn: () => apiRequest<DiagnosticsStatus>('/diagnostics')
 	}));
 
-	const tabs = [
+	const tabs = $derived([
 		{ id: 'device', label: 'Gerät', href: '/aqeno' },
+		...(deviceQuery.data?.capabilities.includes('physical_controls')
+			? [{ id: 'controls', label: 'Bedienung', href: '/aqeno?section=controls' }]
+			: []),
 		{ id: 'storage', label: 'Speicherorte', href: '/aqeno?section=storage' },
 		{ id: 'settings', label: 'Einstellungen', href: '/aqeno?section=settings' }
-	];
+	]);
 
 	const activeTab = $derived(
-		section === 'storage' ? 'storage' : section === 'settings' ? 'settings' : 'device'
+		section === 'controls'
+			? 'controls'
+			: section === 'storage'
+				? 'storage'
+				: section === 'settings'
+					? 'settings'
+					: 'device'
 	);
 
 	const usedPct = $derived(
@@ -170,6 +180,8 @@
 				{/if}
 			</section>
 		{/if}
+	{:else if activeTab === 'controls'}
+		<ControlsPanel />
 	{:else if activeTab === 'storage'}
 		<SourceList />
 	{:else}

@@ -48,6 +48,17 @@ from aqeno.ports.audio import (
 Gst.init(None)
 
 
+def test_named_alsa_device_is_applied_to_the_output_sink() -> None:
+    device = "plughw:CARD=sndrpihifiberry,DEV=0"
+    engine = GStreamerAudioEngine(alsa_device=device)
+    try:
+        sink = engine._pipeline.get_property("audio-sink")
+        assert sink.get_factory().get_name() == "alsasink"
+        assert sink.get_property("device") == device
+    finally:
+        engine.close()
+
+
 # ---------------------------------------------------------------------------
 # Fixture audio, generated with GStreamer at test time (ADR 0008 § 7).
 # ---------------------------------------------------------------------------

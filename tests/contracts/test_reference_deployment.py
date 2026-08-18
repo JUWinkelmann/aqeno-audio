@@ -49,6 +49,7 @@ def test_reference_environment_is_kiosk_oriented() -> None:
     assert "QT_QPA_PLATFORM=eglfs" in environment
     assert "QT_QPA_EGLFS_HIDECURSOR=1" in environment
     assert "AQENO_ADMIN_DIR=/opt/aqeno/current/admin" in environment
+    assert "AQENO_ALSA_DEVICE=plughw:CARD=sndrpihifiberry,DEV=0" in environment
 
 
 def test_installer_refuses_an_ambiguous_install_location() -> None:
@@ -64,3 +65,54 @@ def test_installer_refuses_an_ambiguous_install_location() -> None:
     assert "releases/${release_id}" in installer
     assert 'admin/build/." "${staging_root}/admin/' in installer
     assert "rm -rf" not in installer
+
+
+def test_rh1_platform_config_selects_miniamp_without_numeric_alsa_identity() -> None:
+    fragment = (ROOT / "deploy/rh1/aqeno-rh1-config.txt").read_text()
+    installer = (ROOT / "deploy/install-reference-service.sh").read_text()
+    configurator = (ROOT / "deploy/rh1/configure-platform.sh").read_text()
+    assert "dtparam=i2c_arm=on" in fragment
+    assert "dtparam=audio=off" in fragment
+    assert "dtoverlay=hifiberry-dac" in fragment
+    assert "disable_splash=1" in fragment
+    assert "configure-platform.sh" in installer
+    assert "Raspberry Pi 4 Model B" in configurator
+    assert "conflicting HiFiBerry overlay" in configurator
+    assert "hw:0" not in fragment + installer + configurator
+
+
+def test_remote_deployment_is_bounded_away_from_aqeno_data() -> None:
+    remote = (ROOT / "deploy/rh1/remote.sh").read_text()
+    helper = (ROOT / "deploy/rh1/aqeno-devctl").read_text()
+    sudoers = (ROOT / "deploy/rh1/aqeno-deploy.sudoers").read_text()
+    combined = remote + helper + sudoers
+    assert "/aqeno-data" not in combined
+    assert "/var/tmp/aqeno-upload" in remote
+    assert "/var/tmp/aqeno-upload" in helper
+    assert "BatchMode=yes" in remote
+    assert "sudo -n /usr/local/libexec/aqeno-devctl" in remote
+    assert "/usr/local/libexec/aqeno-devctl" in sudoers
+    assert "activate-release" in helper
+    assert 'mv -Tf "${install_root}/current.next"' in helper
+    assert "rsync -rlt --delete" in helper
+    assert "deployment uploads may contain only directories and regular files" in helper
+    assert '"${repository_root}[rh1]"' in remote
+    assert "--no-index --find-links" in helper
+    assert 'runuser -u "${deploy_user}"' in helper
+    assert "pip install --no-deps --editable" not in helper
+
+
+def test_boot_presentation_is_appliance_only_asset_driven_and_has_no_delay() -> None:
+    environment = (ROOT / "deploy/aqeno.env.example").read_text()
+    installer = (ROOT / "deploy/rh1/install-boot-presentation.sh").read_text()
+    theme = (ROOT / "deploy/rh1/plymouth/aqeno.script").read_text()
+    reference_installer = (ROOT / "deploy/install-reference-service.sh").read_text()
+    assert "# AQENO_BOOT_PRESENTATION=plymouth" in environment
+    assert "install-boot-presentation.sh" not in reference_installer
+    assert "AQENO_LOGO_SOURCE" in installer
+    assert "Refusing to invent or install a placeholder" in installer
+    assert "quiet" in installer and "splash" in installer
+    assert "vt.global_cursor_default=0" in installer
+    assert "plymouth-set-default-theme aqeno" in installer
+    assert 'Image("aqeno-logo.png")' in theme
+    assert "sleep" not in installer.lower() + theme.lower()

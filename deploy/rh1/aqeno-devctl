@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+install_root=/opt/aqeno
+upload_root=/var/tmp/aqeno-upload
+deploy_user=${SUDO_USER:-}
+
+fail() {
+  echo "aqeno-devctl: $*" >&2
+  exit 2
+}
+
+validated_upload() {
+  local supplied=$1 resolved
+  [[ -d ${supplied} && ! -L ${supplied} ]] || fail "upload directory is missing"
+  resolved=$(realpath -e -- "${supplied}")
+  [[ ${resolved} == "${upload_root}/"* ]] || fail "upload is outside the bounded staging root"
+  if find "${resolved}" -type l -print -quit | grep -q .; then
+    fail "symbolic links are not permitted in deployment uploads"
+  fi
+  if find "${resolved}" ! -type d ! -type f -print -quit | grep -q .; then
+    fail "deployment uploads may contain only directories and regular files"
+  fi
+  printf '%s\n' "${resolved}"
+}
+
+activate_link() {
+  local relative_target=$1 previous
+  previous=$(readlink "${install_root}/current" 2>/dev/null || true)
+  ln -sfn "${relative_target}" "${install_root}/current.next"
+  mv -Tf "${install_root}/current.next" "${install_root}/current"
+  if ! systemctl restart aqeno.service || ! health; then
+    if [[ -n ${previous} ]]; then
+      ln -sfn "${previous}" "${install_root}/current.next"
+      mv -Tf "${install_root}/current.next" "${install_root}/current"
+      systemctl restart aqeno.service || true
+    fi
+    fail "new deployment failed health check; previous release reactivated"
+  fi
+}
+
+health() {
+  curl --fail --silent --show-error --max-time 10 \
+    http://127.0.0.1:8766/api/v1/auth/status >/dev/null
+}
+
+activate_dev() {
+  local upload dev_root
+  upload=$(validated_upload "$1")
+  [[ -f ${upload}/source/pyproject.toml && -d ${upload}/source/src ]] \
+    || fail "development upload is incomplete"
+  [[ -f ${upload}/admin/index.html ]] || fail "Admin build is missing"
+  dev_root=${install_root}/dev
+  install -d -o root -g root -m 0755 "${dev_root}"
+  rsync -rlt --delete "${upload}/source/" "${dev_root}/source/"
+  rsync -rlt --delete "${upload}/admin/" "${dev_root}/admin/"
+  [[ -x ${dev_root}/venv/bin/python ]] \
+    || fail "development runtime is not provisioned; run the reference installer"
+  chown -R root:root "${dev_root}"
+  activate_link dev
+}
+
+activate_release() {
+  local upload release_id release_root staging wheel
+  upload=$(validated_upload "$1")
+  release_id=$2
+  [[ ${release_id} =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$ ]] || fail "invalid release id"
+  [[ -f ${upload}/release.json && -f ${upload}/admin/index.html ]] \
+    || fail "release upload is incomplete"
+  mapfile -t wheels < <(find "${upload}/package" -maxdepth 1 -type f -name 'aqeno-*.whl' -print)
+  [[ ${#wheels[@]} -eq 1 ]] || fail "release must contain exactly one wheel"
+  wheel=${wheels[0]}
+  release_root=${install_root}/releases/${release_id}
+  staging=${release_root}.staging
+  [[ ! -e ${release_root} && ! -e ${staging} ]] || fail "release already exists"
+  install -d -o root -g root -m 0755 "${install_root}/releases"
+  install -d -o "${deploy_user}" -g aqeno-deploy -m 0750 "${staging}"
+  runuser -u "${deploy_user}" -- python3 -m venv --system-site-packages "${staging}/venv"
+  runuser -u "${deploy_user}" -- "${staging}/venv/bin/pip" install \
+    --no-index --find-links "${upload}/package" "${wheel}[rh1]"
+  runuser -u "${deploy_user}" -- "${staging}/venv/bin/python" -c 'import aqeno'
+  install -d -o root -g root -m 0755 "${staging}/admin"
+  cp -a "${upload}/admin/." "${staging}/admin/"
+  install -o root -g root -m 0644 "${upload}/release.json" "${staging}/release.json"
+  chown -R root:root "${staging}"
+  mv "${staging}" "${release_root}"
+  activate_link "releases/${release_id}"
+}
+
+[[ ${EUID} -eq 0 ]] || fail "must run through sudo"
+[[ ${deploy_user} =~ ^[a-z_][a-z0-9_-]*$ && ${deploy_user} != root ]] \
+  || fail "must be invoked by the unprivileged deployment user through sudo"
+id -nG "${deploy_user}" | tr ' ' '\n' | grep -qx aqeno-deploy \
+  || fail "caller is not in aqeno-deploy"
+case ${1:-} in
+  activate-dev) [[ $# -eq 2 ]] || fail "activate-dev expects one upload"; activate_dev "$2" ;;
+  activate-release)
+    [[ $# -eq 3 ]] || fail "activate-release expects upload and release id"
+    activate_release "$2" "$3"
+    ;;
+  status) systemctl --no-pager --full status aqeno.service aqeno-web.socket ;;
+  logs) journalctl -u aqeno.service --no-pager -n 200 ;;
+  logs-follow) journalctl -u aqeno.service -f -n 80 ;;
+  restart) systemctl restart aqeno.service; health ;;
+  health) health; echo "AQENO management health: ready" ;;
+  diagnostics)
+    systemctl --no-pager --full status aqeno.service || true
+    aplay -l || true
+    i2cdetect -y 1 || true
+    ;;
+  *) fail "unsupported operation" ;;
+esac

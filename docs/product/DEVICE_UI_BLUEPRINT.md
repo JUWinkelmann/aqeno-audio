@@ -179,12 +179,16 @@ RH1 is designed at its real viewport first, not scaled down from a desktop compo
 
 ## Physical controls and light
 
-| Hardware | Meaning | Screen relationship |
+| Hardware | RH1 default | Screen relationship |
 |---|---|---|
-| Previous MX key | semantic `Previous` | never acts as Back and never wakes display |
-| encoder rotation | relative volume | never wakes display |
-| encoder press | Play/Pause | never wakes display; UI reflects the result only when already visible |
-| Next MX key | semantic `Next` | never acts as Forward navigation and never wakes display |
+| Previous MX key | `Previous` | never acts as Back and never wakes display by default |
+| encoder rotation | relative volume | never wakes display by default |
+| encoder press | Play/Pause | never wakes display by default; UI reflects the result only when already visible |
+| Next MX key | `Next` | never acts as Forward navigation and never wakes display by default |
+
+These are safe device-wide defaults, not properties of the boards. The controlled mapping contract
+in `PLATFORM_CONTRACTS.md` may assign another available AQENO action; hardware drivers still emit
+only logical control events, and mappings remain independent of profiles, network and display state.
 
 Lighting is semantic output, not decoration:
 
@@ -195,8 +199,10 @@ Lighting is semantic output, not decoration:
 - `OFF` and Bedtime default all user-facing light to true off;
 - colour never carries meaning alone, and no continuous rainbow, chase or pulse is permitted.
 
-The current `NullStatusLeds` remains correct until RH1 true-off behaviour and a specific useful
-semantic indication are physically verified.
+RH1 now has a semantic warm-light adapter with `off`, `subtle` and `clear` preferences. It deliberately
+offers no raw RGB control, and Night/OFF override the preference to zero. Until physical true-off is
+verified, failure to initialize the LEDs degrades explicitly to `NullStatusLeds` and remains an RH1
+acceptance item rather than a software claim.
 
 ## Visual language
 

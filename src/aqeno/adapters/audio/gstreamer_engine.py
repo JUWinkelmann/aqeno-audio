@@ -73,11 +73,25 @@ class GStreamerAudioEngine:
     contract tests run without a real audio device, or a deliberately bogus ALSA
     device to provoke `AUDIO_DEVICE_MISSING` without hardware. Left `None`,
     `playbin3` picks its own sink (`autoaudiosink` by default), which is what the
-    composition root uses for real playback.
+    composition root may use for generic playback. Reference platforms pass a
+    stable ALSA card name rather than relying on a numeric card index.
     """
 
-    def __init__(self, audio_sink: Gst.Element | None = None) -> None:
+    def __init__(
+        self,
+        audio_sink: Gst.Element | None = None,
+        *,
+        alsa_device: str | None = None,
+    ) -> None:
         Gst.init(None)
+
+        if audio_sink is not None and alsa_device is not None:
+            raise ValueError("audio_sink and alsa_device are mutually exclusive")
+        if alsa_device is not None:
+            audio_sink = Gst.ElementFactory.make("alsasink", "aqeno-alsa-output")
+            if audio_sink is None:
+                raise RuntimeError("GStreamer could not create an ALSA output")
+            audio_sink.set_property("device", alsa_device)
 
         self._pipeline = Gst.ElementFactory.make("playbin3", "aqeno-playbin")
         if self._pipeline is None:
