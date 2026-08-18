@@ -39,7 +39,7 @@ Referenced by name in the table. All are read at transition time, never cached.
 | `playback_active` | Audio is playing or paused with a live session |
 | `ambient_enabled` | Ambient is switched on for the active profile |
 | `ambient_authorised` | The role model permits the current actor to run Ambient |
-| `profile_allows_dim` | Active profile uses `DIM` (false for all Kids profiles) |
+| `profile_allows_dim` | Active profile permits a glanceable `DIM` stage during playback |
 | `setup_authorised` | Actor holds Manager or Owner rights |
 
 ## Events
@@ -78,7 +78,7 @@ the display is not involved. This is a decision, not an omission.
 | `NfcPresented` | **stay `OFF`** ⁷ | stay `DIM` ⁷ | no timer reset ⁷ | stay `AMBIENT` ⁷ | reset timer ⁸ |
 | `NfcRemoved` | stay `OFF` | stay `DIM` | no timer reset | stay `AMBIENT` | reset timer ⁸ |
 | **Group D** (all) | **—** | **—** | **—** | **—** | **—** |
-| `InactivityElapsed` | n/a | → `OFF` | → `DIM` if `profile_allows_dim`, else → `OFF` | — ⁹ | n/a |
+| `InactivityElapsed` | n/a | → `OFF` | → `DIM` if `profile_allows_dim && playback_active && !night_active`, else → `OFF` | — ⁹ | n/a |
 | `DimElapsed` | n/a | → `OFF` | n/a | n/a | n/a |
 | `SetupIdleElapsed` | n/a | n/a | n/a | n/a | → `OFF` ¹⁰ |
 | `AmbientScheduleStart` | → `AMBIENT` ⁴ | → `AMBIENT` ⁴ | — ¹¹ | — | — |
@@ -132,6 +132,10 @@ relevant view is what is playing, not a grid of alternatives inviting a new choi
 of that document's open questions and should be confirmed in user testing.
 
 ## Brightness
+
+`DIM` is a deliberately reduced presentation, not the `INTERACTIVE` view with brightness lowered.
+The presentation layer removes visible controls, navigation and unnecessary detail. Glanceable is
+the UX name for this use of `DIM`, not another machine state.
 
 | State | Normal | `night_active` |
 |---|---|---|

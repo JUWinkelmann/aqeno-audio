@@ -22,7 +22,7 @@ these timers — see `DISPLAY_STATE_MACHINE.md` note 6.
 
 | Profile | Inactivity → `DIM`/`OFF` | Range | `profile_allows_dim` | Editable |
 |---|---:|---|:---:|---|
-| Kids Early | **30** | 10–120 | no | Manager |
+| Kids Early | **30** | 10–120 | playback only | Manager |
 | Kids Reader | **45** | 10–180 | no | Manager |
 | Kids Explorer | **60** | 10–300 | no | Manager |
 | Easy | **90** | 15–600 | no | Manager |
@@ -31,13 +31,15 @@ these timers — see `DISPLAY_STATE_MACHINE.md` note 6.
 | Timer | Default | Range | Editable |
 |---|---:|---|---|
 | Night override for all profiles | **10 s** | 5–30 | Manager |
-| `DIM` hold before `OFF` (Standard only) | **15 s** | 5–60 | Manager |
+| Kids Early `DIM` hold before `OFF` | **10 s** | 5–30 | Manager |
+| Standard `DIM` hold before `OFF` | **15 s** | 5–60 | Manager |
 | `SETUP` idle → `OFF` | **300 s** | 60–900 | Manager |
 | `SETUP` idle → `OFF` while `night_active` | **60 s** | 30–300 | Manager |
 
-Kids profiles never use `DIM`: `DISPLAY_BEHAVIOR.md` § Kids default requires the transition to go
-straight to `OFF`. `DIM` exists in the state machine so it is not invented later, and is reachable
-only for Standard.
+Kids Early uses `DIM` only while playback is active. Idle and Night/Bedtime go directly to `OFF`.
+The 30-second interactive timeout and 10-second hold are conservative Reference-prototype values to
+adjust from real use, not settled UX constants. Other Kids profiles remain unchanged until their
+journeys require a decision.
 
 ## 2. Brightness
 
@@ -47,7 +49,7 @@ absence of output.
 | Setting | Kids Early | Other Kids | Easy | Standard | Editable |
 |---|---:|---:|---:|---:|---|
 | `INTERACTIVE` | **70** | 80 | 85 | 85 | Manager |
-| `DIM` | n/a | n/a | n/a | **10** | Manager |
+| `DIM` | **8** | n/a | n/a | **10** | Manager |
 | `AMBIENT` | **40** | 40 | 50 | 50 | Manager |
 | Night minimum (any state) | **5** | 5 | 5 | 5 | Manager |
 
@@ -59,6 +61,9 @@ absence of output.
 The night LED value is fixed at zero. `PRODUCT_FOUNDATION.md` § 6 makes it a core product requirement,
 not a preference, and a configurable "dark room" that can be switched to "slightly lit" is not the
 feature that was specified.
+
+Kids Early `DIM` uses range **1–20**. Its default of 8 is a conservative Reference-prototype value.
+Night does not reduce it further: Night skips `DIM` and forces `OFF`.
 
 ---
 

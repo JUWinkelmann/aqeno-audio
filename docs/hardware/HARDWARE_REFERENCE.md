@@ -103,6 +103,7 @@ large button, an LED symbol or audio. The underlying application capability need
 Not yet selected or acquired:
 
 - NFC reader and tags;
+- VEML7700 ambient-light sensor; candidate for measuring lux during glanceable-display experiments;
 - audio amplifier, speakers and final audio path;
 - final mains/mobile power arrangement;
 - final enclosure and mechanical fixtures;
@@ -111,6 +112,15 @@ Not yet selected or acquired:
 NFC remains simulated until the current Vertical Slice works. PN532 is still a candidate technology
 family, but a specific board requires a feasibility check for Linux support, I2C compatibility,
 read range, mounting behind the enclosure and genuinely solderless installation.
+
+The VEML7700 is an RH1 candidate, not yet selected hardware. A feasibility check must confirm its
+Linux/I²C path, address coexistence on the shared bus, useful placement away from panel spill and
+whether its readings produce calmer behaviour in real use. Raw lux belongs to the sensor adapter;
+display policy interprets it. No generic adaptive-brightness engine is implied.
+
+The Waveshare 5-inch HDMI AMOLED is a possible **RH2** display candidate for later evaluation. This
+records an experiment option only: it is not a hardware decision, does not replace the acquired RH1
+touch display and creates no current adapter or purchasing requirement.
 
 For initial software work, an already available USB or HDMI audio output is acceptable. The final
 audio path must not consume the only practical connection path for Reference controls.

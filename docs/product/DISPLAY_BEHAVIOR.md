@@ -9,6 +9,8 @@ AQENO has a display, but must not become a display-centric device. The screen pr
 
 > **The display is a capability, not the centre of the product.**
 
+> **The AQENO display should recede, not simply turn off.**
+
 ## Core rules
 
 1. **Audio playback never requires visual activity.**
@@ -24,7 +26,7 @@ AQENO has a display, but must not become a display-centric device. The screen pr
 | State | Meaning | Touch | Typical use |
 |---|---|---:|---|
 | OFF | Panel fully dark | Wake gesture may be accepted | Listening, sleep, inactivity |
-| DIM | Minimal, deliberately reduced output | Yes | Optional clock/progress where permitted |
+| DIM | Glanceable, deliberately reduced presentation | Wake only | Brief Now Playing context during playback |
 | INTERACTIVE | Full active UI | Yes | Browse, choose, search, configure |
 | AMBIENT | Passive approved visual content | Optional | Photo frame, artwork, simple information |
 | SETUP | Bounded appliance setup | Yes | Pairing, recovery, simple choices |
@@ -33,17 +35,39 @@ Transitions are explicit application behaviour and must not be delegated blindly
 
 ## Kids default
 
-For `Kids Early` and similar profiles:
+For `Kids Early`:
 
-- after an interaction timeout during playback, transition to `OFF`;
+- during active playback, follow `INTERACTIVE → DIM → OFF` with conservative, configurable
+  Reference-prototype timings;
+- `DIM` is a presentation form, not an additional domain/display state: no visible touch controls,
+  no navigation and no attention-seeking animation;
+- when playback is idle, inactivity follows the existing path to `OFF` without entering `DIM`;
 - physical volume, play/pause and next/previous remain functional while `OFF`;
 - chapter changes, buffering, metadata updates and remote sync do not wake the display;
 - touching the display may wake directly into the least distracting relevant view;
-- bedtime/night scenes force `OFF` and may prohibit `AMBIENT`.
+- bedtime/night scenes force `OFF`, skip glanceable `DIM` and prohibit `AMBIENT`.
+
+### Glanceable Now Playing experiments
+
+The Reference Hardware should test, without selecting a final variant yet:
+
+1. small artwork plus title;
+2. title plus chapter/episode;
+3. title plus restrained progress;
+4. title only.
+
+`INTERACTIVE` remains the complete Now Playing UI with artwork, title, chapter/episode, progress and
+available interaction. `DIM` is not that same screen with a lower brightness. The presentation layer
+must deliberately remove controls and visual detail. In shorthand: `INTERACTIVE` means interact,
+`DIM` means glance, and `OFF` means disappear.
 
 ## Ambient / digital photo frame
 
 AQENO may support a digital photo-frame or artwork mode because the hardware already contains a useful display. This is **not** the default idle behaviour.
+
+Glanceable `DIM` during playback is not Ambient. `AMBIENT` remains the explicitly enabled and
+authorised photo-frame/artwork mode, and the invariant remains unchanged: **Ambient is never an
+automatic fallback for inactivity.** AQENO shows no automatic idle clock or date.
 
 ### Recommended authority for child profiles
 
@@ -100,7 +124,8 @@ Prefer staged startup. AQENO should not block local playback or physical control
 ## Open questions for user testing
 
 - Should a touch wake reveal the currently playing cover or the home screen?
-- Is a very low-brightness progress view useful, or is fully `OFF` preferable in Kids modes?
+- Which of the four glanceable Now Playing variants is useful without drawing attention?
+- Are the conservative Kids Early `DIM` timing and brightness comfortable in real use?
 - Should Ambient stop immediately when audio starts, or may Managers choose otherwise?
 - How long should interaction timeouts be for Kids Early, Reader, Easy and Standard?
 - Which visual transitions feel calm rather than attention-seeking?

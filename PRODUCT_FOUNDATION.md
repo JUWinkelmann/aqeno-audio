@@ -110,6 +110,10 @@ AQENO should become usable quickly after power-on or wake, and should be able to
 ### P14 — Ambient display is explicit, not default
 The display may support useful ambient experiences such as a digital photo frame, clock or artwork, but these modes must never emerge merely because the device is idle. They are explicitly enabled by the person authorised for the active experience profile.
 
+Automatic reduction during active playback is not Ambient. AQENO may recede from a complete
+interactive surface through a short glanceable `DIM` presentation to `OFF`; this is playback context,
+not an idle display mode. With no playback and no interaction, the default remains `OFF`.
+
 ### P15 — Show capability, never absence
 AQENO presents only functions that are currently usable on the device. An unavailable optional
 capability has no device UI surface; it is not shown disabled, locked, badged or as an upgrade
@@ -193,14 +197,22 @@ Playback state and visual state are separate architectural concepts.
 AQENO treats the display as an explicit state machine rather than a generic always-on UI surface:
 
 - **OFF** — panel dark; no visual activity;
-- **DIM** — minimal low-luminance information where explicitly useful;
+- **DIM** — glanceable, deliberately reduced information where explicitly useful; not merely the
+  interactive view at lower brightness;
 - **INTERACTIVE** — active touch/navigation interface;
 - **AMBIENT** — deliberately enabled passive visual mode such as selected photos or artwork;
 - **SETUP** — bounded on-device pairing, onboarding and recovery; not general administration.
 
-For **Kids Early**, the default during audio playback is `OFF` after a short configurable interaction timeout. Playback changes, buffering and chapter transitions must not wake the display unless the user explicitly requests visual interaction.
+For **Kids Early**, active playback may recede progressively after visual interaction:
+`INTERACTIVE → DIM → OFF`. The `DIM` stage is short, glanceable Now Playing information without
+visible controls, navigation or attention-seeking animation. It is skipped while Night/Bedtime policy
+is active. Playback changes, buffering and chapter transitions do not wake the display unless the
+user explicitly requests visual interaction.
 
 `AMBIENT` is not a fallback for inactivity. It is a scene/capability that must be intentionally enabled.
+
+> **The AQENO display should recede, not simply turn off:** `INTERACTIVE` means interact, `DIM`
+> means glance, and `OFF` means disappear.
 
 ## 7. Open physical media and NFC
 
