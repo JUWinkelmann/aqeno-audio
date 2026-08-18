@@ -17,6 +17,12 @@ That is the actual purpose, and it decides what matters. The product vision in
 `PRODUCT_FOUNDATION.md` is real and worth building toward, but nobody is waiting on a release, and
 there is no business behind it.
 
+> **AQENO is built to be excellent, not to justify a business.**
+
+The full statement of motivation is `PRODUCT_FOUNDATION.md` § 0, decided in ADR 0015. Two rules from
+it you will need immediately: a capability does not have to be unique, it has to make AQENO better for
+the person using it; and existing products are benchmarks, never reasons to leave something out.
+
 **Deferred by intent — do not treat these as live constraints:**
 
 - licensing (`ADR 0004`, `ADR 0006` — both **on hold**, retained as a record of the reasoning);
@@ -64,6 +70,11 @@ Do not skim these. They are contracts, not background.
 | 9 | `docs/implementation/DISPLAY_STATE_MACHINE.md` | **Normative** transition table. Do not infer transitions from prose. |
 | 10 | `docs/implementation/CONFIGURATION_DEFAULTS.md` | Every timeout, brightness and volume value. Never invent one. |
 | 11 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | The first thing to build, in order |
+
+Two further documents are **context, not contracts**: `docs/product/COMPETITIVE_REVIEW.md` records
+what competing products do well and badly, and carries no authority over scope;
+`docs/product/USE_OBSERVATIONS.md` collects evidence from real use and may overturn assumptions in the
+list above.
 | 12 | `DEVELOPMENT.md` | Toolchain, layout, how to run and test |
 | 13 | `docs/hardware/HARDWARE_REFERENCE.md` | Reference prototype, solderless constraint |
 | 14 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |

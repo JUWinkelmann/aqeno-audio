@@ -23,8 +23,9 @@ see [`ADR 0006`](docs/decisions/0006-non-commercial-posture.md).
 5. [`ROADMAP.md`](ROADMAP.md) — discovery-to-MVP progression.
 6. [`DEVELOPMENT.md`](DEVELOPMENT.md) — toolchain, repository layout, how to run and test.
 7. [`docs/DOCUMENTATION_GAPS.md`](docs/DOCUMENTATION_GAPS.md) — what is not yet decided.
-8. [`MISTAKES.md`](MISTAKES.md) — mistakes already made; do not repeat them.
-9. [`docs/decisions/`](docs/decisions/) — durable architecture/product decisions.
+8. [`docs/product/COMPETITIVE_REVIEW.md`](docs/product/COMPETITIVE_REVIEW.md) — what other products do well; a benchmark, not a scope authority.
+9. [`MISTAKES.md`](MISTAKES.md) — mistakes already made; do not repeat them.
+10. [`docs/decisions/`](docs/decisions/) — durable architecture/product decisions.
 
 ## Core idea
 
