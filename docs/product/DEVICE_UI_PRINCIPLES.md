@@ -17,6 +17,10 @@ The concrete navigation, RH1 layout and presentation direction are specified in
 Artwork is navigation rather than decoration, and motion explains change rather than demanding
 attention.
 
+`TARGET_GROUP_UX_CONCEPTS.md` separately explores substantially different interaction models. AQENO
+does not reduce adaptive interaction to larger type or fewer copies of the same layout, and it does
+not infer an interaction model from a person's age.
+
 The quality question is not whether a surface looks modern. It is whether a person understands
 within seconds what they can do, and whether another element can be removed without making that
 harder.

@@ -82,6 +82,9 @@ Do not skim these. They are contracts, not background.
 | 20 | `docs/DOCUMENTATION_GAPS.md` | Remaining known gaps; historical analysis is retained |
 | 21 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
 
+For target-group design work, additionally read `docs/product/TARGET_GROUP_UX_CONCEPTS.md`. It is UX
+discovery rather than an implementation contract and must not be used to broaden the current slice.
+
 Two further documents are **context, not contracts**: `docs/product/COMPETITIVE_REVIEW.md` records
 what competing products do well and badly, and carries no authority over scope;
 `docs/product/USE_OBSERVATIONS.md` collects evidence from real use and may overturn assumptions in the

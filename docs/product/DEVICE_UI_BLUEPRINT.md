@@ -19,7 +19,7 @@ Five shorthand principles describe the direction:
 
 > **Content first. Controls second. Technology invisible.**
 >
-> **Same product. Different cognitive density.**
+> **Same AQENO. Same visual language. Different interaction models.**
 >
 > **Artwork is navigation, not decoration.**
 >
@@ -29,6 +29,10 @@ Five shorthand principles describe the direction:
 
 AQENO should feel obvious before it feels powerful. The reference is iPod-like product simplicity,
 not an imitation of an iPod's visual design.
+
+`TARGET_GROUP_UX_CONCEPTS.md` explores four distinct interaction models within these boundaries. It
+is UX discovery rather than an implementation contract: this blueprint must not be read as requiring
+one layout whose only variation is text size, labels or element count.
 
 ## Existing contracts already covering this direction
 
@@ -218,21 +222,21 @@ dependency decision with retained licence notices.
 - reduced-motion capability removes non-essential transitions without changing layout or meaning;
 - leaving `OFF` shows one complete frame; entering it has no farewell animation or flash.
 
-## Progressive UI and accessibility
+## Adaptive interaction and accessibility
 
-All configurations retain AQENO's visual identity and domain model. They vary cognitive density, not
-product branding:
+All configurations retain AQENO's identity, domain model, display-state contract and physical-control
+semantics. They may nevertheless use different navigation structures, information hierarchies,
+choice patterns and divisions of work between touch and hardware. Accessible / reduced complexity is
+a voluntarily selected interaction model, not an age inference or a larger-font version of Standard.
 
-| Configuration | Presentation density |
-|---|---|
-| Kids Early | artwork and symbols first; up to three immediate choices; minimal supporting text |
-| Reading Child | artwork plus short labels; one shallow browse level where needed |
-| Older Child / Standard | richer text and navigation only for available capabilities |
-| Easy / reduced complexity | large labelled targets, high contrast, few simultaneous choices and stable placement |
+The concept sheets in `TARGET_GROUP_UX_CONCEPTS.md` must be explored before shared implementation
+abstractions are chosen. Current code remains scoped to Kids Early; the concepts neither authorise
+four QML forks nor a generic profile renderer.
 
-The base components provide large targets, scalable text, visible focus, high contrast, no mandatory
-precision gesture, no time-limited response and no meaning conveyed solely through colour. A physical
-control remains available for frequent playback even when touch is difficult or the display is off.
+Every eventual composition still provides large targets, scalable text, visible focus, high
+contrast, no mandatory precision gesture, no time-limited response and no meaning conveyed solely
+through colour. Physical controls remain available for frequent playback when touch is difficult or
+the display is off.
 
 ## Review gate for every main surface
 
