@@ -61,7 +61,9 @@ Unexpected power loss must not corrupt the library.
 5. NETWORK_READY
 6. OPTIONAL_SERVICES_READY
 
-Later states may not unnecessarily block earlier local functions.
+Later states may not unnecessarily block earlier local functions. Entry criteria, what may fail
+without stopping the ladder, and the capability/minimum-state table that makes "unnecessarily"
+testable are specified in `docs/implementation/READINESS_STATES.md`.
 
 ## Reference performance targets
 - wake input response: <500 ms target;
