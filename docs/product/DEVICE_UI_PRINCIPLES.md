@@ -12,6 +12,11 @@ reference for that interaction quality, not a visual design to copy.
 > AQENO is not a computer made easier for a target group. It is a dedicated device whose ordinary
 > use should not need to be learned first.
 
+The concrete navigation, RH1 layout and presentation direction are specified in
+`DEVICE_UI_BLUEPRINT.md`. Its shorthand is: content first; controls second; technology invisible.
+Artwork is navigation rather than decoration, and motion explains change rather than demanding
+attention.
+
 The quality question is not whether a surface looks modern. It is whether a person understands
 within seconds what they can do, and whether another element can be removed without making that
 harder.

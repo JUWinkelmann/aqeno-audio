@@ -26,7 +26,7 @@ is implied.
 | Component | Quantity | Product identifier | Role |
 |---|---:|---|---|
 | Raspberry Pi 4B | 1 | Raspberry Pi 4 Model B | Reference computer |
-| 7-inch touchscreen | 1 | FREENOVE; exact product identifier/revision to record from the unit | Device UI and touch input |
+| 7-inch touchscreen | 1 | FREENOVE; 800 x 480, 60 Hz, capacitive 5-point touch, MIPI DSI; exact SKU/revision to record from the unit | Device UI and touch input |
 | I2C STEMMA QT rotary encoder | 1 | Adafruit 5880 | Relative volume, press for play/pause, restrained RGB feedback |
 | NeoKey 1x4 QT | 1 | Adafruit 4980 | Up to four physical MX keys with individually controlled NeoPixels |
 | CHERRY MX2A Brown RGB, 3-pin | several | CHERRY MX2A-G1NA | Quiet tactile switches |
@@ -38,8 +38,10 @@ is implied.
 | Mini speaker, 3 W / 4 ohm | 2 | QUARKZMAN, 44 x 31 x 15 mm | Left/right prototype speakers |
 | Speaker lead and connector | 2 | JST-PH 2.0, 100 mm; supplied with speakers | Removable speaker connection |
 
-The display's exact product identifier/revision and the Raspberry Pi's RAM variant should be added
-when confirmed from the physical units. The amplifier's exact Linux/I2S presentation and stereo
+The display's exact SKU/revision and the Raspberry Pi's RAM variant should be added when confirmed
+from the physical units. Its reported 800 x 480 resolution, 60 Hz refresh, capacitive 5-point touch
+and MIPI DSI connection are the RH1 design target; they do not establish authoritative panel-off or
+Linux touch/display-server behaviour. The amplifier's exact Linux/I2S presentation and stereo
 channel arrangement must be verified from the unit and vendor documentation before an adapter or
 wiring contract is recorded. Unknown inventory details must not be guessed.
 
@@ -142,8 +144,9 @@ connection path for Reference controls.
 
 - Qwiic simplifies prototype wiring but is not an AQENO platform requirement.
 - Shared I2C wiring still requires address, bus-load, cable-length and startup-order validation.
-- The FREENOVE panel's exact revision, Pi connection and display-server behaviour are not yet
-  recorded; authoritative panel off and touch routing therefore remain unproven.
+- The FREENOVE panel's exact revision and display-server behaviour are not yet recorded;
+  authoritative panel off and touch routing therefore remain unproven despite the known MIPI DSI
+  connection and published display characteristics.
 - The NeoKey and encoder boards are development modules, not production control assemblies.
 - Small board LEDs may need physical shielding; software-off capability must be verified on the
   assembled hardware.

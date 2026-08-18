@@ -67,19 +67,20 @@ Do not skim these. They are contracts, not background.
 | 5 | `docs/product/USER_JOURNEY_KIDS_EARLY.md` | The experience the code must produce |
 | 6 | `docs/product/DISPLAY_BEHAVIOR.md` | Display state machine and its rules |
 | 7 | `docs/product/DEVICE_UI_PRINCIPLES.md` | Mandatory appliance-UI decision filter |
-| 8 | `docs/implementation/DOMAIN_MODEL.md` | Entities and invariants |
-| 9 | `docs/implementation/PLATFORM_CONTRACTS.md` | Ports: input, display, LED, audio, persistence |
-| 10 | `docs/implementation/DISPLAY_STATE_MACHINE.md` | **Normative** transition table. Do not infer transitions from prose. |
-| 11 | `docs/implementation/CONFIGURATION_DEFAULTS.md` | Every timeout, brightness and volume value. Never invent one. |
-| 12 | `docs/implementation/CONTENT_INGESTION.md` | Library discovery, identity and metadata contract |
-| 13 | `docs/implementation/READINESS_STATES.md` | Staged startup guarantees and degradation |
-| 14 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | Implemented slice contract and remaining RH1 boundary |
-| 15 | `DEVELOPMENT.md` | Toolchain, layout, how to run and test |
-| 16 | `docs/hardware/HARDWARE_REFERENCE.md` | Acquired prototype, topology and verification boundary |
-| 17 | `HANDOVER.md` | Current live state and exact next action |
-| 18 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
-| 19 | `docs/DOCUMENTATION_GAPS.md` | Remaining known gaps; historical analysis is retained |
-| 20 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
+| 8 | `docs/product/DEVICE_UI_BLUEPRINT.md` | Canonical navigation, RH1 layout and visual direction |
+| 9 | `docs/implementation/DOMAIN_MODEL.md` | Entities and invariants |
+| 10 | `docs/implementation/PLATFORM_CONTRACTS.md` | Ports: input, display, LED, audio, persistence |
+| 11 | `docs/implementation/DISPLAY_STATE_MACHINE.md` | **Normative** transition table. Do not infer transitions from prose. |
+| 12 | `docs/implementation/CONFIGURATION_DEFAULTS.md` | Every timeout, brightness and volume value. Never invent one. |
+| 13 | `docs/implementation/CONTENT_INGESTION.md` | Library discovery, identity and metadata contract |
+| 14 | `docs/implementation/READINESS_STATES.md` | Staged startup guarantees and degradation |
+| 15 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | Implemented slice contract and remaining RH1 boundary |
+| 16 | `DEVELOPMENT.md` | Toolchain, layout, how to run and test |
+| 17 | `docs/hardware/HARDWARE_REFERENCE.md` | Acquired prototype, topology and verification boundary |
+| 18 | `HANDOVER.md` | Current live state and exact next action |
+| 19 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
+| 20 | `docs/DOCUMENTATION_GAPS.md` | Remaining known gaps; historical analysis is retained |
+| 21 | `docs/decisions/` | Accepted ADRs override `ARCHITECTURE.md` |
 
 Two further documents are **context, not contracts**: `docs/product/COMPETITIVE_REVIEW.md` records
 what competing products do well and badly, and carries no authority over scope;

@@ -215,6 +215,7 @@ Before implementation, read:
 - `docs/product/USER_JOURNEY_KIDS_EARLY.md`
 - `docs/product/DISPLAY_BEHAVIOR.md`
 - `docs/product/DEVICE_UI_PRINCIPLES.md`
+- `docs/product/DEVICE_UI_BLUEPRINT.md`
 - `docs/implementation/DOMAIN_MODEL.md`
 - `docs/implementation/PLATFORM_CONTRACTS.md`
 - `docs/implementation/DISPLAY_STATE_MACHINE.md`
