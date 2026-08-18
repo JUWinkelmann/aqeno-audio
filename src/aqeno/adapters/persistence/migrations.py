@@ -103,7 +103,44 @@ def _migration_0001_initial(conn: sqlite3.Connection) -> None:
         conn.execute(statement)
 
 
-MIGRATIONS: tuple[tuple[int, Migration], ...] = ((1, _migration_0001_initial),)
+# ADR 0014 / CONTENT_INGESTION.md § 11 — the first migration against a schema that
+# may already hold data, which is why `_backup()` in `apply_migrations()` matters
+# here more than it did for migration 1.
+_MIGRATION_0002_STATEMENTS: tuple[str, ...] = (
+    # `available` already exists from migration 1 (it was anticipated ahead of
+    # scanning). `last_seen` and `kind_inference_rule` are new.
+    "ALTER TABLE content ADD COLUMN last_seen REAL",
+    "ALTER TABLE content ADD COLUMN kind_inference_rule TEXT",
+    """
+    CREATE TABLE member_file (
+        content_id TEXT NOT NULL REFERENCES content(id) ON DELETE CASCADE,
+        ordinal INTEGER NOT NULL,
+        path TEXT NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        fingerprint BLOB NOT NULL,
+        mtime REAL NOT NULL,
+        track_gain_db REAL,
+        track_peak REAL,
+        album_gain_db REAL,
+        album_peak REAL,
+        PRIMARY KEY (content_id, ordinal)
+    )
+    """,
+    # The lookup this exists for: "does a stored member file already have this
+    # fingerprint" runs once per file per scan (CONTENT_INGESTION.md § 11).
+    "CREATE INDEX member_file_fingerprint ON member_file (size_bytes, fingerprint)",
+)
+
+
+def _migration_0002_ingestion(conn: sqlite3.Connection) -> None:
+    for statement in _MIGRATION_0002_STATEMENTS:
+        conn.execute(statement)
+
+
+MIGRATIONS: tuple[tuple[int, Migration], ...] = (
+    (1, _migration_0001_initial),
+    (2, _migration_0002_ingestion),
+)
 
 CURRENT_SCHEMA_VERSION = MIGRATIONS[-1][0]
 

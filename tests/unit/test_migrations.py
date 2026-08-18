@@ -111,12 +111,13 @@ class TestBackupBeforeMigration:
 
         import aqeno.adapters.persistence.migrations as migrations_module
 
+        next_version = migrations_module.CURRENT_SCHEMA_VERSION + 1
         monkeypatch.setattr(
             migrations_module,
             "MIGRATIONS",
-            (*migrations_module.MIGRATIONS, (2, _migration_0002_marker)),
+            (*migrations_module.MIGRATIONS, (next_version, _migration_0002_marker)),
         )
-        monkeypatch.setattr(migrations_module, "CURRENT_SCHEMA_VERSION", 2)
+        monkeypatch.setattr(migrations_module, "CURRENT_SCHEMA_VERSION", next_version)
 
         apply_migrations(_connect(db_path), db_path=db_path)
 
@@ -148,3 +149,39 @@ class TestCorruptDatabase:
         clean_dir = tmp_path / "clean"
         lib = open_library(clean_dir)
         lib.close()
+
+
+class TestIngestionMigration:
+    """CONTENT_INGESTION.md § 11: the first migration against a schema that may
+    already hold data — the case the ADR 0007 § 5 backup rule exists for."""
+
+    def test_migrating_a_database_with_existing_content_preserves_it(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import aqeno.adapters.persistence.migrations as migrations_module
+
+        db_path = tmp_path / "aqeno.db"
+        conn = _connect(db_path)
+        monkeypatch.setattr(migrations_module, "MIGRATIONS", migrations_module.MIGRATIONS[:1])
+        monkeypatch.setattr(migrations_module, "CURRENT_SCHEMA_VERSION", 1)
+        apply_migrations(conn, db_path=db_path)
+        conn.execute("INSERT INTO content (id, title, kind) VALUES ('x', 'Title', 'audiobook')")
+        conn.close()
+
+        monkeypatch.undo()  # restore the real MIGRATIONS/CURRENT_SCHEMA_VERSION
+
+        apply_migrations(_connect(db_path), db_path=db_path)
+
+        conn = _connect(db_path)
+        row = conn.execute("SELECT * FROM content WHERE id = 'x'").fetchone()
+        assert row["title"] == "Title"
+        assert row["available"] == 1
+        assert row["last_seen"] is None
+        assert row["kind_inference_rule"] is None
+        tables = {
+            r[0]
+            for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        }
+        assert "member_file" in tables
+        conn.close()
+        assert list(tmp_path.glob("aqeno.db.bak-*")), "populated db must be backed up first"

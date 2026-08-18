@@ -16,7 +16,7 @@ from dataclasses import replace
 from datetime import timedelta
 
 from aqeno.config.defaults import Settings, default_settings
-from aqeno.domain.content import ContentId, ContentItem
+from aqeno.domain.content import ContentId, ContentItem, Fingerprint, MemberFile
 from aqeno.domain.profile import Profile
 from aqeno.ports.persistence import DatabaseHealth, TagMapping, UnknownContentError
 
@@ -29,6 +29,7 @@ class FakeLibrary:
     def __init__(self, *, health: DatabaseHealth = DatabaseHealth.OK) -> None:
         self._health = health
         self._content: dict[ContentId, ContentItem] = {}
+        self._member_files: dict[ContentId, tuple[MemberFile, ...]] = {}
         self._tags: dict[str, ContentId] = {}
         self._profiles: dict[str, Profile] = {}
         self._resume: dict[tuple[ContentId, str], timedelta] = {}
@@ -50,10 +51,14 @@ class FakeLibrary:
 
     # -- content ---------------------------------------------------------------
 
-    def save_content(self, item: ContentItem) -> None:
+    def save_content(
+        self, item: ContentItem, *, member_files: tuple[MemberFile, ...] | None = None
+    ) -> None:
         if self._degraded():
             return
         self._content[item.id] = item
+        if member_files is not None:
+            self._member_files[item.id] = member_files
 
     def get_content(self, content_id: ContentId) -> ContentItem | None:
         return self._content.get(content_id)
@@ -65,10 +70,29 @@ class FakeLibrary:
         if self._degraded():
             return
         self._content.pop(content_id, None)
+        self._member_files.pop(content_id, None)
         for uid in [uid for uid, cid in self._tags.items() if cid == content_id]:
             del self._tags[uid]
         for key in [key for key in self._resume if key[0] == content_id]:
             del self._resume[key]
+
+    def find_by_fingerprint(self, fingerprint: Fingerprint) -> ContentId | None:
+        for content_id, members in self._member_files.items():
+            for member in members:
+                if member.fingerprint == fingerprint:
+                    return content_id
+        return None
+
+    def get_member_files(self, content_id: ContentId) -> tuple[MemberFile, ...]:
+        return self._member_files.get(content_id, ())
+
+    def mark_unavailable(self, content_ids: tuple[ContentId, ...]) -> None:
+        if self._degraded():
+            return
+        for content_id in content_ids:
+            item = self._content.get(content_id)
+            if item is not None:
+                self._content[content_id] = replace(item, available=False)
 
     # -- tag mappings --------------------------------------------------------
 

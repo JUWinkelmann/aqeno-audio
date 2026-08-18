@@ -24,8 +24,11 @@ from aqeno.domain.content import (
     ContentId,
     ContentItem,
     ContentKind,
+    Fingerprint,
     HttpSource,
     LocalFileSource,
+    MemberFile,
+    ReplayGain,
 )
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
 from aqeno.ports.persistence import DatabaseHealth, Library, SettingsStore, UnknownContentError
@@ -47,6 +50,21 @@ def _content(title: str = "Item") -> ContentItem:
         duration=timedelta(minutes=10),
         artwork=Path(f"/art/{title}.jpg"),
         language="de",
+    )
+
+
+def _member_file(
+    path: str, *, ordinal: int = 0, size_bytes: int = 1000, digest: bytes = b"\x01" * 16
+) -> MemberFile:
+    return MemberFile(
+        path=Path(path),
+        ordinal=ordinal,
+        size_bytes=size_bytes,
+        mtime=1234.5,
+        fingerprint=Fingerprint(size_bytes=size_bytes, digest=digest),
+        replaygain=ReplayGain(
+            track_gain_db=-6.5, track_peak=0.98, album_gain_db=-7.0, album_peak=0.99
+        ),
     )
 
 
@@ -102,6 +120,113 @@ class TestContent:
         assert got.title == "Renamed"
         assert got.chapters == ()
         assert got.sources == item.sources[:1]
+
+
+class TestScanFields:
+    """CONTENT_INGESTION.md § 11: availability, last-seen and the inference rule."""
+
+    def test_round_trips_availability_last_seen_and_inference_rule(self, library: Library) -> None:
+        item = replace(
+            _content(),
+            available=False,
+            last_seen=123.5,
+            kind_inference_rule="rule-8-ambiguity-default",
+        )
+        library.save_content(item)
+        got = library.get_content(item.id)
+        assert got is not None
+        assert got.available is False
+        assert got.last_seen == 123.5
+        assert got.kind_inference_rule == "rule-8-ambiguity-default"
+
+    def test_defaults_to_available_with_no_inference_rule(self, library: Library) -> None:
+        library.save_content(_content())
+        item = library.list_content()[0]
+        assert item.available is True
+        assert item.last_seen is None
+        assert item.kind_inference_rule is None
+
+
+class TestMemberFiles:
+    """CONTENT_INGESTION.md § 11: the fingerprint index a rescan resolves identity
+    against, and the scan-oriented `save_content()` path."""
+
+    def test_omitting_member_files_leaves_previously_stored_ones_untouched(
+        self, library: Library
+    ) -> None:
+        item = _content()
+        member = _member_file("/media/a.mp3")
+        library.save_content(item, member_files=(member,))
+
+        library.save_content(item)  # ordinary save, no member_files given
+
+        assert library.get_member_files(item.id) == (member,)
+
+    def test_giving_member_files_replaces_the_stored_set(self, library: Library) -> None:
+        item = _content()
+        library.save_content(item, member_files=(_member_file("/media/old.mp3"),))
+
+        new_member = _member_file("/media/new.mp3", digest=b"\x02" * 16)
+        library.save_content(item, member_files=(new_member,))
+
+        assert library.get_member_files(item.id) == (new_member,)
+
+    def test_unknown_content_has_no_member_files(self, library: Library) -> None:
+        assert library.get_member_files(ContentId()) == ()
+
+    def test_find_by_fingerprint_locates_the_owning_work(self, library: Library) -> None:
+        item = _content()
+        member = _member_file("/media/a.mp3", digest=b"\x03" * 16)
+        library.save_content(item, member_files=(member,))
+
+        assert library.find_by_fingerprint(member.fingerprint) == item.id
+
+    def test_find_by_fingerprint_is_none_when_unknown(self, library: Library) -> None:
+        unknown = Fingerprint(size_bytes=42, digest=b"\x09" * 16)
+        assert library.find_by_fingerprint(unknown) is None
+
+    def test_removing_content_cascades_to_its_member_files(self, library: Library) -> None:
+        item = _content()
+        member = _member_file("/media/a.mp3", digest=b"\x04" * 16)
+        library.save_content(item, member_files=(member,))
+
+        library.remove_content(item.id)
+
+        assert library.get_member_files(item.id) == ()
+        assert library.find_by_fingerprint(member.fingerprint) is None
+
+
+class TestMarkUnavailable:
+    def test_marks_listed_works_unavailable_without_touching_others(self, library: Library) -> None:
+        gone, stays = _content("Gone"), _content("Stays")
+        library.save_content(gone)
+        library.save_content(stays)
+
+        library.mark_unavailable((gone.id,))
+
+        got_gone = library.get_content(gone.id)
+        got_stays = library.get_content(stays.id)
+        assert got_gone is not None and got_gone.available is False
+        assert got_stays is not None and got_stays.available is True
+
+    def test_preserves_resume_position_and_tag_mapping(self, library: Library) -> None:
+        item = _content()
+        library.save_content(item)
+        library.map_tag("uid-1", item.id)
+        library.set_resume(item.id, "kids-early", timedelta(seconds=42))
+
+        library.mark_unavailable((item.id,))
+
+        assert library.resolve_tag("uid-1") == item.id
+        assert library.get_resume(item.id, "kids-early") == timedelta(seconds=42)
+
+    def test_empty_tuple_marks_nothing(self, library: Library) -> None:
+        item = _content()
+        library.save_content(item)
+        library.mark_unavailable(())
+        got = library.get_content(item.id)
+        assert got is not None
+        assert got.available is True
 
 
 def test_resume_access_from_adapter_callback_thread(library: Library) -> None:

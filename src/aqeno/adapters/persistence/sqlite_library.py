@@ -26,8 +26,11 @@ from aqeno.domain.content import (
     ContentId,
     ContentItem,
     ContentKind,
+    Fingerprint,
     HttpSource,
     LocalFileSource,
+    MemberFile,
+    ReplayGain,
     Source,
 )
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
@@ -90,6 +93,25 @@ def _content_row_to_item(conn: sqlite3.Connection, row: sqlite3.Row) -> ContentI
         artwork=Path(row["artwork"]) if row["artwork"] is not None else None,
         language=row["language"],
         kind_overridden=bool(row["kind_overridden"]),
+        available=bool(row["available"]),
+        last_seen=row["last_seen"],
+        kind_inference_rule=row["kind_inference_rule"],
+    )
+
+
+def _member_file_row_to_member_file(row: sqlite3.Row) -> MemberFile:
+    return MemberFile(
+        path=Path(row["path"]),
+        ordinal=row["ordinal"],
+        size_bytes=row["size_bytes"],
+        mtime=row["mtime"],
+        fingerprint=Fingerprint(size_bytes=row["size_bytes"], digest=row["fingerprint"]),
+        replaygain=ReplayGain(
+            track_gain_db=row["track_gain_db"],
+            track_peak=row["track_peak"],
+            album_gain_db=row["album_gain_db"],
+            album_peak=row["album_peak"],
+        ),
     )
 
 
@@ -141,24 +163,34 @@ class SqliteLibrary:
 
     # -- content -------------------------------------------------------------
 
-    def save_content(self, item: ContentItem) -> None:
+    def save_content(
+        self, item: ContentItem, *, member_files: tuple[MemberFile, ...] | None = None
+    ) -> None:
         content_id_text = str(item.id.value)
-        self._write(lambda: self._upsert_content_locked(item, content_id_text))
+        self._write(lambda: self._upsert_content_locked(item, content_id_text, member_files))
 
-    def _upsert_content_locked(self, item: ContentItem, content_id_text: str) -> None:
+    def _upsert_content_locked(
+        self,
+        item: ContentItem,
+        content_id_text: str,
+        member_files: tuple[MemberFile, ...] | None,
+    ) -> None:
         conn = self._conn
         conn.execute(
             """
             INSERT INTO content (id, title, kind, duration_seconds, artwork, language,
-                                  kind_overridden, available)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                                  kind_overridden, available, last_seen, kind_inference_rule)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 title = excluded.title,
                 kind = excluded.kind,
                 duration_seconds = excluded.duration_seconds,
                 artwork = excluded.artwork,
                 language = excluded.language,
-                kind_overridden = excluded.kind_overridden
+                kind_overridden = excluded.kind_overridden,
+                available = excluded.available,
+                last_seen = excluded.last_seen,
+                kind_inference_rule = excluded.kind_inference_rule
             """,
             (
                 content_id_text,
@@ -168,6 +200,9 @@ class SqliteLibrary:
                 str(item.artwork) if item.artwork is not None else None,
                 item.language,
                 int(item.kind_overridden),
+                int(item.available),
+                item.last_seen,
+                item.kind_inference_rule,
             ),
         )
         conn.execute("DELETE FROM content_source WHERE content_id = ?", (content_id_text,))
@@ -200,6 +235,59 @@ class SqliteLibrary:
                     str(chapter.source.path) if chapter.source is not None else None,
                 ),
             )
+
+        if member_files is not None:
+            conn.execute("DELETE FROM member_file WHERE content_id = ?", (content_id_text,))
+            for member in member_files:
+                conn.execute(
+                    """
+                    INSERT INTO member_file
+                        (content_id, ordinal, path, size_bytes, fingerprint, mtime,
+                         track_gain_db, track_peak, album_gain_db, album_peak)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        content_id_text,
+                        member.ordinal,
+                        str(member.path),
+                        member.size_bytes,
+                        member.fingerprint.digest,
+                        member.mtime,
+                        member.replaygain.track_gain_db,
+                        member.replaygain.track_peak,
+                        member.replaygain.album_gain_db,
+                        member.replaygain.album_peak,
+                    ),
+                )
+
+    def find_by_fingerprint(self, fingerprint: Fingerprint) -> ContentId | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT content_id FROM member_file WHERE size_bytes = ? AND fingerprint = ? "
+                "LIMIT 1",
+                (fingerprint.size_bytes, fingerprint.digest),
+            ).fetchone()
+            return ContentId(uuid.UUID(row["content_id"])) if row is not None else None
+
+    def get_member_files(self, content_id: ContentId) -> tuple[MemberFile, ...]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM member_file WHERE content_id = ? ORDER BY ordinal",
+                (str(content_id.value),),
+            ).fetchall()
+            return tuple(_member_file_row_to_member_file(row) for row in rows)
+
+    def mark_unavailable(self, content_ids: tuple[ContentId, ...]) -> None:
+        if not content_ids:
+            return
+
+        def do() -> None:
+            self._conn.executemany(
+                "UPDATE content SET available = 0 WHERE id = ?",
+                [(str(cid.value),) for cid in content_ids],
+            )
+
+        self._write(do)
 
     def get_content(self, content_id: ContentId) -> ContentItem | None:
         with self._lock:

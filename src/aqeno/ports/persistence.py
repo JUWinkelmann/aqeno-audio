@@ -24,7 +24,7 @@ from enum import StrEnum, auto
 from typing import Protocol
 
 from aqeno.config.defaults import Settings
-from aqeno.domain.content import ContentId, ContentItem
+from aqeno.domain.content import ContentId, ContentItem, Fingerprint, MemberFile
 from aqeno.domain.profile import Profile
 
 
@@ -98,8 +98,16 @@ class Library(Protocol):
     def close(self) -> None: ...
 
     # -- content -----------------------------------------------------------
-    def save_content(self, item: ContentItem) -> None:
-        """Insert or replace a content item, its sources and its chapters."""
+    def save_content(
+        self, item: ContentItem, *, member_files: tuple[MemberFile, ...] | None = None
+    ) -> None:
+        """Insert or replace a content item, its sources and its chapters.
+
+        `member_files` is the scan-oriented path (CONTENT_INGESTION.md § 11):
+        when given (including empty), it replaces the stored member-file
+        records used by `find_by_fingerprint()`. Callers outside a scan simply
+        omit it, leaving any previously stored member-file records untouched.
+        """
         ...
 
     def get_content(self, content_id: ContentId) -> ContentItem | None: ...
@@ -109,6 +117,28 @@ class Library(Protocol):
     def remove_content(self, content_id: ContentId) -> None:
         """Removes the content item and cascades to its tag mappings and resume
         positions. Never triggered by removing a tag mapping — only the reverse."""
+        ...
+
+    def find_by_fingerprint(self, fingerprint: Fingerprint) -> ContentId | None:
+        """The `ContentId` of the known work with a member file matching this
+        fingerprint, or `None`. Ingestion identity resolution (CONTENT_INGESTION.md
+        § 4) — a rescan recognises a file it has already seen at a new path.
+        """
+        ...
+
+    def get_member_files(self, content_id: ContentId) -> tuple[MemberFile, ...]:
+        """The stored member-file records for a work, as of the last scan.
+
+        Identity resolution needs the *total* count to test "more than half of
+        that work's stored member files matched" (CONTENT_INGESTION.md § 4).
+        """
+        ...
+
+    def mark_unavailable(self, content_ids: tuple[ContentId, ...]) -> None:
+        """Sets `available = False` on every listed work, leaving everything else
+        untouched — resume position, tag mappings and metadata all survive
+        (CONTENT_INGESTION.md § 8). A work is never deleted by a scan.
+        """
         ...
 
     # -- tag mappings --------------------------------------------------------

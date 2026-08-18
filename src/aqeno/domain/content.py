@@ -117,6 +117,45 @@ class ContentId:
 
 
 @dataclass(frozen=True, slots=True)
+class Fingerprint:
+    """A file's identity across moves, renames and retagging (ADR 0014 § 3).
+
+    `size_bytes` plus a blake2b-128 digest of the 64 KiB window starting at
+    `size_bytes // 2` — audio payload, not the header a tag editor rewrites.
+    """
+
+    size_bytes: int
+    digest: bytes
+
+
+@dataclass(frozen=True, slots=True)
+class ReplayGain:
+    """Track/album gain and peak, read but not yet applied (ADR 0009 § 6)."""
+
+    track_gain_db: float | None = None
+    track_peak: float | None = None
+    album_gain_db: float | None = None
+    album_peak: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class MemberFile:
+    """One file belonging to a work, as tracked by a scan (CONTENT_INGESTION.md § 11).
+
+    Distinct from `Source`: a `Source` is what the player opens, a `MemberFile`
+    is scan bookkeeping — the fingerprint identity lookup and incremental-scan
+    skip test key off it.
+    """
+
+    path: Path
+    ordinal: int
+    size_bytes: int
+    mtime: float
+    fingerprint: Fingerprint
+    replaygain: ReplayGain = field(default_factory=ReplayGain)
+
+
+@dataclass(frozen=True, slots=True)
 class Chapter:
     index: int
     title: str | None
@@ -157,6 +196,17 @@ class ContentItem:
     """Content language, independent of UI language (ADR 0005, ADR 0009)."""
     kind_overridden: bool = False
     """True when a Manager corrected an inferred kind. Tags lie constantly."""
+    available: bool = True
+    """False when every member file was absent at the last scan (ADR 0014 § 3).
+
+    An unavailable work keeps its identity, resume position and tag mappings —
+    nothing is ever deleted by a scan (CONTENT_INGESTION.md § 8).
+    """
+    last_seen: float | None = None
+    """`Clock.now()` at the scan that last found at least one member file."""
+    kind_inference_rule: str | None = None
+    """Which rule in CONTENT_INGESTION.md § 5 produced `kind`, so a Manager
+    surface can show why. `None` for content not produced by a scan."""
 
     @property
     def policy(self) -> KindPolicy:
