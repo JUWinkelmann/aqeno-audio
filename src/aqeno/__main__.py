@@ -12,12 +12,16 @@ from typing import Protocol, runtime_checkable
 
 from aqeno.adapters.clock import SystemClock
 from aqeno.adapters.fakes.audio import FakeAudioEngine
+from aqeno.adapters.fakes.display import FakeDisplayPanel
+from aqeno.adapters.fakes.led import FakeStatusLeds
 from aqeno.adapters.input.keyboard import KeyboardSimulator
 from aqeno.adapters.metadata import MutagenProbe
 from aqeno.adapters.persistence.sqlite_library import SqliteLibrary, open_library
 from aqeno.adapters.persistence.toml_settings import TomlSettingsStore
+from aqeno.application.display import DisplayService
 from aqeno.application.ingestion import run_scan
 from aqeno.application.playback import PlaybackSession
+from aqeno.application.readiness import Readiness, ReadinessState
 from aqeno.config.defaults import Settings
 from aqeno.config.paths import artwork_dir
 from aqeno.domain.profile import (
@@ -28,6 +32,8 @@ from aqeno.domain.profile import (
     VolumeLimits,
 )
 from aqeno.ports.audio import AudioEngine
+from aqeno.ports.display import DisplayPanel
+from aqeno.ports.led import StatusLeds
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +48,8 @@ class AqenoProcess:
     """Resources owned by one running AQENO process."""
 
     session: PlaybackSession
+    display: DisplayService
+    readiness: Readiness
     library: SqliteLibrary
     inputs: KeyboardSimulator
     audio: AudioEngine
@@ -57,10 +65,13 @@ class AqenoProcess:
             self.session.shutdown()
         finally:
             try:
-                if isinstance(self.audio, _Closable):
-                    self.audio.close()
+                self.display.shutdown()
             finally:
-                self.library.close()
+                try:
+                    if isinstance(self.audio, _Closable):
+                        self.audio.close()
+                finally:
+                    self.library.close()
 
 
 def _kids_early_profile(settings: Settings) -> Profile:
@@ -96,6 +107,17 @@ def _audio_engine(fake_hardware: frozenset[str]) -> AudioEngine:
     return GStreamerAudioEngine()
 
 
+def _display_panel(fake_hardware: frozenset[str]) -> DisplayPanel:
+    """No real panel adapter exists yet — the display-server question is gap G24,
+    undecided (ADR 0016 § Consequences). Every run is faked until that lands."""
+    return FakeDisplayPanel()
+
+
+def _status_leds(fake_hardware: frozenset[str]) -> StatusLeds:
+    """No real LED adapter exists yet either; see `_display_panel`."""
+    return FakeStatusLeds()
+
+
 def _run_startup_scan(library: SqliteLibrary, settings: Settings) -> None:
     """Runs on its own thread (ADR 0014 § 5: never the playback/input thread).
 
@@ -127,6 +149,8 @@ def _run_startup_scan(library: SqliteLibrary, settings: Settings) -> None:
 
 def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoProcess:
     settings = TomlSettingsStore().load()
+    clock = SystemClock()
+    readiness = Readiness(clock)
     library = open_library()
     audio: AudioEngine | None = None
     scan_thread: threading.Thread | None = None
@@ -139,6 +163,8 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
             library.save_profile(profile)
 
         # LOCAL_READY: the database is open and the profile is resolved.
+        readiness.advance(ReadinessState.LOCAL_READY)
+
         # Scanning off this thread means it never blocks PLAYBACK_READY below.
         if settings.library.scan_on_startup:
             scan_thread = threading.Thread(
@@ -149,16 +175,47 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
             )
             scan_thread.start()
 
-        inputs = KeyboardSimulator()
+        night_active = False
+
+        def _toggle_night() -> None:
+            # `session` and `display` are assigned below before this can ever be
+            # called (the keyboard simulator only calls it in response to a later
+            # key press), so the late-bound closure is safe here.
+            nonlocal night_active
+            night_active = not night_active
+            session.set_night_active(night_active)
+            display.set_night_active(night_active)
+
+        inputs = KeyboardSimulator(toggle_night=_toggle_night)
         audio = _audio_engine(fake_hardware)
         session = PlaybackSession(
             audio=audio,
             library=library,
-            clock=SystemClock(),
+            clock=clock,
             settings=settings,
             inputs=inputs,
         )
         session.use_profile(profile)
+
+        panel = _display_panel(fake_hardware)
+        display = DisplayService(
+            panel=panel,
+            leds=_status_leds(fake_hardware),
+            clock=clock,
+            readiness=readiness,
+            profile=profile,
+            settings=settings,
+        )
+        session.on_changed(display.handle_playback_changed)
+        # Listeners register before the input adapter is considered started
+        # (READINESS_STATES.md § 2, § 4; ADR 0011 does not replay input).
+        inputs.on_input(display.handle_input)
+
+        # PLAYBACK_READY: the audio engine is up, both application listeners are
+        # registered on the InputBus, and the input adapter is live. There is no
+        # UI in this slice, so UI_READY is never reached — the panel stays OFF
+        # and playback and transport still work (READINESS_STATES.md § 2).
+        readiness.advance(ReadinessState.PLAYBACK_READY)
     except BaseException:
         if scan_thread is not None:
             scan_thread.join()
@@ -172,7 +229,13 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
         extra={"profile": profile.name, "content_count": len(library.list_content())},
     )
     return AqenoProcess(
-        session=session, library=library, inputs=inputs, audio=audio, scan_thread=scan_thread
+        session=session,
+        display=display,
+        readiness=readiness,
+        library=library,
+        inputs=inputs,
+        audio=audio,
+        scan_thread=scan_thread,
     )
 
 
