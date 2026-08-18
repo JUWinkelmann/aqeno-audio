@@ -62,7 +62,10 @@ CONTROL_ACTIONS: tuple[ControlAction, ...] = (
     ControlAction("playback.next", "Nächster Titel", "playback", _PRESS_EVENTS),
     ControlAction("volume.down", "Leiser", "volume", _ROTATE_EVENTS + _PRESS_EVENTS),
     ControlAction("volume.up", "Lauter", "volume", _ROTATE_EVENTS + _PRESS_EVENTS),
-    ControlAction("display.wake", "Display aktivieren", "display", _PRESS_EVENTS),
+    # Short press only: with navigation waking the panel, nothing needs a
+    # long-press wake, and everyday operation may not depend on a timed gesture
+    # (ADR 0024 § A2, § A4).
+    ControlAction("display.wake", "Display aktivieren", "display", (ControlEventType.SHORT_PRESS,)),
     # Navigation (ADR 0024). Rotation moves focus; a press activates it. These
     # are ordinary registry entries, so a Manager may bind them to any control
     # a source reports — but never onto the control that carries volume.
@@ -73,6 +76,8 @@ CONTROL_ACTIONS: tuple[ControlAction, ...] = (
         "navigation.focus_next", "Auswahl weiter", "navigation", _ROTATE_EVENTS + _PRESS_EVENTS
     ),
     ControlAction("navigation.select", "Auswählen", "navigation", _PRESS_EVENTS),
+    # Back belongs to the LEFT control. It stays bindable so the contextual
+    # resolution can use it, but no default binds it to a press gesture.
     ControlAction("navigation.back", "Zurück", "navigation", _PRESS_EVENTS),
 )
 _ACTIONS_BY_ID = {action.id: action for action in CONTROL_ACTIONS}

@@ -125,7 +125,10 @@ Encoder-first means the surface has a focus, not merely tappable areas.
 - Touch selection does not move focus onto the tapped item and then require a second press. A tap
   activates directly, exactly as before.
 - **The navigation input that wakes the display is consumed** and activates nothing, for the same
-  reason a waking touch is consumed: nobody may trigger something they cannot see.
+  reason a waking touch is consumed: nobody may trigger something they cannot see. Volume and
+  Play/Pause are deliberately exempt — they are the blind-operable functions, and a swallowed first
+  volume step in a dark room would break the very requirement the rule protects.
+- No everyday interaction uses a long press or a double press (ADR 0024 § A2).
 
 ## Actual UI surfaces
 
@@ -206,18 +209,26 @@ items, larger focus treatment, no reliance on a 7-inch reading distance.
 
 ## Physical controls and light
 
-| Hardware | RH1 default | Screen relationship |
-|---|---|---|
-| Previous MX key | `Previous` | never acts as Back and never wakes display by default |
-| encoder rotation | relative volume | never wakes display by default |
-| encoder press | Play/Pause | never wakes display by default; UI reflects the result only when already visible |
-| Next MX key | `Next` | never acts as Forward navigation and never wakes display by default |
-| NAV rotation *(target hardware)* | move focus | wakes from `OFF`/`DIM`; the waking input is consumed |
-| NAV press *(target hardware)* | activate focused item | wakes from `OFF`/`DIM`; the waking input is consumed |
+The intended control set is LEFT · NAV · RIGHT · VOL (ADR 0024 § A1). RH1 currently has three of the
+four: the two Cherry MX switches and one encoder acting as VOL.
 
-RH1 has no NAV control. Its navigation actions exist in the mapping registry, report as unavailable
-and can be bound to any control a future adapter reports. Until then the touch-free journey is
-exercised through the desktop simulator (`DEVELOPMENT.md`), not claimed for the assembled box.
+| Control | Action | Screen relationship |
+|---|---|---|
+| LEFT MX key | back — in the current slice: previous section | acts as transport here, so it never wakes the display |
+| RIGHT MX key | forward — in the current slice: next section | same |
+| VOL rotation | relative volume | never wakes the display; a first step is never swallowed to light the screen |
+| VOL press | Play/Pause | never wakes the display; the UI reflects it only when already visible |
+| NAV rotation *(hardware pending)* | move focus | wakes from `OFF`/`DIM`; the waking input is consumed |
+| NAV press *(hardware pending)* | activate the focused item | wakes from `OFF`/`DIM`; the waking input is consumed |
+
+Waking is a property of the resolved action, not of the button (ADR 0024 § A4). When LEFT later
+resolves to navigation in a browsing context, it wakes and is consumed there; while it resolves to
+transport it does neither.
+
+RH1 has no NAV control yet. Its navigation actions exist in the mapping registry, report as
+unavailable and can be bound to any control a future adapter reports. Until then the touch-free
+journey is exercised through the desktop simulator (`DEVELOPMENT.md`), not claimed for the assembled
+box — and the physical path from Now Playing back to Home is the one gap that leaves (ADR 0024 § A3).
 
 These are safe device-wide defaults, not properties of the boards. The controlled mapping contract
 in `PLATFORM_CONTRACTS.md` may assign another available AQENO action; hardware drivers still emit

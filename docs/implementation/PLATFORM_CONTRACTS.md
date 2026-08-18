@@ -24,8 +24,16 @@ registry, locally and without HTTP/network involvement. Defaults are:
 | `primary_right.short_press` | `playback.next` |
 | `navigation_encoder.rotate_left` / `rotate_right` | `navigation.focus_previous` / `focus_next` |
 | `navigation_encoder.short_press` | `navigation.select` |
-| `navigation_encoder.long_press` | `navigation.back` — provisional, see ADR 0024 § 2 |
-| every other current long press | unassigned |
+| every current long press | unassigned |
+
+`primary_left` and `primary_right` are the LEFT and RIGHT controls: **back and forward**, resolved by
+content context (ADR 0024 § A3). In the current slice the only context is linear playback, so their
+defaults remain `playback.previous` and `playback.next`. The navigation resolution arrives with the
+first content-browsing level; nothing here is rebound in anticipation.
+
+No default binds a long press, and no everyday action may require one (ADR 0024 § A2). Long press
+remains available to adapters and to the registry for setup, service and hardware cases.
+`display.wake` is bindable to a short press only.
 
 Navigation actions (`navigation.focus_previous`, `navigation.focus_next`, `navigation.select`,
 `navigation.back`) are ordinary entries in the controlled action registry and may be bound to any
@@ -55,6 +63,12 @@ After mapping, Application listeners receive the existing semantic events:
 Navigation events are routed through the display service, which owns the wake decision and consumes
 the input that woke the panel (`DISPLAY_STATE_MACHINE.md` Group G, note 15) before the Device UI
 sees it. Transport and NFC keep their existing route and never wake anything.
+
+**Wake behaviour is a property of the resolved action, not of the control** (ADR 0024 § A4). A
+control whose meaning depends on context — LEFT and RIGHT — therefore carries the display semantics
+of whatever it resolved to, and that resolution happens in the mapping layer before the display
+service sees an event. Volume and Play/Pause are deliberately excluded from Group G: a first volume
+step must reach audio in a dark room rather than being spent on lighting the panel.
 
 No application code should depend on GPIO pin numbers.
 

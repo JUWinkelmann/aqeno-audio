@@ -41,17 +41,17 @@ ADR 0024 fixes the target vocabulary (NAV encoder, VOL encoder, momentary centre
 rocker) and `docs/hardware/HARDWARE_REFERENCE.md` records the quality expectations. No component is
 selected, and nothing here is ordered while RH1 validation is the active work.
 
-One purchase would become useful earlier than the rest: a **second Qwiic rotary encoder** so RH1 can
-emulate NAV and VOL separately and the touch-free journey can be tested on real hardware instead of
-the simulator. Verify first whether the Adafruit 5880's I²C address can be changed without bridging
-solder jumpers — if it cannot, that conflicts with the no-solder gate and the decision is yours to
-make, not the adapter's.
+The RH1 test layout is LEFT · NAV · RIGHT · VOL, with the existing Cherry MX switches as LEFT/RIGHT
+and the acquired Adafruit 5880 as VOL/Play. NAV needs a second suitable encoder and is simulated
+until one exists. Verify first whether a second 5880's I²C address can be changed without bridging
+solder jumpers — if it cannot, that conflicts with the no-solder gate, and the call is yours.
 
 ## Recommended control layout for prototype
 
-`[ Previous ]   [ illuminated rotary: Volume / press Play-Pause ]   [ Next ]`
+`[ LEFT: back ]   [ NAV: focus / press select ]   [ RIGHT: forward ]   [ VOL: volume / press Play-Pause ]`
 
-A fourth NeoKey position remains available for experiments but is not part of the committed product UI.
+NAV is not yet present on RH1. The remaining NeoKey positions stay available for experiments and are
+not part of the committed product UI.
 
 ## LED rule
 All user-visible LEDs must be software-controllable in brightness and support true OFF. In Night/Dark-Room they are OFF. Any unavoidable board power/diagnostic LEDs are hidden inside the enclosure.

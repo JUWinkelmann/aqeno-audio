@@ -149,9 +149,9 @@ remain unused until a tested interaction needs them.
 |---|---|---|
 | Encoder counter-clockwise/clockwise | `primary_encoder.rotate_left` / `.rotate_right` | Volume down/up |
 | Encoder short press | `primary_encoder.short_press` | Play/Pause |
-| Encoder long press (≥800 ms) | `primary_encoder.long_press` | unassigned/configurable |
-| NeoKey Previous short/long press | `primary_left.short_press` / `.long_press` | Previous / unassigned |
-| NeoKey Next short/long press | `primary_right.short_press` / `.long_press` | Next / unassigned |
+| Encoder long press (≥800 ms) | `primary_encoder.long_press` | unassigned; long press is setup/service only (ADR 0024 § A2) |
+| NeoKey LEFT short press | `primary_left.short_press` | back — currently resolved as Previous |
+| NeoKey RIGHT short press | `primary_right.short_press` | forward — currently resolved as Next |
 | Touch | presentation intention / `WakeRequest` as applicable | Contextual Device UI interaction |
 | Future NFC reader presents/removes UID | `NfcPresented` / `NfcRemoved` | Resolve an AQENO-local token assignment |
 
@@ -171,9 +171,18 @@ component decision.**
 
 | Control | Role | Semantics |
 |---|---|---|
-| NAV rotary encoder with press | navigation | rotate: move focus; short press: activate focused item; back semantics open |
+| NAV rotary encoder with press | navigation | rotate: move focus; short press: activate / confirm |
 | VOL rotary encoder with press | volume and playback | rotate: volume; short press: play/pause — permanently, never contextual |
-| Transport rocker, momentary, centre-off | transport | left: previous, right: next in the current playback context |
+| LEFT | back | context-resolved: previous level, or previous section during linear playback |
+| RIGHT | forward | context-resolved: forward level where meaningful, or next section |
+
+No separate OK button. No long press or double press in everyday operation (ADR 0024 § A2). LEFT and
+RIGHT may become one quality momentary centre-off rocker on the target device; that is a
+construction change, not a semantic one.
+
+Controls must also feel right, not only work: an encoder with clearly felt detents, a switch or
+rocker with a defined actuation point. Inherent physical feedback is preferred over invented cues
+(`PRODUCT_FOUNDATION.md` P20), and AQENO does not emit a sound for every physical action.
 
 Quality expectations, without fixing parts: the target device does not use controls that feel like
 maker components. High-grade encoders of the Bourns PEC11R or Alps Alpine EC11 class are plausible
@@ -187,12 +196,22 @@ pushes the device backwards when pressed. Pressure should act towards the standi
 front stays visually calm and belongs to the display. Enclosure design is explicitly out of scope
 here; only the requirement is recorded.
 
-RH1's three logical controls cannot represent NAV and VOL simultaneously, so RH1 cannot demonstrate
-the touch-free journey physically. Emulating it needs either a second Qwiic encoder at a distinct
-I²C address or the two unused NeoKey positions exposed by the adapter. Neither is decided; the
-address-jumper question in particular must be checked against Adafruit's documentation before
-anything is bought, because bridging solder jumpers would collide with the no-solder acceptance gate
-below.
+### RH1 control plan
+
+The product-shaped RH1 test layout is:
+
+```text
+[ Cherry MX LEFT ]   [ NAV encoder ]   [ Cherry MX RIGHT ]   [ VOL encoder ]
+```
+
+No middle OK switch is required. The acquired Adafruit 5880 takes the VOL/Play role; NAV needs a
+second suitable encoder, which is simulated until that hardware exists. **No purchase and no
+component decision follows from this plan** — the address-jumper question on a second 5880 must be
+checked against Adafruit's documentation first, because bridging solder jumpers would collide with
+the no-solder acceptance gate below.
+
+Until NAV exists on the box, RH1 cannot demonstrate the touch-free journey physically, and the
+physical path from Now Playing back to Home stays touch-only (ADR 0024 § A3).
 
 ## Target display and light direction
 

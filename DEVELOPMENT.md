@@ -142,15 +142,23 @@ With `--fake-hardware`, semantic input events come from the keyboard simulator:
 | `w` | `WakeRequest` |
 | `a` / `d` | `FocusPrevious` / `FocusNext` — NAV rotation |
 | `s` | `Select` — NAV press, activates the focused tile |
-| `b` | `Back` |
+| `b` | `Back` — the contextual back that LEFT will carry, not a control of its own |
 | `1`–`9` | `NfcPresented` with a fixed test UID |
 | `0` | `NfcRemoved` |
 | `n` | toggle `night_active` |
 
-The four navigation keys stand in for the NAV encoder that RH1 does not have (ADR 0024). They are
-how the touch-free journey is actually driven today: the everyday path must work with the mouse
-untouched. Like a waking touch, a navigation key that wakes a dark panel is consumed and selects
-nothing.
+The intended control set is LEFT · NAV · RIGHT · VOL (ADR 0024 § A1). The simulator covers all four:
+`←`/`→` are LEFT/RIGHT, `a`/`d`/`s` are the NAV encoder, `↑`/`↓`/`Space` are VOL. `b` is a stand-in
+for the contextual back that LEFT will carry once a browsing level exists — it is not a fifth
+control, and it is currently the only way to leave Now Playing without touch.
+
+Note what the simulator does *not* cover: it emits semantic events directly and therefore bypasses
+`MappedInputBus`, so it exercises the four controls' meanings but never their bindings. Mapping is
+covered by `tests/unit/test_control_mapping.py` instead.
+
+Like a waking touch, a navigation key that wakes a dark panel is consumed and selects nothing.
+Volume and Play/Pause are deliberately different: they act immediately and never wake, so a first
+volume step in a dark room is not spent on lighting the screen.
 
 The simulator is not a debug afterthought — `FIRST_VERTICAL_SLICE.md` requires it, and the dark-room
 and display-state scenarios are exercised through it long before the I2C hardware exists.

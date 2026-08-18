@@ -46,8 +46,8 @@ infrastructure could provide substantial value, not that cloud use is required o
 | F15 Contextual Display | Natural Extension | display state machine and presentation boundary |
 | F16 Quiet Display / Attention Policy | Natural Extension | existing DisplayPolicy and dark-room invariants |
 | F17 Games/tablet/platform direction | Explicit Non-Goal | product identity, ADR 0023 § 3 |
-| F18 Visual timer and timer presets | Natural Extension | time pillar, ADR 0025 § 3 |
-| F19 Clock, alarms and radio-alarm behaviour | Product Expansion | time pillar, ADR 0025 § 3 |
+| F18 Visual timer and timer presets | Natural Extension; **first time capability** | time pillar, ADR 0025 § 3 |
+| F19 Clock, alarms and radio-alarm behaviour | Product Expansion; waits for F18 | time pillar, ADR 0025 § 3 |
 
 Classification is not implementation order. A concept may move category when a concrete product
 journey reveals different infrastructure or risk.
@@ -190,6 +190,10 @@ displacing Now Playing, and completion must resolve against audio deliberately r
 second uncoordinated source. ADR 0025 § 3 holds the binding constraints.
 
 ## F19 — Clock, alarms and radio-alarm behaviour
+
+**Sequenced behind F18** (ADR 0025 amendment): clock, alarm, radio-alarm behaviour and sunrise are
+prioritised only after the visual timer is complete and validated in use. The vision below is
+unchanged; only the order is.
 
 AQENO may work as a modern radio alarm: clock, alarms, recurring alarms, audio as the alarm source,
 configurable alarm volume with gradual increase, and a display wake-up visualisation — dark, slowly

@@ -129,7 +129,11 @@ If a requested implementation conflicts with levels 2–4, flag the conflict bef
 - **No function and no navigation path may require touch** (ADR 0024). Touch is an optional
   capability; `touch = true` never means "use touch as the primary UI".
 - Volume stays volume and Play/Pause stays Play/Pause: a volume control must never become
-  contextual navigation.
+  contextual navigation. LEFT means back and RIGHT means forward, resolved by content context.
+- **Normal everyday operation must not require long-press or double-press gestures** (ADR 0024 § A2).
+  Long press stays available for setup, service and hardware cases only, and no default binds it.
+- Prefer inherent physical feedback over invented feedback (`PRODUCT_FOUNDATION.md` P20). Do not add
+  a sound to a physical action whose result already speaks for itself.
 - AQENO does not compete for attention (`PRODUCT_FOUNDATION.md` P19). No engagement loop, artificial
   badge, permanently changing content or unnecessary notification.
 - No development toward a news feed, weather dashboard, browser, app store, games, social feed,
@@ -213,6 +217,10 @@ Prefer deterministic unit tests for domain logic and a small number of integrati
 - New hardware support → document its compatibility level and known limitations.
 - Display-state or ambient-mode changes → update `docs/product/DISPLAY_BEHAVIOR.md` when the contract changes.
 - Do not let README become the architecture document.
+- **Consolidation before fragmentation.** Create a new canonical document only when no existing one
+  offers a sensible home for the decision; prefer a dated amendment or a new section in the document
+  that already owns the subject. Consolidate historical or superseded documentation when you are
+  already working in it.
 
 ## Definition of done
 

@@ -145,6 +145,28 @@ contracts they changed, not here; that gap is known rather than an indication th
 - Rejected on purpose: a capability framework (ADR 0017 § 1 already refused one; ports already report
   what hardware exists), any clock/timer/alarm implementation, and removing touch from RH1.
 
+### 2026-08-18 — control semantics decided, contracts corrected
+
+- Back is no longer open: **LEFT = back, RIGHT = forward, NAV = focus/select, VOL = volume/play**
+  (ADR 0024 § Amendment). No OK button, no long press for back, and the flat rule that everyday
+  operation must not require long-press or double-press gestures. Long press survives for
+  setup/service only, and no default binds one.
+- LEFT/RIGHT are modelled as back/forward resolved by content context, not as previous/next track.
+  Their current slice resolution stays linear playback, so RH1 defaults are unchanged. The one cell
+  left undecided on purpose — what LEFT does on Now Playing during playback — is recorded in ADR
+  0024 § A3 and decided with the first browsing level.
+- Wake behaviour is now documented as a property of the resolved action, not the button. Volume and
+  Play/Pause are explicitly excluded from Group G: a first volume step in the dark reaches audio
+  instead of being spent lighting the panel.
+- Code changes were deliberately small: the NAV long-press default became unassigned, and
+  `display.wake` is short-press only. Tests cover both, including at the Management API boundary.
+- Also recorded: `PRODUCT_FOUNDATION.md` P20 (inherent physical feedback before invented feedback),
+  the RH1 control plan LEFT · NAV · RIGHT · VOL with no middle OK switch, visual timer as the first
+  time capability, the Zero-2-W performance test after RH1 validation, and "consolidation before
+  fragmentation" in `AGENTS.md`.
+- Verification: 1124 passed, 1 deselected; Ruff, format and mypy green. No admin source changed, so
+  the committed bundle is untouched.
+
 ### External verification boundary
 
 - Install the optional `rh1` dependencies on the Raspberry Pi and verify both boards coexist on the
@@ -190,9 +212,17 @@ contracts they changed, not here; that gap is known rather than an indication th
    presentation and measuring splash-to-first-frame handover.
 3. Decide how RH1 gets a NAV control, or accept that the touch-free acceptance stays simulated for
    now. Both are legitimate; leaving it unstated is not.
-4. Open UX questions that only real use can answer: back-navigation semantics, the rocker's
-   contextual meaning (item, chapter or seek), and whether focus wrapping reads as helpful or
-   confusing to a three-year-old.
+4. Open UX questions that only real use can answer: what LEFT does on Now Playing during playback
+   (ADR 0024 § A3), what counts as a "section" per content kind, and whether focus wrapping reads as
+   helpful or confusing to a three-year-old.
+5. Documentation consolidation, when there is a natural occasion: `docs/DOCUMENTATION_GAPS.md` is
+   now mostly historical — 11 of 24 gaps are marked closed, 2 deferred by intent, and several open
+   ones (G08 failure taxonomy, G16 roadmap contradiction, G20 language convention) were overtaken by
+   documents that now exist. The proposal is to move the genuinely live items to their owning
+   documents — G24 to `HANDOVER.md`/`ROADMAP.md`, G21 to `NFC_REFERENCE_CANDIDATE.md`, G15 to
+   `DEVICE_UI_PRINCIPLES.md`, G10 to `FAILURE_STATES.md` — and reduce the file to a short historical
+   note. G17 (duplicate `## 12.` in `PRODUCT_FOUNDATION.md`) needs one deliberate renumbering pass
+   because other documents cite those section numbers; it should not be half-fixed in passing.
 
 ## Standing reminders
 

@@ -178,6 +178,13 @@ animation, permanently changing content, recommendations that exist to raise usa
 more" mechanics or unnecessary notifications. When AQENO is not needed, it recedes visually and
 acoustically. P12 forbids the mechanics; this principle states the posture they follow from.
 
+### P20 — Physical feedback before artificial feedback
+**ADR 0024.** Prefer inherent physical feedback over feedback AQENO has to invent. An encoder should
+have felt detents, a button or rocker a defined actuation point; the hand should know what happened
+before the screen says so. Do not emit a sound for every physical action by default. Where the
+result of an action is itself unambiguous — the volume changes, audio starts, the focus ring moves —
+that result is the feedback, and adding a second layer on top makes the device noisier, not clearer.
+
 ## 4. Adaptive experience
 
 AQENO should use a shared capability model rather than separate rigid products for each age,
@@ -204,25 +211,36 @@ audio feedback, volume boundaries or alternative input. Do not introduce a gener
 
 > **Physical-first, display-assisted, touch-optional** (ADR 0024).
 
-Target control set. Two rotary controls with distinct, permanent roles, plus one transport rocker:
+Target control set — four controls, each with one permanent role (ADR 0024 § A1):
 
 | Control | Rotation | Short press | Reason |
 |---|---|---|---|
-| **NAV** rotary encoder | move focus / navigate | activate the focused item | eyes-free selection without a panel |
+| **NAV** rotary encoder | move focus | activate / confirm | eyes-free selection without a panel |
 | **VOL** rotary encoder | volume down / up | play / pause | the two most frequent actions, always in the same place |
-| **Transport rocker**, momentary centre-off | — | left: previous, right: next in the current context | one part instead of two loose buttons |
+| **LEFT** | — | back | one direction, one meaning |
+| **RIGHT** | — | forward | one direction, one meaning |
 | Touchscreen | — | optional convenience for the same actions | never the only path |
 | NFC | — | content/action shortcut | physical, intuitive, optional |
 
 > **Volume stays volume. Play/Pause stays Play/Pause.**
+>
+> **LEFT is back. RIGHT is forward.**
 
 A VOL control never becomes contextual navigation. Eyes-free operation depends on a control meaning
 the same thing in every state.
 
-Back-navigation is deliberately not fixed to an extra button. Long press on NAV is a candidate; the
-answer must come from testing with children, adults and seniors, and the rule must be simple and
-predictable. Do not add dedicated Home, Back, Favourite or Menu buttons unless testing proves them
-necessary.
+LEFT/RIGHT are back and forward rather than "previous track / next track". Their effect follows the
+functional context: in navigation they change level, in linear playback they move between meaningful
+sections of the current work. Hold-to-seek and every other timed or repeated gesture are excluded.
+
+> **Normal everyday AQENO operation must not require long-press or double-press gestures.**
+
+Long press stays technically available for setup, service and hardware cases. It is not part of any
+everyday path, and no default binds it. There is no separate OK button. Do not add dedicated Home,
+Back, Favourite or Menu buttons unless testing proves them necessary.
+
+On RH1, LEFT and RIGHT are the two existing Cherry MX switches; the target device may replace them
+with one quality momentary centre-off rocker.
 
 Controls belong on the top or an angled upper surface rather than on a vertical front face that
 pushes the device backwards when pressed; pressure should act towards the standing surface. The
@@ -231,8 +249,8 @@ front stays visually calm and belongs to the display. Enclosure design itself is
 RH1's assembled Cherry MX and Qwiic controls are prototype input hardware. They exercise the same
 semantic boundary and define nothing about the target layout (ADR 0024 § 4).
 
-Core actions must not depend solely on precise dragging, swiping, double taps, long presses, tightly
-packed controls or short response windows. A touchscreen can extend AQENO, but physical controls
+Core actions must not depend on precise dragging, swiping, double taps, long presses, tightly packed
+controls or short response windows — not even with an alternative path available. A touchscreen can extend AQENO, but physical controls
 and tokens are a first-class access path for children and adults alike.
 
 ## 6. Dark-room requirement

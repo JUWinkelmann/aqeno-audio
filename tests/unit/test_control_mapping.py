@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+import pytest
+
 from aqeno.adapters.fakes.persistence import FakeSettingsStore
 from aqeno.application.control_mapping import MappedInputBus
 from aqeno.config.defaults import ControlSettings, default_settings
 from aqeno.ports.input import (
-    Back,
     ControlCapability,
     ControlEventType,
     ControlInput,
@@ -221,9 +222,31 @@ def test_navigation_encoder_defaults_map_to_navigation_intentions() -> None:
     source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.ROTATE_LEFT)
     source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.ROTATE_RIGHT)
     source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.SHORT_PRESS)
-    source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.LONG_PRESS)
 
-    assert received == [FocusPrevious(), FocusNext(), Select(), Back()]
+    assert received == [FocusPrevious(), FocusNext(), Select()]
+
+
+def test_no_default_binds_a_long_press() -> None:
+    """ADR 0024 § A2: everyday operation is untimed. Back is the LEFT control,
+    not a held button, and nothing else reaches for a long press either."""
+    bus = MappedInputBus(NavigationSource(), FakeSettingsStore())
+
+    long_press = [
+        binding for binding in bus.bindings() if binding.event is ControlEventType.LONG_PRESS
+    ]
+
+    assert long_press, "the fixture must actually expose long presses"
+    assert all(binding.action_id is None for binding in long_press)
+
+
+def test_display_wake_cannot_be_bound_to_a_long_press() -> None:
+    bus = MappedInputBus(NavigationSource(), FakeSettingsStore())
+
+    wake = next(action for action in bus.actions if action.id == "display.wake")
+
+    assert wake.compatible_events == (ControlEventType.SHORT_PRESS,)
+    with pytest.raises(ValueError):
+        bus.update_binding(LogicalControl.PRIMARY_LEFT, ControlEventType.LONG_PRESS, "display.wake")
 
 
 def test_volume_encoder_keeps_its_meaning_when_navigation_hardware_exists() -> None:

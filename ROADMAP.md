@@ -45,8 +45,9 @@ but unchecked historic spike items do not mean the implemented slice is absent.
 - [ ] NFC spike.
 - [ ] Podcast/RSS + local file content spike.
 - [ ] Power-bank compatibility constraints.
-- [ ] Alternative SBC evaluation, including whether PySide6/QML performs acceptably on a
-      Raspberry Pi Zero 2 W class board (risk to ADR 0002).
+- [ ] Alternative SBC evaluation. After RH1 validation, run an explicit performance and memory test
+      of PySide6/QML on a Zero-2-W-class board. Compatibility and performance there are not assumed,
+      and nothing is rearchitected before that measurement exists (risk to ADR 0002).
 - [ ] Compact high-contrast panel spike: 4–5", AMOLED/OLED preferred, no touch required (ADR 0025).
 - [ ] Licensing/commercial-distribution review of candidate dependencies.
 
@@ -80,7 +81,10 @@ Expected MVP themes:
 - [x] Playback application layer.
 - [x] Bounded Kids Early Device UI over adaptive architecture.
 - [x] Physical navigation vocabulary and encoder-first focus model; automated touch-free journey.
-- [ ] Physical touch-free journey on RH1 — blocked until a navigation control exists on the box.
+- [ ] Physical touch-free journey on RH1 — blocked until a NAV control exists on the box
+      (control plan: LEFT · NAV · RIGHT · VOL).
+- [ ] Visual timer, end to end — the first time capability, after RH1 validation (ADR 0025
+      amendment). Clock, alarm and sunrise wait for its UX and hardware validation.
 - [x] Versioned local Management API and OpenAPI handover.
 - [ ] Local Management Web client integration and RH1 validation.
 - [ ] NFC Actions.

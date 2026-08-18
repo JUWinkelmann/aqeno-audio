@@ -484,7 +484,7 @@ def test_physical_controls_are_capability_driven_and_persist_immediately(tmp_pat
 
     changed = api.client.patch(
         "/api/v1/controls/primary_encoder/mappings/long_press",
-        json={"action_id": "display.wake"},
+        json={"action_id": "playback.stop"},
         headers=HEADERS,
     )
     assert changed.status_code == 200
@@ -493,11 +493,20 @@ def test_physical_controls_are_capability_driven_and_persist_immediately(tmp_pat
         == {
             "control_id": "primary_encoder",
             "event": "long_press",
-            "action_id": "display.wake",
+            "action_id": "playback.stop",
             "supported": True,
         }
         for item in changed.json()["mappings"]
     )
+
+    # ADR 0024 § A4: with navigation waking the panel, no long-press wake exists.
+    timed_wake = api.client.patch(
+        "/api/v1/controls/primary_encoder/mappings/long_press",
+        json={"action_id": "display.wake"},
+        headers=HEADERS,
+    )
+    assert timed_wake.status_code == 422
+    assert timed_wake.json()["error"]["code"] == "invalid_control_mapping"
 
     incompatible = api.client.patch(
         "/api/v1/controls/primary_encoder/mappings/rotate_left",

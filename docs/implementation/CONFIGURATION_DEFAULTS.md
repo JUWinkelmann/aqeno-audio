@@ -219,11 +219,13 @@ not tied to a listening profile or concrete I2C/GPIO identity.
 
 | Control event | Default | Editable |
 |---|---|---|
-| left short press | Previous | Manager |
-| encoder rotate left/right | Volume down/up | Manager |
-| encoder short press | Play/Pause | Manager |
-| right short press | Next | Manager |
-| all current long presses | unassigned | Manager |
+| LEFT short press | back — currently resolved as Previous | Manager |
+| VOL encoder rotate left/right | Volume down/up | Manager |
+| VOL encoder short press | Play/Pause | Manager |
+| RIGHT short press | forward — currently resolved as Next | Manager |
+| NAV encoder rotate left/right | Focus previous/next (no RH1 hardware yet) | Manager |
+| NAV encoder short press | Select (no RH1 hardware yet) | Manager |
+| all long presses | unassigned — no everyday action may need one (ADR 0024 § A2) | Manager |
 | long-press threshold | **800 ms** | Fixed |
 | illumination | **subtle** (`off` / `subtle` / `clear`) | Manager |
 

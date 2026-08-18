@@ -109,3 +109,15 @@ lose its invariant. An alarm is its own authority with its own audio consequence
   panel would raise it again for its own driver path.
 - Any future alarm, timer or sunrise implementation starts with a display-state-machine amendment,
   not with a scheduler.
+
+## Amendment — 2026-08-18: implementation order inside the time pillar
+
+The time capabilities are not built in parallel. After RH1 validation, exactly one is completed end
+to end first:
+
+1. **Visual timer** — including its physical setup path and the graphical remaining-time model.
+2. Only after its UX and hardware validation: clock, alarm, radio-alarm behaviour, sunrise.
+
+The product vision in § 3 and § 4 is unchanged; only the order is constrained. The reason is
+capacity, not doubt — a half-built clock plus a half-built timer is worth less than one finished
+timer, and the timer is the capability whose interaction model the other three will reuse.

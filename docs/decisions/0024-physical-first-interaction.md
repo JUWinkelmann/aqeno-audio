@@ -2,6 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-08-18
+**Amended:** 2026-08-18 — the open back-navigation question is closed; see § Amendment below.
 **Amends:** `docs/product/DEVICE_UI_BLUEPRINT.md` § Navigation model and § Physical controls and
 light; `docs/implementation/PLATFORM_CONTRACTS.md` § Physical controls; `DISPLAY_STATE_MACHINE.md`
 
@@ -45,20 +46,20 @@ Two distinct control roles exist above the hardware, and they never trade places
 
 | Role | Rotation | Short press | Long press |
 |---|---|---|---|
-| **NAV** — navigation | move focus | activate the focused item | reserved; back is under evaluation |
+| **NAV** — navigation | move focus | activate the focused item | reserved for setup/service only |
 | **VOL** — volume/playback | volume down / up | play / pause | unassigned |
 
 > **Volume stays volume. Play/Pause stays Play/Pause.**
 
 A VOL control must never become contextual navigation, because eyes-free operation depends on a
-control meaning the same thing in every state. Back-navigation is deliberately *not* fixed to a
-dedicated button in this ADR; long press is a candidate and must be decided by real use with
-children, adults and seniors, not by preference.
+control meaning the same thing in every state. Back-navigation was left open in the first version of
+this ADR. It is now decided: **back is the LEFT control**, and no timed gesture carries it. See
+§ Amendment.
 
-Transport (previous/next in the current playback context) belongs to a third control: on target
-hardware a **momentary, centre-off two-way rocker**, not two separate front buttons. Whether its
-directions mean previous item, previous chapter or seek is a contextual definition that remains open
-(`USE_OBSERVATIONS.md` evidence required); no surprising multi-assignment is introduced meanwhile.
+LEFT and RIGHT are the third and fourth controls: back and forward. On target hardware they may be
+one **momentary, centre-off two-way rocker** instead of two separate switches. What "back" and
+"forward" mean in a given context — previous level, previous section, previous chapter — is refined
+per content kind later; seek is excluded outright (§ A3).
 
 ### 3. Navigation may wake; transport still may not
 
@@ -147,3 +148,67 @@ surface is meaningless, and a device that cannot be woken without touching it fa
   reported control — including RH1's currently unused reserve keys, once an adapter reports them.
 - Back-navigation semantics, rocker context semantics and the number of rules a person must learn
   remain open UX questions that only real testing can close.
+
+## Amendment — 2026-08-18: back semantics, LEFT/RIGHT and timed gestures
+
+### A1. The four controls are fixed
+
+| Control | Rotation | Short press |
+|---|---|---|
+| NAV encoder | move focus | activate / confirm |
+| VOL encoder | volume down / up | play / pause |
+| LEFT | — | back |
+| RIGHT | — | forward |
+
+No separate OK button, no long press for back, no double press in ordinary use. On RH1, LEFT and
+RIGHT are the two existing Cherry MX switches; the target device may replace them with one quality
+momentary centre-off rocker. That is a construction change, not a semantic one — which is what § 4's
+boundary exists for.
+
+### A2. Everyday operation is untimed
+
+> **Normal everyday AQENO operation must not require long-press or double-press gestures.**
+
+Long press stays *modellable* — the port emits it, adapters recognise it, the registry can bind it —
+and is reserved for setup, service and hardware situations. It carries no everyday contract and no
+default binds it. This supersedes `DEVICE_UI_PRINCIPLES.md`'s earlier caveat about a timed back
+path: there is no timed back path.
+
+### A3. LEFT/RIGHT mean back and forward, resolved by content context
+
+The mental model is **LEFT = back, RIGHT = forward**, not "previous track / next track". The effect
+depends on the functional context:
+
+- **navigation context** — LEFT leaves the current level; RIGHT moves forward where a meaningful
+  forward state exists;
+- **linear playback** — LEFT/RIGHT move to the previous/next meaningful section of the current work.
+  What counts as a section (track, chapter, …) is defined per content kind later.
+
+Excluded from LEFT/RIGHT outright: hold-to-seek, long-press seeking and any other timed or repeated
+gesture. Seek is not required by this interaction contract.
+
+**One cell of that resolution is genuinely undecided and is not guessed here:** what LEFT does on
+Now Playing while playback is active — leave the surface, or move to the previous section. Both
+readings follow from the rule above. The current slice resolves it as *linear playback*, because
+that is the only context a two-surface UI has, and because the dark-room requirement needs
+previous/next on untimed, non-waking controls. The navigation resolution — and with it the physical
+path from Now Playing back to Home — is decided together with the first content-browsing level.
+Until then that path is touch, or the simulator's stand-in key.
+
+### A4. Wake behaviour follows the resolved action, not the physical control
+
+`DISPLAY_STATE_MACHINE.md` Group G is a property of the **AQENO action**, not of the button that
+produced it:
+
+- navigation actions wake a dark panel, and the waking input is consumed (note 15);
+- transport and volume actions never wake and are never consumed — they act immediately.
+
+LEFT and RIGHT therefore cannot be classified once and for all: whichever action they resolve to in
+context carries that action's display semantics. The resolution happens before the display service
+sees the event, which the existing mapping layer already guarantees.
+
+**Volume and Play/Pause are deliberately not aligned with navigation.** They are the blind-operable
+audio functions. Swallowing the first volume step in the dark merely to light the screen would take
+away the exact thing the dark-room requirement protects: a person turning the knob at 3 a.m. gets a
+volume change, not a lit room and a lost step. `display.wake` consequently gets no long-press
+binding either — with navigation waking the panel, nothing needs one.

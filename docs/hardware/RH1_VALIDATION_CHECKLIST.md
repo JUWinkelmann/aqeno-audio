@@ -24,8 +24,8 @@ from desktop simulation alone.
 
 ## Controls and light
 
-- verify the left/right MX defaults (Previous/Next), change one allowed mapping, reboot, then restore
-  defaults;
+- verify the LEFT/RIGHT MX defaults (back/forward, currently resolved as Previous/Next), change one
+  allowed mapping, reboot, then restore defaults;
 - encoder rotation changes volume, short press toggles Play/Pause, and long press never also emits
   short press;
 - bounce, rapid input and simultaneous presses are harmless;
@@ -43,9 +43,10 @@ this test.
 - later, when they exist: choose radio, choose a podcast, set and start a timer, cancel a timer;
 - verify no step required a touch, and that the input which woke the display did not also select
   anything;
-- **currently blocked physically:** RH1's three controls cannot carry NAV and VOL at once. Until a
-  NAV control exists on the box, this test runs on the desktop simulator only, and that limitation
-  is recorded rather than worked around.
+- verify that no step needed a long press or a double press (ADR 0024 § A2);
+- **currently blocked physically:** the RH1 control plan is LEFT · NAV · RIGHT · VOL, and no NAV
+  encoder exists yet. Until it does, this test runs on the desktop simulator only, and returning
+  from Now Playing to Home on the box still needs touch. Recorded rather than worked around.
 
 ## Display and touch
 

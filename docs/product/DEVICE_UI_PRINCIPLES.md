@@ -50,9 +50,12 @@ harder.
 8. **Progressive disclosure.** An action appears only when the current context needs it. Technical
    availability alone does not earn permanent screen space.
 9. **Reduction is product quality.** If two of ten possible functions matter now, show those two.
-10. **Immediate, understandable feedback.** Touch and physical intentions visibly or audibly confirm
-   recognition and outcome when policy permits. Feedback uses user meaning — starting, paused,
-   volume changed, object not recognised — never backend terminology.
+10. **Immediate, understandable feedback, physical first.** Touch and physical intentions visibly or
+   audibly confirm recognition and outcome when policy permits. Feedback uses user meaning —
+   starting, paused, volume changed, object not recognised — never backend terminology. Prefer the
+   inherent feedback of the control and the result of the action itself (`PRODUCT_FOUNDATION.md`
+   P20): a felt detent, a defined actuation point, audio that starts. Add an invented cue only where
+   the outcome would otherwise be ambiguous, and never a sound per physical action by default.
 11. **Calm failures.** Technical detail belongs in local logs and adult diagnosis. Failure feedback
     obeys `FAILURE_STATES.md`: it never wakes a dark display, and Night policy may intentionally make
     it silent.
@@ -64,9 +67,9 @@ harder.
 Appliance simplicity is not confined to Kids UI. Large physical controls and touch targets, little
 required text, clear hierarchy, audio feedback and shallow navigation benefit many people. Core
 actions must not rely exclusively on fine motor control, dragging, swiping, double taps, long
-presses, hidden gestures or fast reactions. This constrains ADR 0024's open back-navigation
-question: if long press on NAV becomes Back, a second path back that needs no timing must exist, or
-the rule does not survive this paragraph. That is a testing question, not a preference.
+presses, hidden gestures or fast reactions. ADR 0024 § A2 turns that into a flat product rule:
+**normal everyday operation must not require long-press or double-press gestures.** Back is the LEFT
+control, not a timed gesture. Long press survives only for setup, service and hardware cases.
 
 This does not claim compliance with every accessibility need. It means concrete needs should improve
 the shared interaction language rather than automatically creating a labelled “senior”, “disabled”

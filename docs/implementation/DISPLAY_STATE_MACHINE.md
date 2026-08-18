@@ -62,10 +62,16 @@ Referenced by name in the table. All are read at transition time, never cached.
 
 **Group F — policy.** `NightActivated`, `NightDeactivated`
 
-**Group G — physical navigation.** `Navigate` — one input from a navigation control: focus movement,
+**Group G — physical navigation.** `Navigate` — one resolved navigation action: focus movement,
 activation of the focused item, or back. ADR 0024 makes navigation physical, and physical navigation
 is the replacement for the panel touch it must not require. It therefore takes touch's display
 semantics, not the transport rule.
+
+Membership is decided by the **resolved AQENO action, not by the button** (ADR 0024 § A4). A control
+whose meaning depends on context — LEFT and RIGHT are back and forward — belongs to Group G only in
+the moments it resolves to navigation, and to Group B whenever it resolves to transport. Volume and
+Play/Pause never join Group G: consuming a first volume step to light a dark panel would remove the
+one guarantee the dark room exists for.
 
 ## Transition table
 
