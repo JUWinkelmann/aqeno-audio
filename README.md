@@ -7,7 +7,8 @@ The first focus is **AQENO Kids**; the same core is intended to support **AQENO 
 ## Current status
 
 **First Vertical Slice in progress.** Domain state, persistence, audio, semantic input and the local
-process composition are implemented; the first Device UI and Reference Hardware adapters remain.
+process composition and the first bounded Kids Early Device UI are implemented; Reference Hardware
+adapters remain.
 The implementation target is
 [`docs/implementation/FIRST_VERTICAL_SLICE.md`](docs/implementation/FIRST_VERTICAL_SLICE.md).
 

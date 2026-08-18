@@ -109,11 +109,16 @@ python -m aqeno --profile kids-early --fake-hardware=input,display,nfc
 python -m aqeno --profile kids-early
 ```
 
-Until the first Device UI and Reference input/display adapters exist, the normal desktop command
-starts the local Core without a visible surface and waits for `Ctrl+C`. Starting without
-fake input fails explicitly rather than pretending the keyboard is Reference hardware. The
-`--check` form is the useful smoke test until the Device UI supplies keyboard events; there is no
-temporary terminal-control UI.
+The normal desktop command opens the minimal Kids Early Device UI. Starting without fake input
+still fails explicitly rather than pretending the keyboard is Reference hardware. To run the same
+Core without Qt or a display, select only the fake audio and input boundaries:
+
+```bash
+python -m aqeno --profile kids-early --fake-hardware=audio,input
+```
+
+The `--check` form remains the fast composition and persistence smoke test; it deliberately does not
+start Qt. There is no temporary terminal-control UI.
 
 With `--fake-hardware`, semantic input events come from the keyboard simulator:
 

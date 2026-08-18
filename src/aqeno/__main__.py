@@ -253,9 +253,9 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
             scan_thread.start()
 
         # PLAYBACK_READY: the audio engine is up, both application listeners are
-        # registered on the InputBus, and the input adapter is live. There is no
-        # UI in this slice, so UI_READY is never reached — the panel stays OFF
-        # and playback and transport still work (READINESS_STATES.md § 2).
+        # registered on the InputBus, and the input adapter is live. The optional
+        # Qt presentation is started after this method returns, so it cannot gate
+        # local playback or physical transport.
         readiness.advance(ReadinessState.PLAYBACK_READY)
     except BaseException:
         if scan_thread is not None:
@@ -310,6 +310,21 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+class _DeviceUiRuntime(Protocol):
+    def exec(self) -> int: ...
+
+    def close(self) -> None: ...
+
+
+def _start_device_ui(process: AqenoProcess) -> _DeviceUiRuntime:
+    """Load the optional Qt presentation only for a process with a panel."""
+    # Keep PySide6 out of the headless startup path.  This import is deliberately
+    # below composition and only called when a panel was selected.
+    from aqeno.ui.runtime import start_device_ui
+
+    return start_device_ui(process)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.fake_hardware is None or not ({"all", "input"} & args.fake_hardware):
@@ -325,13 +340,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         logger.error("AQENO could not start: %s", exc)
         return 1
 
+    runtime: _DeviceUiRuntime | None = None
     try:
         if not args.check:
-            logger.info("Device UI is not implemented yet; press Ctrl+C to stop")
-            threading.Event().wait()
+            if "all" in args.fake_hardware or "display" in args.fake_hardware:
+                try:
+                    runtime = _start_device_ui(process)
+                except Exception:
+                    # UI failure is optional-service degradation: leave the
+                    # panel OFF and keep local playback/physical controls up.
+                    logger.exception("AQENO Device UI failed; continuing headless")
+                    threading.Event().wait()
+                else:
+                    logger.info("AQENO Device UI ready")
+                    runtime.exec()
+            else:
+                logger.info("no display selected; running headless")
+                threading.Event().wait()
     except KeyboardInterrupt:
         logger.info("AQENO stopping")
     finally:
+        if runtime is not None:
+            runtime.close()
         process.close()
     return 0
 
