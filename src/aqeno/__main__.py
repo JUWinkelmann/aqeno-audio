@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import threading
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from datetime import timedelta
 from typing import Protocol, runtime_checkable
@@ -19,6 +19,7 @@ from aqeno.adapters.input.keyboard import KeyboardSimulator
 from aqeno.adapters.metadata import MutagenProbe
 from aqeno.adapters.persistence.sqlite_library import SqliteLibrary, open_library
 from aqeno.adapters.persistence.toml_settings import TomlSettingsStore
+from aqeno.application.device_ui import DeviceUiState
 from aqeno.application.display import DisplayService
 from aqeno.application.ingestion import run_scan
 from aqeno.application.playback import PlaybackSession
@@ -54,6 +55,7 @@ class AqenoProcess:
     library: SqliteLibrary
     inputs: KeyboardSimulator
     audio: AudioEngine
+    device_ui: DeviceUiState
     scan_thread: threading.Thread | None = None
     """The content scan (ADR 0014 § 5). Started off this thread so it never
     blocks startup; joined here so shutdown never closes the library out from
@@ -124,7 +126,11 @@ def _status_leds(fake_hardware: frozenset[str]) -> StatusLeds:
     return FakeStatusLeds()
 
 
-def _run_startup_scan(library: SqliteLibrary, settings: Settings) -> None:
+def _run_startup_scan(
+    library: SqliteLibrary,
+    settings: Settings,
+    on_complete: Callable[[], None] | None = None,
+) -> None:
     """Runs on its own thread (ADR 0014 § 5: never the playback/input thread).
 
     Any failure here is a `DEVICE`-class problem (`FAILURE_STATES.md`) — the
@@ -149,6 +155,8 @@ def _run_startup_scan(library: SqliteLibrary, settings: Settings) -> None:
                 "works_marked_unavailable": summary.works_marked_unavailable,
             },
         )
+        if on_complete is not None:
+            on_complete()
     except Exception:
         logger.exception("content scan failed")
 
@@ -189,16 +197,6 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
         # LOCAL_READY: the database is open and the profile is resolved.
         readiness.advance(ReadinessState.LOCAL_READY)
 
-        # Scanning off this thread means it never blocks PLAYBACK_READY below.
-        if settings.library.scan_on_startup:
-            scan_thread = threading.Thread(
-                target=_run_startup_scan,
-                args=(library, settings),
-                name="aqeno-content-scan",
-                daemon=True,
-            )
-            scan_thread.start()
-
         night_active = False
 
         def _toggle_night() -> None:
@@ -235,6 +233,25 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
         # (READINESS_STATES.md § 2, § 4; ADR 0011 does not replay input).
         inputs.on_input(display.handle_input)
 
+        device_ui = DeviceUiState(
+            library=library,
+            playback=session,
+            display=display,
+            profile=profile,
+        )
+
+        # Scanning off this thread means it never blocks PLAYBACK_READY below.
+        # Its only presentation effect is an explicit refresh of the typed read
+        # model; ingestion never calls a UI or framework object directly.
+        if settings.library.scan_on_startup:
+            scan_thread = threading.Thread(
+                target=_run_startup_scan,
+                args=(library, settings, device_ui.refresh_library),
+                name="aqeno-content-scan",
+                daemon=True,
+            )
+            scan_thread.start()
+
         # PLAYBACK_READY: the audio engine is up, both application listeners are
         # registered on the InputBus, and the input adapter is live. There is no
         # UI in this slice, so UI_READY is never reached — the panel stays OFF
@@ -259,6 +276,7 @@ def _open_process(*, profile_name: str, fake_hardware: frozenset[str]) -> AqenoP
         library=library,
         inputs=inputs,
         audio=audio,
+        device_ui=device_ui,
         scan_thread=scan_thread,
     )
 
