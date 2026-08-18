@@ -186,6 +186,8 @@ Before implementation, read:
 - `docs/implementation/PLATFORM_CONTRACTS.md`
 - `docs/implementation/DISPLAY_STATE_MACHINE.md`
 - `docs/implementation/CONFIGURATION_DEFAULTS.md`
+- `docs/implementation/CONTENT_INGESTION.md`
+- `docs/implementation/READINESS_STATES.md`
 - `docs/implementation/FIRST_VERTICAL_SLICE.md`
 - `docs/hardware/HARDWARE_REFERENCE.md`
 

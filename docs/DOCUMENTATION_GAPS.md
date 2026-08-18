@@ -20,7 +20,7 @@ intent, and three of the seven important gaps are closed.
 - **Closed:** G01 (ADRs 0001–0003, 0005, 0007–0009 accepted), G02, G03, G04, G05, G06, G07, G09,
   G11.
 - **Deferred by intent:** G18, G23 — personal project, nothing published.
-- **Open and blocking nothing yet:** G08, G13, G14, G24, and the hygiene set.
+- **Open and blocking nothing yet:** G24 and the hygiene set. G08, G13 and G14 have since closed.
 - **The one open item with a deadline quality:** the volume calibration in
   `CONFIGURATION_DEFAULTS.md` § 3.3, which needs a sound-level meter and Reference hardware.
 
@@ -178,13 +178,29 @@ defines seekability and finished-item behaviour, and binds periodic/immediate wr
 10-second interval and 12-second power-loss tolerance already accepted by configuration and ADR
 0007. Source selection remains correctly separated under G14.
 
-### G13 — Readiness states lack entry/exit criteria
+### G13 — Readiness states — **CLOSED 2026-08-18**
+Specified in `docs/implementation/READINESS_STATES.md`: entry criteria and guarantees per rung, what
+may fail without stopping the ladder versus what stops it, a monotonic ladder with degradation as a
+separate axis, and a capability/minimum-state table that replaces "unnecessarily" with something
+executable. It also settles the apparent conflict between ADR 0011 (no queueing) and the display
+machine's queued `WakeRequest`, and fixes that nothing at all is displayed before `UI_READY`.
+Original gap text follows.
+
+
 Six states in `PLATFORM_CONTRACTS.md`, plus "later states may not unnecessarily block earlier local
 functions" — but no definition of what completes each state, what is allowed to fail without
 blocking, what the UI shows during each, and what happens to input events that arrive before
 `PLAYBACK_READY`. "Unnecessarily" is not testable, yet the slice DoD depends on it.
 
-### G14 — Content ingestion is undefined
+### G14 — Content ingestion — **CLOSED 2026-08-18 (by ADR 0014)**
+Decided in ADR 0014 and specified in `docs/implementation/CONTENT_INGESTION.md`: configured library
+roots with an explicit incremental scan and no filesystem watcher, one work per directory, identity by
+a size-plus-midpoint-window fingerprint so moves and retagging preserve `ContentId`, an ordered
+kind-inference table that resolves ambiguity towards long-form, chapter derivation in ADR 0009's order
+of trust, and availability instead of deletion for missing files. Metadata comes from `mutagen` behind
+a `MediaProbe` port. Original gap text follows.
+
+
 The slice needs three local items and a library. Undefined: where media lives on disk, how it is
 discovered (scan, watch, manual add), where metadata and artwork come from, how ContentItem
 identity is derived and kept stable when a file moves or is re-tagged, and what happens to a
@@ -289,9 +305,8 @@ at all, so it must be spiked early despite being nominally a packaging concern.
    as a hardware task.
 5. ~~G01, G03, G09, G11~~ — done. ADRs 0001–0003, 0005, 0007–0009 accepted; `DEVELOPMENT.md` written.
 6. **Implement `FIRST_VERTICAL_SLICE.md`** in its documented order. This is now the top item.
-7. G08, G13, G14 — write each immediately before implementing the slice step that needs it, not all
-   up front. G14 grew with ADR 0009: ingestion must detect content kind, group multi-file works and
-   extract chapters.
+7. ~~G08, G13, G14~~ — done: `FAILURE_STATES.md`, ADR 0014 with `CONTENT_INGESTION.md`, and
+   `READINESS_STATES.md`. Every gap the vertical slice depends on is now closed.
 8. G24 (packaging and display server) — spike early, decide later; `eglfs` vs Wayland gates the
    display-power story, so it must be tried before the display adapter is considered finished.
 9. G15–G17, G19–G22 — batch as documentation hygiene; G16, G17, G20 cost minutes.
