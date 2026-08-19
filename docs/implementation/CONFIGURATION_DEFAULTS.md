@@ -193,6 +193,11 @@ ended.
 | Acknowledgement tone for unassigned tag | **off** | on / off | Manager |
 | Acknowledgement tone while `night_active` | **never** | — | **Fixed** |
 
+Both rows are instances of the `FEEDBACK` class, whose audibility ADR 0027 § 2–3 decides centrally.
+They are not an independent sound rule, and no feature may grow its own `if night` branch beside
+them. Levels are separated too: system sounds use a bounded `FEEDBACK_LEVEL`, never media volume
+(ADR 0027 § 4). Concrete values stay open until there is something to hear.
+
 An unassigned tag produces no display wake (`DISPLAY_STATE_MACHINE.md` note 7) and no error text. It
 is logged and otherwise ignored — a three-year-old presenting the wrong object should experience
 nothing happening, not a failure.

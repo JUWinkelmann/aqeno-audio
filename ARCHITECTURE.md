@@ -125,7 +125,9 @@ See `docs/decisions/`. Accepted ADRs override this document.
 - physical-first interaction with touch as an optional capability (ADR 0024);
 - device output direction and the time pillar (ADR 0025);
 - the AQENO Hardware Interaction Contract — five permanent controls, universal design, device power
-  states, night illumination and the NFC object area (ADR 0026).
+  states, night illumination and the NFC object area (ADR 0026);
+- audio feedback classes, the attention policy and the Send to AQENO delivery, retention and
+  provenance rules (ADR 0027).
 - replaceable SYSTEM, classified Data and portable backup (ADR 0020);
 - capability-oriented platform, Reference Platform 1 and installer/image boundary (ADR 0021).
 
@@ -143,7 +145,8 @@ Do not lock these prematurely:
   RH1 measurement, and no proximity port or illumination policy exists;
 - final Reference Platform package manifest and display server — `eglfs` vs Wayland gates the
   display-power story (gap G24); packaging/install boundaries are decided by ADR 0021;
-- remote/cloud architecture;
+- remote/cloud architecture, including the Send to AQENO identity, pairing and transport
+  implementation ADR 0027 § 7 constrains but does not design;
 - final open-source license — **deferred by intent**, see ADR 0006. AQENO is a personal project;
   nothing is published or distributed, so no licence is needed yet.
 

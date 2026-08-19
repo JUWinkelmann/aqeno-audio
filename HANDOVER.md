@@ -301,6 +301,36 @@ contracts they changed, not here; that gap is known rather than an indication th
   unavailable capability a device surface is precisely what P15 forbids. They arrive with their
   capabilities.
 
+### 2026-08-19 — audio, attention and Send to AQENO became contracts
+
+- AQENO had display and illumination policies but no audio policy — while already having audio
+  *rules*, scattered as per-feature clauses in `FAILURE_STATES.md` and `CONFIGURATION_DEFAULTS.md`.
+  **ADR 0027** makes them one decision: four semantic classes (`FEEDBACK`, `NOTIFICATION`,
+  `ATTENTION`, `ALARM`), and the class decides audibility, not the feature.
+- **Found and corrected a latent defect.** `FAILURE_STATES.md` stated that Night suppresses system
+  sounds, as a blanket rule. Applied to a timer or alarm — both already decided capabilities — that
+  would have silenced the wake-up. Night silences `FEEDBACK` and `NOTIFICATION`; `ATTENTION` and
+  `ALARM` stay audible. **Dark is not mute; Night is not a master mute.**
+- Volume is no longer conceptually one number: `MEDIA_VOLUME` is what the physical control operates,
+  `FEEDBACK_LEVEL` is bounded so a confirmation tone cannot inherit media loudness, and
+  `ALARM_VOLUME` is separate so a quiet bedtime story cannot make the morning alarm inaudible.
+- **Send to AQENO is now normative.** Recording happens in an authorised client — the device needs no
+  microphone. The cloud is the courier, not the archive: the personal payload is deleted only after a
+  complete download, verified integrity, atomic local persistence **and** an acknowledgement, never
+  on "download started" or "transfer completed". A delivered message is local content, plays offline
+  and may be heard again. Only authorised senders may send. Arrival never plays automatically and is
+  completely silent at night.
+- Sound assets are replaceable presentation, referenced by semantic role and never by file name, so a
+  missing final asset cannot block the message domain, the attention policy or the Device UI.
+  Existing and generated sounds are both allowed when rights, quality and provenance hold; NC is
+  excluded; no product's sound identity is imitated; and nothing ships without a provenance record.
+- **No code changed.** There is no audio-feedback implementation, no message domain and no transport,
+  and none was created speculatively. Verification: 1133 passed, 1 deselected; Ruff, format and mypy
+  green.
+- Noted rather than fixed: the repository has **no `PRIVACY.md`**. The privacy rules this touches
+  live in `AGENTS.md` § Security and privacy and `PRODUCT_FOUNDATION.md` § 15, and ADR 0027 adds the
+  personal-audio rules there rather than opening a third place.
+
 ## Next action
 
 1. Wait for delivery, then run the **seven-phase hardware smoke test** in

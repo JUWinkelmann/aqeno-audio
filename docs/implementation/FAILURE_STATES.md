@@ -13,8 +13,12 @@ document enumerates what can actually go wrong and what each case does.
 transition in any state. So when the screen is off and something fails, **the screen stays off**.
 
 This is not an oversight to work around. It means failure feedback is audible or absent, never
-visual-by-waking. And under Night policy, system sounds are suppressed — so a failure at 3 a.m.
-produces *nothing* except a log entry.
+visual-by-waking. A failure tone is `FEEDBACK` in ADR 0027 § 2, and Night silences that class — so a
+failure at 3 a.m. produces *nothing* except a log entry.
+
+*Corrected 2026-08-19:* this used to read "under Night policy, system sounds are suppressed". As a
+blanket rule that would also silence a timer or an alarm, which are `ATTENTION` and `ALARM` and stay
+audible at night (ADR 0027 § 3). Night silences `FEEDBACK` and `NOTIFICATION`, not every sound.
 
 That is the correct behaviour. A child who is asleep or falling asleep is not helped by a beep, and
 `PRODUCT_FOUNDATION.md` § 6 makes darkness a core requirement rather than a preference. Silence is
@@ -60,7 +64,9 @@ the calm state.
 5. **Technical detail exists, but only for a Manager**, and only in the Manager surface. Never in the
    Kids UI, never spoken, never on a tile.
 6. **A failure sound, where enabled, is one short quiet tone** — never repeated, never alarming, and
-   **never while Night policy is active** (`CONFIGURATION_DEFAULTS.md` § 6). Default off.
+   **never while Night policy is active** (`CONFIGURATION_DEFAULTS.md` § 6). Default off. It is the
+   `ERROR_SOFT` role of the `FEEDBACK` class; ADR 0027 § 2 owns that policy, this document only
+   describes the failure case.
 7. **Unavailable is a state, not an error.** Items that cannot play are shown dimmed and are still
    selectable — a child pressing them gets silence, not a message. This keeps the library stable
    rather than making tiles vanish and reappear.

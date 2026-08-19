@@ -100,7 +100,7 @@ effect.
 | # | Situation | Behaviour |
 |---|---|---|
 | 24 | **Picture frame** (`AMBIENT`) | Explicitly enabled and authorised, never an idle fallback. PREVIOUS / NEXT step through images — see C3. HOME leaves `AMBIENT`. SELECT press does nothing unless the surface offers a choice. |
-| 25 | **Send to AQENO / personal message** | Appears as **content**, not as a notification. No interruptive state, no badge, no counter, no attention mechanic (P12, P19). It is reached and started like any other item: focus with SELECT, press to play. |
+| 25 | **Send to AQENO / personal message** | Appears as **content**, not as a notification. No interruptive state, no badge, no counter, no attention mechanic (P12, P19). Reached and started like any other item: focus with SELECT, press to play — **never automatically** (ADR 0027 § 9). Playing it pauses media and resumes afterwards, because a message is content rather than a notification (§ 5). Arriving at night is completely silent. A delivered message is local and may be heard again. |
 
 ## 7. Sensing and environment
 
@@ -163,7 +163,10 @@ policy: `off` is the only implemented value and the default, so today's absolute
 
 **C7 — A message must not become a notification.** Situation 25 is the standard failure mode of this
 class of feature. Personal messages appear as content and never acquire a badge, counter or
-attention state.
+attention state. *Decided 2026-08-19 by ADR 0027 § 9:* arrival is one very restrained
+`NOTIFICATION` sound plus a brief calm visual in the normal state, and **completely silent at
+night** — no sound, no display wake, no illumination, no automatic playback. New does not mean
+urgent. The conflict is resolved; the row stays here because the failure mode it names is permanent.
 
 ## 10. What only real hardware and real use can decide
 

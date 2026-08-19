@@ -138,6 +138,13 @@ If a requested implementation conflicts with levels 2–4, flag the conflict bef
   Long press stays available for setup, service and hardware cases only, and no default binds it.
 - Prefer inherent physical feedback over invented feedback (`PRODUCT_FOUNDATION.md` P20). Do not add
   a sound to a physical action whose result already speaks for itself.
+- **Silence is the default; sound must earn its presence** (P25, ADR 0027). Every AQENO sound belongs
+  to `FEEDBACK`, `NOTIFICATION`, `ATTENTION` or `ALARM`, and that class decides audibility centrally
+  — never a per-feature `if night`. **Dark is not mute and Night is not a master mute.** Code
+  references semantic sound roles, never sound files.
+- Personal audio: **the cloud is the courier, not the archive.** A message is never played
+  automatically, arrival is silent at night, only authorised senders may send, and a delivered
+  payload leaves cloud transport immediately (ADR 0027).
 - AQENO does not compete for attention (`PRODUCT_FOUNDATION.md` P19). No engagement loop, artificial
   badge, permanently changing content or unnecessary notification.
 - No development toward a news feed, weather dashboard, browser, app store, games, social feed,

@@ -210,6 +210,15 @@ findable and operable with all light off. Control light is contextual guidance, 
 display. **DARK means zero visible light** — no display, no control LED, no status LED, no glowing
 key, no unavoidable operating indicator. No hardware may force visible residual light.
 
+### P25 — Silence is the default
+**ADR 0027.** Sound must earn its presence. AQENO makes a sound only where it supports eyes-free
+operation, confirms a relevant action, signals a relevant event or needs timely attention — never
+because an input was recognised. No tone for an encoder detent or an ordinary button press;
+mechanical feedback stays primary (P20). Every AQENO sound belongs to one of four classes —
+`FEEDBACK`, `NOTIFICATION`, `ATTENTION`, `ALARM` — and that class, not the feature, decides whether
+it may be heard. **Dark is not mute and Night is not a master mute:** an alarm may sound with the
+panel completely black, while a message arriving at night makes no sound at all.
+
 ## 4. Adaptive experience
 
 AQENO should use a shared capability model rather than separate rigid products for each age,
@@ -614,7 +623,9 @@ no locked controls — are product quality rules that stand on their own.
   unavailable functions. Unavailable capability means no UI surface.
 - Any future commercial information belongs outside the device experience and outside every
   child-facing surface. Optional services extend the local product; they do not complete it.
-- Optional cloud services may later finance remote sync, backups or family management.
+- Optional cloud services may later finance remote sync, backups or family management. For personal
+  audio, **the cloud is the courier, not the archive**: a delivered payload leaves it immediately
+  (ADR 0027 § 7).
 - If AQENO cloud services disappear, local content and core playback continue working.
 - Commercial streaming integrations are added only where licensing and technical terms permit them.
 - Final open-source/commercial licensing remains an explicit future decision; architecture must not accidentally foreclose either path.

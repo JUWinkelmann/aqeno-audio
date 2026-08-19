@@ -72,10 +72,16 @@ does not justify a local paywall: without the capability, no heart, disabled con
 upgrade surface exists on the device. Sender-side accounts must never become a prerequisite for
 ordinary local Core playback.
 
-Later journeys may consider replay, multiple messages or senders, a physical message token and
-delivery within the home. Before any remote implementation, AQENO needs explicit privacy,
-authorisation, retention, deletion and vulnerable-user safeguards. Personal audio must not be
-collected merely because delivery makes it possible.
+Later journeys may consider multiple senders, a physical message token and delivery within the home.
+
+**Amended 2026-08-19 — ADR 0027 makes the rules normative.** This entry is no longer only a concept:
+recording happens in an authorised client and never on the device, which needs no microphone; the
+cloud is transport and the personal payload is deleted immediately after complete, verified,
+persisted and acknowledged local delivery; a delivered message is local content that plays offline
+and may be heard again; local retention is configurable with the default still open; only authorised
+senders may send; and arrival never plays automatically and is completely silent at night. What
+remains concept here is the implementation — identity, pairing, transport and the message domain all
+still have to be designed.
 
 ## F2 — Digital Family Frame
 
