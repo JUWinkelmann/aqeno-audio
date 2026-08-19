@@ -137,12 +137,23 @@ remapped to something else.
 Source media is never deleted by AQENO (§ 7), so "do not delete media still in use" needs no
 reference counter. Only AQENO's own derived artwork is collectable, and only under § 9.
 
-### 6. The completion boundary for a copy is the human, not a timer
+### 6. On the manual import path, the completion boundary for a copy is the human, not a timer
 
-A 4 GB folder arriving over a network share must never become visible at 500 MB. AQENO's boundary is
-**the explicit trigger that already exists**: the administrator copies, then asks AQENO to prepare.
-ADR 0014 § 2 rejected a filesystem watcher, and that rejection is what makes this simple — without a
-watcher there is nothing racing the copy.
+A 4 GB folder arriving over a network share must never become visible at 500 MB. **For the manual
+import path decided here** — the only one that exists — AQENO's boundary is **the explicit trigger
+that already exists**: the administrator copies, then asks AQENO to prepare. ADR 0014 § 2 rejected a
+filesystem watcher, and that rejection is what makes this simple — without a watcher there is nothing
+racing the copy.
+
+This is a property of *that path*, not of the model. **Every atomicity guarantee in this ADR comes
+from the candidate-and-publication mechanism of §§ 2–5, not from who or what signals completion.** A
+partial copy is safe because it lands in a candidate nobody can read, and the trigger only decides
+*when* preparation starts. A future automatic import path — a share with a watcher, a drop folder, USB
+— therefore does not break this ADR; it must supply its own completion boundary, at least as strong as
+the human trigger and explicit rather than inferred. A transfer-complete signal, a sentinel or marker
+file, or a session-close event all qualify. **The size/mtime stability check below may never be
+promoted into that role** (see the note after the two mechanisms), and neither may a timer or a quiet
+period: those are the fragile heuristics this section exists to avoid depending on.
 
 Two supporting mechanisms, in descending strength:
 
@@ -338,9 +349,11 @@ answer, and the one to reach for if the library ever needs to be prepared on a d
 Rejected for now as disproportionate: it is a store split, a port split and a migration, to buy
 atomicity that one SQLite transaction already provides.
 
-**A filesystem watcher so content appears by itself.** Rejected again, as in ADR 0014 § 2, and this
-time it is load-bearing: without a watcher, the human trigger *is* the copy-completion boundary, and
-no stability heuristic has to be trusted.
+**A filesystem watcher so content appears by itself.** Rejected again, as in ADR 0014 § 2: without a
+watcher, the human trigger *is* the copy-completion boundary on the manual path, and no stability
+heuristic has to be trusted. This is a rejection *for the path decided here*, not a permanent
+prohibition on automatic import — § 6 states what a later automatic path must bring instead, and
+nothing in §§ 2–5 depends on the answer.
 
 **Rebuild the index at boot when it is missing or corrupt.** Superficially helpful. Rejected in § 12 —
 it converts a repairable fault into an unbounded startup, on the hardware least able to absorb it.
@@ -375,6 +388,9 @@ deliberately not decided here.
   writable surface and operational cost are unevaluated. Only the intended import surface may ever be
   exposed, never the AQENO filesystem. USB import likewise attaches to the same preparation pipeline
   without duplicating library logic.
+- **Whether import is ever automatic, and what its completion boundary is.** § 6 decides the boundary
+  for the manual path only and deliberately leaves this open. An automatic path needs its own explicit
+  boundary — not a timer, not the stability heuristic — and it may be added without changing §§ 2–5.
 - **The review-before-publish interface**, and which policy is the default.
 - **Destructive storage cleanup** beyond the non-destructive default.
 - **Duplicate intelligence** beyond cheap exact-duplicate reporting.

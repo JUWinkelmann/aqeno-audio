@@ -74,10 +74,13 @@ into the live library, which made a half-finished pass user-visible; ADR 0028 §
 one atomic publication at the end. A pass interrupted by a power cut leaves an abandoned candidate,
 not a smaller library.
 
-**Copy-completion boundary (ADR 0028 § 6).** The explicit trigger is the boundary. As a secondary
-defensive measure only, a file whose size or mtime changes during the pass is excluded from this
-candidate and reported; it is picked up by the next preparation. This is best-effort and is not what
-makes the model correct.
+**Copy-completion boundary (ADR 0028 § 6).** On the manual import path — the only one that exists —
+the explicit trigger is the boundary. As a secondary defensive measure only, a file whose size or mtime
+changes during the pass is excluded from this candidate and reported; it is picked up by the next
+preparation. This is best-effort, is not what makes the model correct, and **must not be relied on as
+the boundary for a future automatic import path**, which has to bring an explicit boundary of its own
+(ADR 0028 § 6). Correctness comes from the candidate being unreadable until publication, not from the
+trigger.
 
 ## 3. What becomes one work
 
