@@ -54,12 +54,17 @@ def test_encoder_delta_is_full_and_clockwise_positive() -> None:
     bus.poll_once()
 
     assert received == [
-        *[ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_RIGHT)] * 3,
-        *[ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT)] * 5,
+        *[ControlInput(LogicalControl.VOLUME_ENCODER, ControlEventType.ROTATE_RIGHT)] * 3,
+        *[ControlInput(LogicalControl.VOLUME_ENCODER, ControlEventType.ROTATE_LEFT)] * 5,
     ]
 
 
 def test_button_and_supported_keys_emit_short_press_on_release() -> None:
+    """Sockets 0, 1 and 3 carry PREVIOUS, NEXT and HOME (ADR 0026 § 2).
+
+    Socket 2 is deliberately empty so HOME sits apart from the transport pair,
+    and pressing it must stay silent rather than inventing a fifth control.
+    """
     encoder = Encoder()
     keys = Keys()
     bus = I2cSeesawInputBus(encoder=encoder, keys=keys)
@@ -68,7 +73,7 @@ def test_button_and_supported_keys_emit_short_press_on_release() -> None:
 
     bus.poll_once()
     encoder.is_pressed = True
-    keys.current = (True, False, True, True)
+    keys.current = (True, True, True, True)
     bus.poll_once()
     bus.poll_once()
     encoder.is_pressed = False
@@ -76,9 +81,10 @@ def test_button_and_supported_keys_emit_short_press_on_release() -> None:
     bus.poll_once()
 
     assert received == [
-        ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.SHORT_PRESS),
-        ControlInput(LogicalControl.PRIMARY_LEFT, ControlEventType.SHORT_PRESS),
-        ControlInput(LogicalControl.PRIMARY_RIGHT, ControlEventType.SHORT_PRESS),
+        ControlInput(LogicalControl.VOLUME_ENCODER, ControlEventType.SHORT_PRESS),
+        ControlInput(LogicalControl.PREVIOUS, ControlEventType.SHORT_PRESS),
+        ControlInput(LogicalControl.NEXT, ControlEventType.SHORT_PRESS),
+        ControlInput(LogicalControl.HOME, ControlEventType.SHORT_PRESS),
     ]
 
 
@@ -104,7 +110,7 @@ def test_long_press_fires_once_and_never_also_fires_short_press() -> None:
     encoder.is_pressed = False
     bus.poll_once()
 
-    assert received == [ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.LONG_PRESS)]
+    assert received == [ControlInput(LogicalControl.VOLUME_ENCODER, ControlEventType.LONG_PRESS)]
 
 
 def test_listener_order_is_synchronous_and_registration_does_not_replay() -> None:
@@ -125,17 +131,17 @@ def test_listener_order_is_synchronous_and_registration_does_not_replay() -> Non
         *[
             (
                 "first",
-                ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT),
+                ControlInput(LogicalControl.VOLUME_ENCODER, ControlEventType.ROTATE_LEFT),
             )
         ]
         * 2,
         (
             "first",
-            ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT),
+            ControlInput(LogicalControl.VOLUME_ENCODER, ControlEventType.ROTATE_LEFT),
         ),
         (
             "second",
-            ControlInput(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT),
+            ControlInput(LogicalControl.VOLUME_ENCODER, ControlEventType.ROTATE_LEFT),
         ),
     ]
 

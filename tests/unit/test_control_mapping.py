@@ -14,6 +14,7 @@ from aqeno.ports.input import (
     ControlType,
     FocusNext,
     FocusPrevious,
+    Home,
     LogicalControl,
     Next,
     Previous,
@@ -23,39 +24,44 @@ from aqeno.ports.input import (
 )
 
 
+def _button(control: LogicalControl, label: str) -> ControlCapability:
+    return ControlCapability(
+        control,
+        ControlType.BUTTON,
+        label,
+        (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
+        True,
+    )
+
+
+def _encoder(control: LogicalControl, label: str, *, illuminated: bool) -> ControlCapability:
+    return ControlCapability(
+        control,
+        ControlType.ROTARY_ENCODER,
+        label,
+        (
+            ControlEventType.ROTATE_LEFT,
+            ControlEventType.ROTATE_RIGHT,
+            ControlEventType.SHORT_PRESS,
+            ControlEventType.LONG_PRESS,
+        ),
+        illuminated,
+    )
+
+
 class PhysicalSource:
+    """RH1: four of the five AQENO controls. SELECT has no hardware yet."""
+
     def __init__(self) -> None:
         self._listener = None
 
     @property
     def controls(self) -> tuple[ControlCapability, ...]:
         return (
-            ControlCapability(
-                LogicalControl.PRIMARY_LEFT,
-                ControlType.BUTTON,
-                "Linke Taste",
-                (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
-                True,
-            ),
-            ControlCapability(
-                LogicalControl.PRIMARY_ENCODER,
-                ControlType.ROTARY_ENCODER,
-                "Drehknopf",
-                (
-                    ControlEventType.ROTATE_LEFT,
-                    ControlEventType.ROTATE_RIGHT,
-                    ControlEventType.SHORT_PRESS,
-                    ControlEventType.LONG_PRESS,
-                ),
-                True,
-            ),
-            ControlCapability(
-                LogicalControl.PRIMARY_RIGHT,
-                ControlType.BUTTON,
-                "Rechte Taste",
-                (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
-                True,
-            ),
+            _button(LogicalControl.PREVIOUS, "Zurück im Inhalt"),
+            _button(LogicalControl.NEXT, "Weiter im Inhalt"),
+            _encoder(LogicalControl.VOLUME_ENCODER, "Lautstärke", illuminated=True),
+            _button(LogicalControl.HOME, "Startseite"),
         )
 
     def on_control_input(self, listener: object) -> None:
@@ -72,11 +78,12 @@ def test_rh1_defaults_map_locally_to_semantic_input() -> None:
     received = []
     bus.on_input(received.append)
 
-    source.emit(LogicalControl.PRIMARY_LEFT, ControlEventType.SHORT_PRESS)
-    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_LEFT)
-    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_RIGHT)
-    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.SHORT_PRESS)
-    source.emit(LogicalControl.PRIMARY_RIGHT, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.PREVIOUS, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.VOLUME_ENCODER, ControlEventType.ROTATE_LEFT)
+    source.emit(LogicalControl.VOLUME_ENCODER, ControlEventType.ROTATE_RIGHT)
+    source.emit(LogicalControl.VOLUME_ENCODER, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.NEXT, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.HOME, ControlEventType.SHORT_PRESS)
 
     assert received == [
         Previous(),
@@ -84,6 +91,7 @@ def test_rh1_defaults_map_locally_to_semantic_input() -> None:
         VolumeDelta(1),
         TogglePlayback(),
         Next(),
+        Home(),
     ]
 
 
@@ -95,13 +103,13 @@ def test_custom_mapping_persists_and_reset_restores_defaults() -> None:
     bus.on_input(received.append)
 
     updated = bus.update_binding(
-        LogicalControl.PRIMARY_RIGHT,
+        LogicalControl.NEXT,
         ControlEventType.SHORT_PRESS,
         "playback.play_pause",
     )
     assert updated.action_id == "playback.play_pause"
 
-    source.emit(LogicalControl.PRIMARY_RIGHT, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.NEXT, ControlEventType.SHORT_PRESS)
     assert received == [TogglePlayback()]
 
     restarted = MappedInputBus(PhysicalSource(), store)
@@ -109,8 +117,7 @@ def test_custom_mapping_persists_and_reset_restores_defaults() -> None:
         next(
             item
             for item in restarted.bindings()
-            if item.control is LogicalControl.PRIMARY_RIGHT
-            and item.event is ControlEventType.SHORT_PRESS
+            if item.control is LogicalControl.NEXT and item.event is ControlEventType.SHORT_PRESS
         ).action_id
         == "playback.play_pause"
     )
@@ -120,8 +127,7 @@ def test_custom_mapping_persists_and_reset_restores_defaults() -> None:
         next(
             item
             for item in bus.bindings()
-            if item.control is LogicalControl.PRIMARY_RIGHT
-            and item.event is ControlEventType.SHORT_PRESS
+            if item.control is LogicalControl.NEXT and item.event is ControlEventType.SHORT_PRESS
         ).action_id
         == "playback.next"
     )
@@ -133,19 +139,19 @@ def test_admin_confirmation_uses_fixed_physical_controls_after_remapping() -> No
     confirmed = []
     bus.confirmation_inputs.on_input(confirmed.append)
     bus.update_binding(
-        LogicalControl.PRIMARY_LEFT,
+        LogicalControl.PREVIOUS,
         ControlEventType.SHORT_PRESS,
         "playback.stop",
     )
     bus.update_binding(
-        LogicalControl.PRIMARY_ENCODER,
+        LogicalControl.VOLUME_ENCODER,
         ControlEventType.SHORT_PRESS,
         None,
     )
 
-    source.emit(LogicalControl.PRIMARY_LEFT, ControlEventType.SHORT_PRESS)
-    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.SHORT_PRESS)
-    source.emit(LogicalControl.PRIMARY_RIGHT, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.PREVIOUS, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.VOLUME_ENCODER, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.NEXT, ControlEventType.SHORT_PRESS)
 
     assert confirmed == [Previous(), TogglePlayback(), Next()]
 
@@ -156,13 +162,13 @@ def test_unassigned_and_unsupported_actions_are_not_dispatched() -> None:
     received = []
     bus.on_input(received.append)
 
-    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.LONG_PRESS)
+    source.emit(LogicalControl.VOLUME_ENCODER, ControlEventType.LONG_PRESS)
     bus.update_binding(
-        LogicalControl.PRIMARY_LEFT,
+        LogicalControl.PREVIOUS,
         ControlEventType.SHORT_PRESS,
         None,
     )
-    source.emit(LogicalControl.PRIMARY_LEFT, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.PREVIOUS, ControlEventType.SHORT_PRESS)
 
     assert received == []
 
@@ -183,7 +189,7 @@ def test_unknown_restored_bindings_are_preserved_but_current_defaults_remain_saf
         next(
             item
             for item in bus.bindings()
-            if item.control is LogicalControl.PRIMARY_ENCODER
+            if item.control is LogicalControl.VOLUME_ENCODER
             and item.event is ControlEventType.SHORT_PRESS
         ).action_id
         == "playback.play_pause"
@@ -192,43 +198,32 @@ def test_unknown_restored_bindings_are_preserved_but_current_defaults_remain_saf
 
 
 class NavigationSource(PhysicalSource):
-    """Hardware that reports a NAV encoder — the target control set, not RH1."""
+    """The complete AQENO control set (ADR 0026 § 2), which RH1 is not yet."""
 
     @property
     def controls(self) -> tuple[ControlCapability, ...]:
         return (
+            _encoder(LogicalControl.SELECT_ENCODER, "Auswahl", illuminated=False),
             *super().controls,
-            ControlCapability(
-                LogicalControl.NAVIGATION_ENCODER,
-                ControlType.ROTARY_ENCODER,
-                "Navigationsknopf",
-                (
-                    ControlEventType.ROTATE_LEFT,
-                    ControlEventType.ROTATE_RIGHT,
-                    ControlEventType.SHORT_PRESS,
-                    ControlEventType.LONG_PRESS,
-                ),
-                False,
-            ),
         )
 
 
-def test_navigation_encoder_defaults_map_to_navigation_intentions() -> None:
+def test_select_encoder_defaults_map_to_navigation_intentions() -> None:
     source = NavigationSource()
     bus = MappedInputBus(source, FakeSettingsStore())
     received = []
     bus.on_input(received.append)
 
-    source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.ROTATE_LEFT)
-    source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.ROTATE_RIGHT)
-    source.emit(LogicalControl.NAVIGATION_ENCODER, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.SELECT_ENCODER, ControlEventType.ROTATE_LEFT)
+    source.emit(LogicalControl.SELECT_ENCODER, ControlEventType.ROTATE_RIGHT)
+    source.emit(LogicalControl.SELECT_ENCODER, ControlEventType.SHORT_PRESS)
 
     assert received == [FocusPrevious(), FocusNext(), Select()]
 
 
 def test_no_default_binds_a_long_press() -> None:
-    """ADR 0024 § A2: everyday operation is untimed. Back is the LEFT control,
-    not a held button, and nothing else reaches for a long press either."""
+    """ADR 0024 § A2: everyday operation is untimed. The way out is the HOME
+    control, not a held button, and nothing else reaches for a long press."""
     bus = MappedInputBus(NavigationSource(), FakeSettingsStore())
 
     long_press = [
@@ -246,29 +241,30 @@ def test_display_wake_cannot_be_bound_to_a_long_press() -> None:
 
     assert wake.compatible_events == (ControlEventType.SHORT_PRESS,)
     with pytest.raises(ValueError):
-        bus.update_binding(LogicalControl.PRIMARY_LEFT, ControlEventType.LONG_PRESS, "display.wake")
+        bus.update_binding(LogicalControl.PREVIOUS, ControlEventType.LONG_PRESS, "display.wake")
 
 
 def test_volume_encoder_keeps_its_meaning_when_navigation_hardware_exists() -> None:
-    """ADR 0024 § 2: volume stays volume. Adding a NAV control must not change
-    what the VOL control does in any state."""
+    """ADR 0024 § 2: volume stays volume. Adding a SELECT control must not
+    change what the VOLUME control does in any state."""
     source = NavigationSource()
     bus = MappedInputBus(source, FakeSettingsStore())
     received = []
     bus.on_input(received.append)
 
-    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.ROTATE_RIGHT)
-    source.emit(LogicalControl.PRIMARY_ENCODER, ControlEventType.SHORT_PRESS)
+    source.emit(LogicalControl.VOLUME_ENCODER, ControlEventType.ROTATE_RIGHT)
+    source.emit(LogicalControl.VOLUME_ENCODER, ControlEventType.SHORT_PRESS)
 
     assert received == [VolumeDelta(1), TogglePlayback()]
 
 
-def test_rh1_reports_no_navigation_control_and_stays_operable() -> None:
-    """RH1 has three controls. Its navigation bindings exist in settings and are
-    simply not offered — the same honest state as any other absent hardware."""
+def test_rh1_reports_no_select_control_and_stays_operable() -> None:
+    """RH1 carries four of the five controls. The SELECT bindings exist in
+    settings and are simply not offered — the same honest state as any other
+    absent hardware."""
     bus = MappedInputBus(PhysicalSource(), FakeSettingsStore())
 
     bound = {(item.control, item.event) for item in bus.bindings()}
 
-    assert LogicalControl.NAVIGATION_ENCODER not in {control for control, _ in bound}
+    assert LogicalControl.SELECT_ENCODER not in {control for control, _ in bound}
     assert "navigation.select" in {action.id for action in bus.actions}

@@ -20,7 +20,7 @@ from aqeno.domain.content import ContentId, ContentItem, ContentKind, HttpSource
 from aqeno.domain.display import DisplayEvent, DisplayState
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
 from aqeno.ports.audio import TransportState
-from aqeno.ports.input import Back, FocusNext, FocusPrevious, Select
+from aqeno.ports.input import FocusNext, FocusPrevious, Home, Select
 
 
 def _profile() -> Profile:
@@ -224,7 +224,7 @@ class TestPhysicalNavigation:
         state.refresh_library()
         state.handle_navigation(Select())
 
-        state.handle_navigation(Back())
+        state.handle_navigation(Home())
 
         assert state.snapshot.surface is DeviceSurface.HOME
         assert state.snapshot.playback.transport is TransportState.PLAYING

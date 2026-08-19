@@ -27,18 +27,41 @@ logger = logging.getLogger(__name__)
 LONG_PRESS_SECONDS = 0.8
 """One product threshold for every RH1 push control."""
 
+RH1_KEY_CONTROLS = {
+    0: LogicalControl.PREVIOUS,
+    1: LogicalControl.NEXT,
+    3: LogicalControl.HOME,
+}
+"""NeoKey socket → AQENO control (ADR 0026 § 2).
+
+PREVIOUS and NEXT sit adjacent so the transport pair reads as one pair by hand;
+socket 2 is left empty so HOME is physically separated from them (Tactile
+Identity). Socket positions are fixed by the board, so this mapping is where
+that layout decision lives — and it stays provisional until the assembled unit
+is felt in the dark (`RH1_VALIDATION_CHECKLIST.md`).
+
+RH1 has no SELECT encoder. Its bindings exist and report as unavailable, which
+is the same honest state as any other absent hardware."""
+
 RH1_CONTROL_CAPABILITIES = (
     ControlCapability(
-        LogicalControl.PRIMARY_LEFT,
+        LogicalControl.PREVIOUS,
         ControlType.BUTTON,
-        "Linke Taste",
+        "Zurück im Inhalt",
         (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
         True,
     ),
     ControlCapability(
-        LogicalControl.PRIMARY_ENCODER,
+        LogicalControl.NEXT,
+        ControlType.BUTTON,
+        "Weiter im Inhalt",
+        (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
+        True,
+    ),
+    ControlCapability(
+        LogicalControl.VOLUME_ENCODER,
         ControlType.ROTARY_ENCODER,
-        "Drehknopf",
+        "Lautstärke",
         (
             ControlEventType.ROTATE_LEFT,
             ControlEventType.ROTATE_RIGHT,
@@ -48,9 +71,9 @@ RH1_CONTROL_CAPABILITIES = (
         True,
     ),
     ControlCapability(
-        LogicalControl.PRIMARY_RIGHT,
+        LogicalControl.HOME,
         ControlType.BUTTON,
-        "Rechte Taste",
+        "Startseite",
         (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
         True,
     ),
@@ -133,8 +156,8 @@ class I2cSeesawInputBus:
         self._monotonic = monotonic
         self._encoder_press = PressGestureRecognizer(threshold=long_press_seconds)
         self._key_presses = {
-            0: PressGestureRecognizer(threshold=long_press_seconds),
-            2: PressGestureRecognizer(threshold=long_press_seconds),
+            index: PressGestureRecognizer(threshold=long_press_seconds)
+            for index in RH1_KEY_CONTROLS
         }
 
     @property
@@ -191,18 +214,17 @@ class I2cSeesawInputBus:
                 ControlEventType.ROTATE_RIGHT if delta > 0 else ControlEventType.ROTATE_LEFT
             )
             for _ in range(abs(delta)):
-                self._emit(ControlInput(LogicalControl.PRIMARY_ENCODER, rotation_event))
+                self._emit(ControlInput(LogicalControl.VOLUME_ENCODER, rotation_event))
 
         encoder_event = self._encoder_press.update(button_pressed, now)
         if encoder_event is not None:
-            self._emit(ControlInput(LogicalControl.PRIMARY_ENCODER, encoder_event))
+            self._emit(ControlInput(LogicalControl.VOLUME_ENCODER, encoder_event))
 
-        key_controls = {0: LogicalControl.PRIMARY_LEFT, 2: LogicalControl.PRIMARY_RIGHT}
         for index, recognizer in self._key_presses.items():
             pressed = index < len(keys_pressed) and keys_pressed[index]
             key_event = recognizer.update(pressed, now)
             if key_event is not None:
-                self._emit(ControlInput(key_controls[index], key_event))
+                self._emit(ControlInput(RH1_KEY_CONTROLS[index], key_event))
         self._keys_pressed = keys_pressed
 
     def _run(self) -> None:

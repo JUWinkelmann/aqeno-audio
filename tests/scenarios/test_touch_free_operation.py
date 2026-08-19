@@ -1,10 +1,11 @@
-"""The touch-free acceptance scenario — ADR 0024 § 6.
+"""The touch-free acceptance scenario — ADR 0024 § 6, ADR 0026 § 2.
 
 `docs/hardware/RH1_VALIDATION_CHECKLIST.md` § Touch-free operation describes the
-physical form of this test; it cannot run on the assembled box until a navigation
+physical form of this test; it cannot run on the assembled box until a SELECT
 control exists there. This is its automated form: the whole everyday journey is
 driven through the keyboard simulator's navigation keys, which stand in for the
-NAV encoder, and the panel's touch listener is never called even once.
+SELECT encoder and the HOME key, and the panel's touch listener is never called
+even once.
 
 Administration is deliberately out of scope: it belongs to the web client.
 """
@@ -156,8 +157,8 @@ def test_the_everyday_journey_needs_no_touch(tmp_path: Path) -> None:
     assert simulator.handle_key("left")
     assert session.snapshot.content_id == chosen
 
-    # Back to the library, then into another item, all without the screen.
-    assert simulator.handle_key("b")
+    # Home, then into another item, all without the screen.
+    assert simulator.handle_key("h")
     assert ui.snapshot.surface is DeviceSurface.HOME
     assert session.snapshot.transport is TransportState.PLAYING
 
@@ -198,3 +199,28 @@ def test_navigation_keeps_the_dark_room_dark_for_transport(tmp_path: Path) -> No
 
     assert display.snapshot.state is DisplayState.OFF
     assert session.snapshot.transport is TransportState.PAUSED
+
+
+def test_home_wakes_and_acts_in_the_same_press(tmp_path: Path) -> None:
+    """Note 17 / ADR 0026 § 4: HOME is the one navigation input that is executed
+    on the press that woke the panel.
+
+    A person in the dark reaches for the way out once. Consumption exists to
+    stop an unseen *context-dependent* action; HOME always lands on the same
+    surface and stops nothing, so there is nothing to protect them from.
+
+    Contrast `test_the_navigation_that_wakes_starts_nothing`: SELECT in the dark
+    is consumed, because what it would start depends on invisible focus.
+    """
+    simulator, ui, session, display, _, _ = _core(tmp_path)
+    simulator.handle_key("d")
+    simulator.handle_key("s")
+    assert ui.snapshot.surface is DeviceSurface.NOW_PLAYING
+    display.set_night_active(True)
+    assert display.snapshot.state is DisplayState.OFF
+
+    assert simulator.handle_key("h")
+
+    assert display.snapshot.state is DisplayState.INTERACTIVE
+    assert ui.snapshot.surface is DeviceSurface.HOME
+    assert session.snapshot.transport is TransportState.PLAYING

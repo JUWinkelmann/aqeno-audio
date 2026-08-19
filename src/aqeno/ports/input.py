@@ -13,12 +13,18 @@ from typing import Protocol, TypeAlias
 
 
 class LogicalControl(StrEnum):
-    """Stable product-facing controls; never board channels or bus addresses."""
+    """The five AQENO controls; never board channels or bus addresses.
 
-    PRIMARY_LEFT = "primary_left"
-    PRIMARY_ENCODER = "primary_encoder"
-    PRIMARY_RIGHT = "primary_right"
-    NAVIGATION_ENCODER = "navigation_encoder"
+    Named for their permanent role, not their position (ADR 0026 § 2). Position
+    was the right name only while LEFT and RIGHT resolved by context; now that
+    every control means one thing in every state, the role *is* the identity.
+    """
+
+    SELECT_ENCODER = "select_encoder"
+    PREVIOUS = "previous"
+    NEXT = "next"
+    VOLUME_ENCODER = "volume_encoder"
+    HOME = "home"
 
 
 class ControlEventType(StrEnum):
@@ -102,10 +108,10 @@ class WakeRequest:
     pass
 
 
-# Navigation (ADR 0024). Deliberately named apart from the transport `Previous`
-# and `Next` above: a person operating AQENO without looking must be able to
-# rely on transport and navigation never trading places, and a reader of this
-# file should not have to work out which `Next` is meant.
+# Navigation (ADR 0024, ADR 0026). Deliberately named apart from the transport
+# `Previous` and `Next` above: a person operating AQENO without looking must be
+# able to rely on transport and navigation never trading places, and a reader of
+# this file should not have to work out which `Next` is meant.
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,8 +130,14 @@ class Select:
 
 
 @dataclass(frozen=True, slots=True)
-class Back:
-    pass
+class Home:
+    """The always-available way back to the familiar starting point.
+
+    There is no `Back` event, because there is no back control (ADR 0026 § 4).
+    Unlike the other navigation events this one is *executed* when it wakes a
+    dark panel rather than consumed: its outcome is context-independent and
+    non-destructive, so a person in the dark presses once, not twice.
+    """
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,14 +162,18 @@ InputEvent: TypeAlias = (
     | FocusPrevious
     | FocusNext
     | Select
-    | Back
+    | Home
     | NfcPresented
     | NfcRemoved
 )
 
-NAVIGATION_EVENTS: tuple[type, ...] = (FocusPrevious, FocusNext, Select, Back)
-"""Group G in `DISPLAY_STATE_MACHINE.md`: these wake the display like a touch,
-and the one that wakes it is consumed. Transport never does either."""
+NAVIGATION_EVENTS: tuple[type, ...] = (FocusPrevious, FocusNext, Select, Home)
+"""Group G in `DISPLAY_STATE_MACHINE.md`: these wake the display like a touch.
+The one that wakes it is consumed — except `Home`, see note 17. Transport never
+wakes and is never consumed."""
+
+WAKE_EXECUTES_EVENTS: tuple[type, ...] = (Home,)
+"""Group G events that still act on the input that woke the panel (ADR 0026 § 4)."""
 InputListener: TypeAlias = Callable[[InputEvent], None]
 
 

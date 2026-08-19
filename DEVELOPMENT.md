@@ -140,25 +140,26 @@ With `--fake-hardware`, semantic input events come from the keyboard simulator:
 | `Space` | `TogglePlayback` |
 | `→` / `←` | `Next` / `Previous` |
 | `w` | `WakeRequest` |
-| `a` / `d` | `FocusPrevious` / `FocusNext` — NAV rotation |
-| `s` | `Select` — NAV press, activates the focused tile |
-| `b` | `Back` — the contextual back that LEFT will carry, not a control of its own |
+| `a` / `d` | `FocusPrevious` / `FocusNext` — SELECT rotation |
+| `s` | `Select` — SELECT press, activates the focused tile |
+| `h` | `Home` — the HOME control: back to Home from anywhere, playback continues |
 | `1`–`9` | `NfcPresented` with a fixed test UID |
 | `0` | `NfcRemoved` |
 | `n` | toggle `night_active` |
 
-The intended control set is LEFT · NAV · RIGHT · VOL (ADR 0024 § A1). The simulator covers all four:
-`←`/`→` are LEFT/RIGHT, `a`/`d`/`s` are the NAV encoder, `↑`/`↓`/`Space` are VOL. `b` is a stand-in
-for the contextual back that LEFT will carry once a browsing level exists — it is not a fifth
-control, and it is currently the only way to leave Now Playing without touch.
+The control set is SELECT · PREVIOUS · NEXT · VOLUME · HOME (ADR 0026 § 2). The simulator covers all
+five: `a`/`d`/`s` are the SELECT encoder, `←`/`→` are PREVIOUS/NEXT, `↑`/`↓`/`Space` are VOLUME, and
+`h` is HOME. RH1 carries four of them in hardware; only SELECT is simulated there.
 
 Note what the simulator does *not* cover: it emits semantic events directly and therefore bypasses
-`MappedInputBus`, so it exercises the four controls' meanings but never their bindings. Mapping is
+`MappedInputBus`, so it exercises the five controls' meanings but never their bindings. Mapping is
 covered by `tests/unit/test_control_mapping.py` instead.
 
-Like a waking touch, a navigation key that wakes a dark panel is consumed and selects nothing.
-Volume and Play/Pause are deliberately different: they act immediately and never wake, so a first
-volume step in a dark room is not spent on lighting the screen.
+Like a waking touch, a navigation key that wakes a dark panel is consumed and selects nothing —
+except `h`. HOME wakes **and** acts in one press, because its outcome is the same in every context
+and a person in the dark should reach the way out once (ADR 0026 § 4). Volume and Play/Pause are
+different again: they act immediately and never wake, so a first volume step in a dark room is not
+spent on lighting the screen.
 
 The simulator is not a debug afterthought — `FIRST_VERTICAL_SLICE.md` requires it, and the dark-room
 and display-state scenarios are exercised through it long before the I2C hardware exists.
@@ -172,6 +173,7 @@ workflow and would make the loop unusable.
 |---|---|
 | Full Kids Early UI in a window | Real panel power `OFF` and backlight control |
 | Real audio through GStreamer | I2C rotary encoder and NeoKey |
+| Every control's *meaning* | Whether a control is findable and told apart **by hand, in the dark** |
 | Keyboard simulator for all semantic inputs | User-facing LEDs, including true off |
 | Library, persistence, resume, migrations | NFC reader, once it exists |
 | The whole display **state machine**, as logical state | Boot and wake timing against the targets |

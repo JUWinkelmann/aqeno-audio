@@ -21,7 +21,7 @@ from aqeno.domain.display import DisplayEvent, DisplayState
 from aqeno.domain.profile import DisplayPolicy, ExperienceLevel, Profile, Role, VolumeLimits
 from aqeno.ports.ambient_light import AmbientLight
 from aqeno.ports.audio import TransportState
-from aqeno.ports.input import Back, FocusNext, Select, VolumeDelta
+from aqeno.ports.input import FocusNext, Home, Select, VolumeDelta
 
 INTERACTIVE_BRIGHTNESS = 70
 DIM_BRIGHTNESS = 10
@@ -560,7 +560,7 @@ class TestNavigationRouting:
         service, _, _, _, _ = _service()
         service.handle_event(DisplayEvent.WAKE_REQUEST)
 
-        service.handle_input(Back())
+        service.handle_input(Home())
 
         assert service.snapshot.state is DisplayState.INTERACTIVE
 

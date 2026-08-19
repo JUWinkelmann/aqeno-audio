@@ -3,11 +3,12 @@
 ## Physical controls and input events
 
 Concrete hardware first emits a normalized `ControlInput(logical_control, event)` through
-`PhysicalInputSource`. Stable RH1 logical controls are `primary_left`, `primary_encoder` and
-`primary_right`; they are not NeoKey channels, I2C addresses or GPIO pins. `navigation_encoder` is
-the fourth defined logical control (ADR 0024 § 4). No RH1 adapter reports it today, so its mappings
-exist and are unavailable — the same honest state as any other absent hardware. Available controls and
-events come from the source's capabilities rather than being assumed by the Administration.
+`PhysicalInputSource`. The five logical controls are `select_encoder`, `previous`, `next`,
+`volume_encoder` and `home` (ADR 0026 § 2). They are named for their permanent role, never for a
+NeoKey channel, I2C address, GPIO pin or enclosure position, and each means one thing in every
+state. RH1 reports four of them; no RH1 adapter reports `select_encoder`, so its mappings exist and
+are unavailable — the same honest state as any other absent hardware. Available controls and events
+come from the source's capabilities rather than being assumed by the Administration.
 
 Buttons expose `short_press` and `long_press`. A rotary control may additionally expose
 `rotate_left` and `rotate_right`; illumination is a separate capability. The one current long-press
@@ -18,25 +19,28 @@ registry, locally and without HTTP/network involvement. Defaults are:
 
 | Logical event | AQENO action |
 |---|---|
-| `primary_left.short_press` | `playback.previous` |
-| `primary_encoder.rotate_left` / `rotate_right` | `volume.down` / `volume.up` |
-| `primary_encoder.short_press` | `playback.play_pause` |
-| `primary_right.short_press` | `playback.next` |
-| `navigation_encoder.rotate_left` / `rotate_right` | `navigation.focus_previous` / `focus_next` |
-| `navigation_encoder.short_press` | `navigation.select` |
+| `select_encoder.rotate_left` / `rotate_right` | `navigation.focus_previous` / `focus_next` |
+| `select_encoder.short_press` | `navigation.select` |
+| `previous.short_press` | `playback.previous` |
+| `next.short_press` | `playback.next` |
+| `volume_encoder.rotate_left` / `rotate_right` | `volume.down` / `volume.up` |
+| `volume_encoder.short_press` | `playback.play_pause` |
+| `home.short_press` | `navigation.home` |
 | every current long press | unassigned |
 
-`primary_left` and `primary_right` are the LEFT and RIGHT controls: **back and forward**, resolved by
-content context (ADR 0024 § A3). In the current slice the only context is linear playback, so their
-defaults remain `playback.previous` and `playback.next`. The navigation resolution arrives with the
-first content-browsing level; nothing here is rebound in anticipation.
+`previous` and `next` are content order, never UI navigation: they move within the active content as
+ADR 0009 § 2 defines per kind, and they never move focus. This replaces ADR 0024's context-resolved
+LEFT/RIGHT, which could not be operated without looking because the person could not know which
+context they were in. `home` is the always-available way out and is not rebindable in practice —
+binding another action onto it, or `navigation.home` onto another control, defeats the one control
+whose purpose is being predictable (ADR 0026 § 4).
 
 No default binds a long press, and no everyday action may require one (ADR 0024 § A2). Long press
 remains available to adapters and to the registry for setup, service and hardware cases.
 `display.wake` is bindable to a short press only.
 
 Navigation actions (`navigation.focus_previous`, `navigation.focus_next`, `navigation.select`,
-`navigation.back`) are ordinary entries in the controlled action registry and may be bound to any
+`navigation.home`) are ordinary entries in the controlled action registry and may be bound to any
 control a source reports, including a spare button. **Volume and playback actions must not be
 rebound to navigation on the same control that carries volume**: the product rule is that a volume
 control stays a volume control (ADR 0024 § 2). The registry does not enforce that — it is a
@@ -55,8 +59,9 @@ After mapping, Application listeners receive the existing semantic events:
 - `Next`
 - `Previous`
 - `WakeRequest`
-- `FocusPrevious`, `FocusNext`, `Select`, `Back` — navigation, deliberately named apart from
-  transport `Previous`/`Next` so no reader or mapping confuses the two
+- `FocusPrevious`, `FocusNext`, `Select`, `Home` — navigation, deliberately named apart from
+  transport `Previous`/`Next` so no reader or mapping confuses the two. There is no `Back` event,
+  because there is no back control (ADR 0026 § 4)
 - `NfcPresented(tag_id)`
 - `NfcRemoved(tag_id)` where supported
 
@@ -64,18 +69,21 @@ Navigation events are routed through the display service, which owns the wake de
 the input that woke the panel (`DISPLAY_STATE_MACHINE.md` Group G, note 15) before the Device UI
 sees it. Transport and NFC keep their existing route and never wake anything.
 
-**Wake behaviour is a property of the resolved action, not of the control** (ADR 0024 § A4). A
-control whose meaning depends on context — LEFT and RIGHT — therefore carries the display semantics
-of whatever it resolved to, and that resolution happens in the mapping layer before the display
-service sees an event. Volume and Play/Pause are deliberately excluded from Group G: a first volume
-step must reach audio in a dark room rather than being spent on lighting the panel.
+**Wake behaviour is a property of the control** (ADR 0026 § 5). ADR 0024 § A4 had to make it a
+property of the resolved action, because LEFT and RIGHT changed roles; with permanent roles that
+indirection is withdrawn. `select_encoder` and `home` wake; `previous`, `next` and `volume_encoder`
+never do. **`home` is executed on the press that woke the panel rather than consumed** (note 17):
+consumption protects against an unseen context-dependent action, and HOME has none. Volume and
+Play/Pause stay outside Group G entirely — a first volume step must reach audio in a dark room
+rather than being spent on lighting the panel.
 
 No application code should depend on GPIO pin numbers.
 
 Delivery at both boundaries follows ADR 0011: synchronous registration-order delivery, without
-replay or coalescing. The fixed Previous → Encoder → Next ownership-confirmation sequence observes
-logical RH1 short presses before configurable action mapping, so a custom mapping cannot disable
-local Administration setup or recovery.
+replay or coalescing. The fixed PREVIOUS → VOLUME → NEXT ownership-confirmation sequence observes
+those three permanent control identities before configurable action mapping, so a custom mapping
+cannot disable local Administration setup or recovery. Because the identities are permanent
+(ADR 0026 § 2), the sequence carries to target hardware unchanged.
 
 ## Display contract
 
@@ -109,7 +117,16 @@ to brightness; concrete RGB colour remains the AQENO design policy inside the ad
 user setting. A later temporary product-status cue may override the preference only while active
 and must then return to it; no current feature needs such a cue.
 
-Night/Dark-Room policy has authority to force all user-facing LEDs OFF.
+Control illumination is **contextual guidance, never permanent status display, and never a
+precondition for operating a control** (ADR 0026 § 1.7, § 9). Every control must be findable and
+usable with all light off.
+
+Night/Dark-Room policy has authority to force all user-facing LEDs OFF, and does so today without
+exception. ADR 0026 § 9 names that behaviour the `off` night illumination policy — the only one that
+exists, the default, and not configurable. The `on_approach` and `subtle` values are recorded
+vocabulary for a deliberate future human choice and require proximity hardware AQENO does not have. **DARK means zero visible light** — no display,
+no control LED, no status LED, no glowing HOME key, no unavoidable operating indicator. No hardware
+may force visible residual light.
 
 ## Audio contract
 - load resolved source;

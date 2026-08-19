@@ -38,6 +38,7 @@ from aqeno.ports.clock import Clock
 from aqeno.ports.display import DisplayPanel
 from aqeno.ports.input import (
     NAVIGATION_EVENTS,
+    WAKE_EXECUTES_EVENTS,
     InputEvent,
     Next,
     NfcPresented,
@@ -198,7 +199,13 @@ class DisplayService:
     def _handle_navigation(self, event: InputEvent) -> None:
         with self._lock:
             transition = self.handle_event(DisplayEvent.NAVIGATE)
-            if not transition.consume_wake_input and self._navigation_listener is not None:
+            # HOME still acts on the input that woke the panel (ADR 0026 § 4,
+            # note 17). Consumption protects against triggering a *context-
+            # dependent* action nobody can see; HOME always lands on the same
+            # surface and stops nothing, so swallowing it would only cost a
+            # person in the dark a second press.
+            consumed = transition.consume_wake_input and not isinstance(event, WAKE_EXECUTES_EVENTS)
+            if not consumed and self._navigation_listener is not None:
                 self._navigation_listener(event)
 
     def handle_touch(self) -> None:

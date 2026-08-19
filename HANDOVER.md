@@ -1,6 +1,6 @@
 # Handover
 
-**Updated:** 2026-08-18
+**Updated:** 2026-08-19
 **Purpose:** live continuation log; read `ONBOARDING.md` first.
 
 ## Operating directive
@@ -187,10 +187,11 @@ contracts they changed, not here; that gap is known rather than an indication th
   asset or false successful handover is installed.
 - Hardware-only boot/wake timing, full-dark output and child-safe calibrated volume remain physical
   measurements. The single deselected test is intentionally in that class.
-- **RH1 cannot demonstrate the touch-free journey physically.** Three controls cannot carry NAV and
-  VOL at once, so that acceptance item runs on the desktop simulator until either a second Qwiic
-  encoder exists (check the address-jumper question against the no-solder gate first) or the adapter
-  exposes the two unused NeoKey positions. Neither is decided.
+- **RH1 cannot yet demonstrate the complete touch-free journey physically.** Since ADR 0026 the box
+  can carry PREVIOUS, NEXT, HOME and VOLUME with hardware on hand, so the return path from Now
+  Playing is no longer touch-only. Focus movement and activation still need a SELECT encoder and
+  stay on the desktop simulator until one is chosen against the Rotary Control Contract. The
+  address-jumper question on a second 5880 must be checked against the no-solder gate first.
 
 ## Accepted display and hardware decisions already in the repository
 
@@ -204,17 +205,56 @@ contracts they changed, not here; that gap is known rather than an indication th
 - Repairability and standard-component principles are canonical in `PRODUCT_FOUNDATION.md` and
   `docs/hardware/HARDWARE_REFERENCE.md` (`0aede03`). No CAD, enclosure design or RH change was made.
 
+### 2026-08-19 — hardware interaction and accessibility consolidated
+
+- Consolidated the accumulated physical-interaction, accessibility, NFC, night, illumination,
+  sensing and hardware-variant decisions into **ADR 0026 — AQENO Hardware Interaction Contract**,
+  and gave it a normative companion, `docs/implementation/INTERACTION_MATRIX.md`, covering 36
+  situations against every control. Two new documents; everything else was updated in place.
+- **The control set is five, not four:** SELECT · PREVIOUS · NEXT · VOLUME · HOME, each with one
+  permanent meaning. This supersedes ADR 0024 § A1, § A3 and § A4.
+- Named the conflict that forced it: ADR 0024 § 2 required a control to mean the same thing in every
+  state, then made LEFT/RIGHT context-resolved. Its own § A3 open cell was the symptom. A person who
+  cannot see the screen cannot know the context, so they cannot know what the control will do.
+- HOME closes ADR 0024 § A3 and gives every state a way out. It **wakes and acts on one press**
+  rather than being consumed (new `DISPLAY_STATE_MACHINE.md` note 17): consumption protects against
+  an unseen *context-dependent* action, and HOME has none.
+- Recorded as principles P21–P24: blind operation, tactile identity, accessibility without looking
+  accessible, and light that assists without ever defining. **DARK means zero visible light**,
+  including a glowing HOME key and any unavoidable indicator — a purchasing constraint, not only a
+  software one.
+- Decided without implementing: device power states `ACTIVE`/`SLEEP`/`OFF` with no everyday power
+  button; the night illumination vocabulary (`off` only exists); ambient-light + proximity sensing
+  with the VCNL4040 as target candidate and the ordered VEML7700 as RH1's comparison baseline; the
+  flat, recess-free NFC object area; optional magnetic positioning; the AQENO Rotary Control
+  Contract. No proximity port, no capability framework (refused for the fourth time), no purchase.
+- Code changes were kept to reconciliation: logical controls renamed to their permanent roles
+  (`select_encoder`, `previous`, `next`, `volume_encoder`, `home`), the `Back` event became `Home`,
+  `navigation.back` became `navigation.home`, RH1's NeoKey sockets became 0/1/3 with a deliberate
+  gap at 2, and one new scenario proves HOME wakes and acts in the same press.
+- **RH1 gained a control without a purchase.** HOME is a third Cherry MX switch in a free NeoKey
+  socket; PREVIOUS, NEXT, VOLUME and HOME now all exist on the box. Only SELECT is still missing, so
+  the physical Now-Playing-to-Home path is no longer touch-only.
+- Design conflicts recorded rather than resolved: alarm snooze on the VOLUME press (C1), blind timer
+  cancellation (C2), transport in `AMBIENT` (C3), radio favourites without a domain model (C4), and
+  shutdown having no control at all (C5).
+- Verification: 1125 passed, 1 deselected; Ruff, format, mypy, Admin check/build and the browser E2E
+  tests green.
+
 ## Next action
 
 1. Install the MiniAmp, Qwiic controls and speakers on RH1; run the documented stereo/control/offline
    acceptance sequence and record measured evidence.
 2. Supply the canonical AQENO SVG and resolve G24's real DSI adapter before enabling the Plymouth
    presentation and measuring splash-to-first-frame handover.
-3. Decide how RH1 gets a NAV control, or accept that the touch-free acceptance stays simulated for
-   now. Both are legitimate; leaving it unstated is not.
-4. Open UX questions that only real use can answer: what LEFT does on Now Playing during playback
-   (ADR 0024 § A3), what counts as a "section" per content kind, and whether focus wrapping reads as
-   helpful or confusing to a three-year-old.
+3. Fit the third Cherry MX switch as HOME on NeoKey socket 3 and verify the new socket layout and
+   blind findability. Then decide how RH1 gets a SELECT encoder, chosen against the AQENO Rotary
+   Control Contract rather than because a board is on hand — and check the 5880 address-jumper
+   question against the no-solder gate first.
+4. Open UX questions that only real use can answer: whether HOME removes the need for a BACK control
+   once browsing is deeper than one level (ADR 0026 § 4), what counts as a "section" per content
+   kind, whether focus wrapping reads as helpful or confusing to a three-year-old, and the design
+   conflicts C1–C5 in `INTERACTION_MATRIX.md` § 9.
 5. Documentation consolidation, when there is a natural occasion: `docs/DOCUMENTATION_GAPS.md` is
    now mostly historical — 11 of 24 gaps are marked closed, 2 deferred by intent, and several open
    ones (G08 failure taxonomy, G16 roadmap contradiction, G20 language convention) were overtaken by

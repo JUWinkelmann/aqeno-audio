@@ -56,7 +56,18 @@ absence of output.
 | User-facing LEDs | Default | Editable |
 |---|---:|---|
 | Normal interaction brightness | **20** | Manager |
-| Night brightness | **0 — true off** | **Fixed** |
+| Night brightness | **0 — true off** | **Fixed** under the default night illumination preference |
+| Night illumination policy | **`off`** | **Not configurable today** |
+
+The Manager's existing `controls.illumination` preference (`off` · `subtle` · `clear`) governs
+*normal* control light. Night overrides it to zero, which is unchanged and is what
+`DISPLAY_STATE_MACHINE.md` invariant 8 asserts.
+
+ADR 0026 § 9 records the night policy vocabulary — `off`, `on_approach`, `subtle` — so that nothing
+later invents a different one. **Only `off` exists**: it is the behaviour AQENO has, it is the
+default, and there is no setting to change it. `on_approach` requires proximity hardware no AQENO
+reports, and neither it nor a continuous night `subtle` is implemented. **DARK means zero visible
+light**, and that is what today's behaviour delivers.
 
 The night LED value is fixed at zero. `PRODUCT_FOUNDATION.md` § 6 makes it a core product requirement,
 not a preference, and a configurable "dark room" that can be switched to "slightly lit" is not the
@@ -219,15 +230,21 @@ not tied to a listening profile or concrete I2C/GPIO identity.
 
 | Control event | Default | Editable |
 |---|---|---|
-| LEFT short press | back — currently resolved as Previous | Manager |
-| VOL encoder rotate left/right | Volume down/up | Manager |
-| VOL encoder short press | Play/Pause | Manager |
-| RIGHT short press | forward — currently resolved as Next | Manager |
-| NAV encoder rotate left/right | Focus previous/next (no RH1 hardware yet) | Manager |
-| NAV encoder short press | Select (no RH1 hardware yet) | Manager |
+| SELECT encoder rotate left/right | Focus previous/next (no RH1 hardware yet) | Manager |
+| SELECT encoder short press | Select (no RH1 hardware yet) | Manager |
+| PREVIOUS short press | previous item in content order (ADR 0009 § 2) | Manager |
+| NEXT short press | next item in content order | Manager |
+| VOLUME encoder rotate left/right | Volume down/up | Manager |
+| VOLUME encoder short press | Play/Pause | Manager |
+| HOME short press | back to Home; never stops playback | Manager, but see below |
 | all long presses | unassigned — no everyday action may need one (ADR 0024 § A2) | Manager |
 | long-press threshold | **800 ms** | Fixed |
 | illumination | **subtle** (`off` / `subtle` / `clear`) | Manager |
+
+HOME is the one always-available way out (ADR 0026 § 4). Binding another action onto it, or
+`navigation.home` onto another control, defeats the control's entire purpose; the registry does not
+forbid it mechanically, for the same reason it does not forbid moving volume — that is a Management
+UI and review responsibility.
 
 Night and display `OFF` still force true LED off; the illumination preference cannot override that
 product policy. Missing current mappings resolve to the validated defaults in memory without

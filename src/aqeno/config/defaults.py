@@ -206,22 +206,25 @@ class LibrarySettings:
 @dataclass(frozen=True, slots=True)
 class ControlSettings:
     bindings: tuple[str, ...] = (
-        "primary_left|short_press|playback.previous",
-        "primary_left|long_press|",
-        "primary_encoder|rotate_left|volume.down",
-        "primary_encoder|rotate_right|volume.up",
-        "primary_encoder|short_press|playback.play_pause",
-        "primary_encoder|long_press|",
-        "primary_right|short_press|playback.next",
-        "primary_right|long_press|",
-        # ADR 0024. No RH1 adapter reports a navigation encoder, so these
-        # defaults stay inert until hardware that has one is connected.  Back is
-        # the LEFT control, not a long press: no default binds a long press, and
-        # no everyday action may require one (ADR 0024 § A2).
-        "navigation_encoder|rotate_left|navigation.focus_previous",
-        "navigation_encoder|rotate_right|navigation.focus_next",
-        "navigation_encoder|short_press|navigation.select",
-        "navigation_encoder|long_press|",
+        # The five permanent AQENO controls (ADR 0026 § 2). Each means one
+        # thing in every state; no default binds a long press, and no everyday
+        # action may require one (ADR 0024 § A2).
+        "previous|short_press|playback.previous",
+        "previous|long_press|",
+        "next|short_press|playback.next",
+        "next|long_press|",
+        "volume_encoder|rotate_left|volume.down",
+        "volume_encoder|rotate_right|volume.up",
+        "volume_encoder|short_press|playback.play_pause",
+        "volume_encoder|long_press|",
+        "home|short_press|navigation.home",
+        "home|long_press|",
+        # No RH1 adapter reports a SELECT encoder yet, so these defaults stay
+        # inert until hardware that has one is connected.
+        "select_encoder|rotate_left|navigation.focus_previous",
+        "select_encoder|rotate_right|navigation.focus_next",
+        "select_encoder|short_press|navigation.select",
+        "select_encoder|long_press|",
     )
     illumination: str = "subtle"
 

@@ -2,6 +2,7 @@
 
 **Date:** 2026-08-17
 **Amended:** 2026-08-18 by ADR 0024 — Group G, physical navigation
+**Amended:** 2026-08-19 by ADR 0026 — Group G membership is per control; HOME acts when it wakes
 **Closes:** gap G04
 **Authority:** implements `docs/product/DISPLAY_BEHAVIOR.md`. Where this document and the prose
 conflict, the prose is the product intent and this document is the defect.
@@ -49,7 +50,9 @@ Referenced by name in the table. All are read at transition time, never cached.
 **Group A — explicit visual requests.** `WakeRequest`, `TouchOnPanel`, `SetupRequested`,
 `SetupCompleted`, `AmbientRequested`, `AmbientExited`, `ContentSelected`
 
-**Group B — physical transport.** `VolumeDelta`, `TogglePlayback`, `Next`, `Previous`
+**Group B — physical transport.** `VolumeDelta`, `TogglePlayback`, `Next`, `Previous`. Since
+ADR 0026 the PREVIOUS and NEXT controls are content order in every context, so they are permanently
+Group B and never anything else.
 
 **Group C — NFC.** `NfcPresented`, `NfcRemoved`
 
@@ -63,15 +66,16 @@ Referenced by name in the table. All are read at transition time, never cached.
 **Group F — policy.** `NightActivated`, `NightDeactivated`
 
 **Group G — physical navigation.** `Navigate` — one resolved navigation action: focus movement,
-activation of the focused item, or back. ADR 0024 makes navigation physical, and physical navigation
+activation of the focused item, or HOME. ADR 0024 makes navigation physical, and physical navigation
 is the replacement for the panel touch it must not require. It therefore takes touch's display
 semantics, not the transport rule.
 
-Membership is decided by the **resolved AQENO action, not by the button** (ADR 0024 § A4). A control
-whose meaning depends on context — LEFT and RIGHT are back and forward — belongs to Group G only in
-the moments it resolves to navigation, and to Group B whenever it resolves to transport. Volume and
-Play/Pause never join Group G: consuming a first volume step to light a dark panel would remove the
-one guarantee the dark room exists for.
+**Membership is decided by the control** (ADR 0026 § 5). Only `select_encoder` and `home` produce
+Group G events; `previous`, `next` and `volume_encoder` never do. ADR 0024 § A4 had to key membership
+to the resolved action because LEFT and RIGHT changed roles by context; with permanent roles that
+indirection is withdrawn, and the dark-room rule is simply that only SELECT and HOME can light the
+panel. Volume and Play/Pause never join Group G: consuming a first volume step to light a dark panel
+would remove the one guarantee the dark room exists for.
 
 ## Transition table
 
@@ -82,7 +86,7 @@ the display is not involved. This is a decision, not an omission.
 |---|---|---|---|---|---|
 | `WakeRequest` | → `INTERACTIVE` ¹ | → `INTERACTIVE` | reset timer | → `INTERACTIVE` | reset timer |
 | `TouchOnPanel` | → `INTERACTIVE` ¹ ² | → `INTERACTIVE` ² | reset timer ³ | → `INTERACTIVE` ² | reset timer ³ |
-| **Group G** `Navigate` | → `INTERACTIVE` ¹ ¹⁵ | → `INTERACTIVE` ¹⁵ | reset timer ¹⁶ | → `INTERACTIVE` ¹⁵ | reset timer ¹⁶ |
+| **Group G** `Navigate` | → `INTERACTIVE` ¹ ¹⁵ ¹⁷ | → `INTERACTIVE` ¹⁵ ¹⁷ | reset timer ¹⁶ | → `INTERACTIVE` ¹⁵ ¹⁷ | reset timer ¹⁶ |
 | `ContentSelected` | n/a | n/a | reset timer | n/a | reset timer |
 | `AmbientRequested` | → `AMBIENT` ⁴ | → `AMBIENT` ⁴ | → `AMBIENT` ⁴ | reset schedule | — |
 | `AmbientExited` | — | — | — | → `INTERACTIVE` | — |
@@ -126,18 +130,25 @@ the display is not involved. This is a decision, not an omission.
     Setup progress is preserved, and re-entry resumes where it left off.
 11. Ambient waits rather than interrupting an active user. It starts at the next opportunity, i.e.
     when `InactivityElapsed` reaches `OFF` and the schedule is still open.
-12. Also forces every user-facing LED to true `OFF` and applies the night volume ceiling. See
-    `PLATFORM_CONTRACTS.md` § LED contract.
+12. Also forces every user-facing LED to true `OFF` and applies the night volume ceiling. ADR 0026
+    § 9 names this the `off` night illumination policy — the only one that exists and the default.
+    See `PLATFORM_CONTRACTS.md` § LED contract.
 13. An administrator mid-configuration is not interrupted, but brightness drops to the night minimum
     and `SetupIdleElapsed` shortens to the night value.
 14. **Night ending never wakes the display.** Nothing in this machine transitions *out* of `OFF`
     automatically — every path out requires an explicit human request or an authorised Ambient
     schedule. A Group G navigation input is an explicit human request; a scheduled alarm would be a
-    third class and needs its own amendment here before it exists (ADR 0025 § 3).
+    third class and needs its own amendment here before it exists (ADR 0025 § 3,
+    `INTERACTION_MATRIX.md` § 5).
 15. **The navigation input that wakes is consumed**, for the reason in note 2. Rotating a knob or
-    pressing NAV in a dark room must not also move focus or start content the person cannot see.
+    pressing SELECT in a dark room must not also move focus or start content the person cannot see.
     Wake first, act on the next input.
 16. Delivered to the UI normally. In `SETUP` it belongs to the setup flow, like a touch.
+17. **`Home` is the exception to note 15: it wakes and is then executed, not consumed**
+    (ADR 0026 § 4). Consumption exists so nobody triggers a *context-dependent* action they cannot
+    see. HOME's outcome is context-independent, identical every time and stops nothing, so
+    swallowing it would only cost a person in the dark a second press on the one control that
+    exists to be predictable. Focus movement and `Select` keep note 15 unchanged.
 
 ## Wake target
 
@@ -176,15 +187,19 @@ Each of these is a test, not a guideline. They are the invariants `AGENTS.md` re
    errors and background service readiness are invisible.
 3. **Group B events behave identically in all five states**, and are fully functional in `OFF`.
    Group G is deliberately *not* Group B: navigation is the one input class whose entire purpose is
-   looking at something.
+   looking at something. Since ADR 0026 no control moves between the two groups.
 4. **No automatic transition leaves `OFF`.** Only an explicit human request or an authorised Ambient
    schedule does.
 5. **Entering `OFF` produces no flash, fade-up or farewell animation.**
 6. **Leaving `OFF` shows no partially painted frame.** The first visible frame is complete.
 7. **A wake touch is consumed** and never activates an underlying control. The same holds for a
    waking navigation input (note 15).
-8. **`night_active` forces every user-facing LED to true off**, and `AMBIENT` is unreachable while it
-   holds.
+8. **`night_active` forces every user-facing LED to true off**, and `AMBIENT` is unreachable while
+   it holds. ADR 0026 § 9 renames this behaviour the `off` night illumination policy, which is the
+   only one that exists and the default; it does not weaken the invariant. A future policy chosen
+   deliberately by a person could offer brief, dim orientation instead, and would amend this
+   invariant then rather than now. Absolute dark stays reachable, default and authoritative wherever
+   a Bedtime scene requires it.
 9. **`OFF` means no intended visible output**, per `PLATFORM_CONTRACTS.md`.
 10. The machine is **deterministic**: for a given state, event and guard set there is exactly one
     outcome, and every cell above is defined.

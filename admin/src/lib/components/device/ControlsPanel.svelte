@@ -45,6 +45,13 @@
 		rotate_left: 'Nach links drehen',
 		rotate_right: 'Nach rechts drehen'
 	};
+	// One glyph per AQENO control (ADR 0026 § 2). A control the API reports but
+	// this list does not know still renders, with a neutral marker.
+	const controlGlyphs: Record<string, string> = {
+		previous: '‹',
+		next: '›',
+		home: '⌂'
+	};
 	// Categories are listed rather than derived so their order stays deliberate.
 	// Anything the API reports outside this list would silently disappear from
 	// the select, so a new AQENO action category has to be added here too.
@@ -139,7 +146,7 @@
 				<section class="rounded-[var(--radius-xl)] border border-border bg-surface p-5 shadow-sm">
 					<div class="mb-5 flex items-center gap-3">
 						<span class="grid h-12 w-12 place-items-center rounded-full bg-accent-soft text-title text-accent" aria-hidden="true">
-							{control.type === 'rotary_encoder' ? '◉' : control.id === 'primary_left' ? '‹' : '›'}
+							{control.type === 'rotary_encoder' ? '◉' : (controlGlyphs[control.id] ?? '•')}
 						</span>
 						<h3 class="text-title">{control.label}</h3>
 					</div>

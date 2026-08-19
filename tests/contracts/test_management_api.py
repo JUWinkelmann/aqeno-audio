@@ -65,16 +65,16 @@ class PhysicalControls:
     def controls(self) -> tuple[ControlCapability, ...]:
         return (
             ControlCapability(
-                LogicalControl.PRIMARY_LEFT,
+                LogicalControl.PREVIOUS,
                 ControlType.BUTTON,
-                "Linke Taste",
+                "Zurück im Inhalt",
                 (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
                 True,
             ),
             ControlCapability(
-                LogicalControl.PRIMARY_ENCODER,
+                LogicalControl.VOLUME_ENCODER,
                 ControlType.ROTARY_ENCODER,
-                "Drehknopf",
+                "Lautstärke",
                 (
                     ControlEventType.ROTATE_LEFT,
                     ControlEventType.ROTATE_RIGHT,
@@ -84,9 +84,9 @@ class PhysicalControls:
                 True,
             ),
             ControlCapability(
-                LogicalControl.PRIMARY_RIGHT,
+                LogicalControl.NEXT,
                 ControlType.BUTTON,
-                "Rechte Taste",
+                "Weiter im Inhalt",
                 (ControlEventType.SHORT_PRESS, ControlEventType.LONG_PRESS),
                 True,
             ),
@@ -446,7 +446,7 @@ def test_settings_are_product_schemas_and_persist_atomically_through_store(tmp_p
     api = ApiFixture(tmp_path, physical_controls=True)
     assert api.controls is not None
     api.controls.update_binding(
-        LogicalControl.PRIMARY_RIGHT,
+        LogicalControl.NEXT,
         ControlEventType.SHORT_PRESS,
         "playback.play_pause",
     )
@@ -460,8 +460,7 @@ def test_settings_are_product_schemas_and_persist_atomically_through_store(tmp_p
         next(
             item
             for item in api.controls.bindings()
-            if item.control is LogicalControl.PRIMARY_RIGHT
-            and item.event is ControlEventType.SHORT_PRESS
+            if item.control is LogicalControl.NEXT and item.event is ControlEventType.SHORT_PRESS
         ).action_id
         == "playback.play_pause"
     )
@@ -473,17 +472,17 @@ def test_physical_controls_are_capability_driven_and_persist_immediately(tmp_pat
     resource = api.client.get("/api/v1/controls", headers=HEADERS)
     assert resource.status_code == 200
     body = resource.json()
-    encoder = next(item for item in body["controls"] if item["id"] == "primary_encoder")
+    encoder = next(item for item in body["controls"] if item["id"] == "volume_encoder")
     assert encoder == {
-        "id": "primary_encoder",
+        "id": "volume_encoder",
         "type": "rotary_encoder",
-        "label": "Drehknopf",
+        "label": "Lautstärke",
         "events": ["rotate_left", "rotate_right", "short_press", "long_press"],
         "illumination": True,
     }
 
     changed = api.client.patch(
-        "/api/v1/controls/primary_encoder/mappings/long_press",
+        "/api/v1/controls/volume_encoder/mappings/long_press",
         json={"action_id": "playback.stop"},
         headers=HEADERS,
     )
@@ -491,7 +490,7 @@ def test_physical_controls_are_capability_driven_and_persist_immediately(tmp_pat
     assert any(
         item
         == {
-            "control_id": "primary_encoder",
+            "control_id": "volume_encoder",
             "event": "long_press",
             "action_id": "playback.stop",
             "supported": True,
@@ -501,7 +500,7 @@ def test_physical_controls_are_capability_driven_and_persist_immediately(tmp_pat
 
     # ADR 0024 § A4: with navigation waking the panel, no long-press wake exists.
     timed_wake = api.client.patch(
-        "/api/v1/controls/primary_encoder/mappings/long_press",
+        "/api/v1/controls/volume_encoder/mappings/long_press",
         json={"action_id": "display.wake"},
         headers=HEADERS,
     )
@@ -509,7 +508,7 @@ def test_physical_controls_are_capability_driven_and_persist_immediately(tmp_pat
     assert timed_wake.json()["error"]["code"] == "invalid_control_mapping"
 
     incompatible = api.client.patch(
-        "/api/v1/controls/primary_encoder/mappings/rotate_left",
+        "/api/v1/controls/volume_encoder/mappings/rotate_left",
         json={"action_id": "playback.next"},
         headers=HEADERS,
     )
@@ -519,7 +518,7 @@ def test_physical_controls_are_capability_driven_and_persist_immediately(tmp_pat
     reset = api.client.post("/api/v1/controls/reset", headers=HEADERS)
     assert reset.status_code == 200
     assert any(
-        item["control_id"] == "primary_encoder"
+        item["control_id"] == "volume_encoder"
         and item["event"] == "long_press"
         and item["action_id"] is None
         for item in reset.json()["mappings"]

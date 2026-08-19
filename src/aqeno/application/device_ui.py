@@ -18,7 +18,7 @@ from aqeno.application.playback import PlaybackSession, PlaybackSnapshot
 from aqeno.domain.content import ContentId
 from aqeno.domain.profile import Profile
 from aqeno.ports.audio import TransportState
-from aqeno.ports.input import Back, FocusNext, FocusPrevious, InputEvent, Select
+from aqeno.ports.input import FocusNext, FocusPrevious, Home, InputEvent, Select
 from aqeno.ports.persistence import ContentQuery, Library
 
 
@@ -110,7 +110,8 @@ class DeviceUiState:
         """Registered with `DisplayService.on_navigation`, never with the raw bus.
 
         The display owns the wake decision, so an input that only woke a dark
-        panel never arrives here (`DISPLAY_STATE_MACHINE.md` note 15).
+        panel never arrives here (`DISPLAY_STATE_MACHINE.md` note 15) — except
+        `Home`, which is executed rather than consumed (note 17).
         """
         if isinstance(event, FocusPrevious):
             self._move_focus(-1)
@@ -118,7 +119,7 @@ class DeviceUiState:
             self._move_focus(1)
         elif isinstance(event, Select):
             self.activate_focus()
-        elif isinstance(event, Back):
+        elif isinstance(event, Home):
             self.show_home()
 
     def activate_focus(self) -> bool:

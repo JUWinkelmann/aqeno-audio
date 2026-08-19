@@ -18,7 +18,7 @@ _KEY_NAMES = {
     Qt.Key.Key_A: "a",
     Qt.Key.Key_D: "d",
     Qt.Key.Key_S: "s",
-    Qt.Key.Key_B: "b",
+    Qt.Key.Key_H: "h",
     Qt.Key.Key_0: "0",
     Qt.Key.Key_1: "1",
     Qt.Key.Key_2: "2",

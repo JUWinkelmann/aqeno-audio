@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from aqeno.ports.input import (
-    Back,
     FocusNext,
     FocusPrevious,
+    Home,
     InputEvent,
     InputListener,
     Next,
@@ -51,16 +51,17 @@ class KeyboardSimulator:
             event = Previous()
         elif normalized == "w":
             event = WakeRequest()
-        # Navigation (ADR 0024): the desktop stand-in for a NAV encoder, so the
-        # touch-free journey is exercised on every run and not only in tests.
+        # Navigation (ADR 0024, ADR 0026): the desktop stand-in for the SELECT
+        # encoder and the HOME key, so the touch-free journey is exercised on
+        # every run and not only in tests.
         elif normalized == "a":
             event = FocusPrevious()
         elif normalized == "d":
             event = FocusNext()
         elif normalized == "s":
             event = Select()
-        elif normalized == "b":
-            event = Back()
+        elif normalized == "h":
+            event = Home()
         elif normalized in _FIXED_TEST_UIDS:
             self._presented_tag = _FIXED_TEST_UIDS[normalized]
             event = NfcPresented(self._presented_tag)
