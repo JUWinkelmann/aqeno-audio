@@ -38,6 +38,8 @@ The appliance-level decisions are ADR 0020 (replaceable SYSTEM, Data and portabl
 ADR 0022 defines the human-facing local Admin password/session boundary and the reference
 `http://aqeno.local` discovery/serving path.
 
-ADR 0014 and ADR 0028 together own media: 0014 decides how content is discovered and identified, 0028
-decides when that work runs and when its result becomes visible. `docs/implementation/CONTENT_INGESTION.md`
-is their single canonical specification.
+ADR 0014, ADR 0028 and ADR 0029 together own media: 0014 decides how content is discovered and
+identified, 0028 decides when that work runs and when its result becomes visible, and 0029 decides
+what its metadata is allowed to say — the Magic Budget that bounds automatic interpretation.
+`docs/implementation/CONTENT_INGESTION.md` is their single canonical specification, and
+`docs/product/MEDIA_CONVENTIONS.md` is the human-facing description of the conventions AQENO reads.

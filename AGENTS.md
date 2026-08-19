@@ -145,6 +145,12 @@ If a requested implementation conflicts with levels 2–4, flag the conflict bef
 - Personal audio: **the cloud is the courier, not the archive.** A message is never played
   automatically, arrival is silent at night, only authorised senders may send, and a delivered
   payload leaves cloud transport immediately (ADR 0027).
+- Media metadata: **accept messy, infer obvious, never guess** (P26, ADR 0029). Prefer documented
+  deterministic conventions over heuristic inference. A new inference rule needs a demonstrated user
+  need and must stay explainable in one sentence, bounded and testable — that is its **Magic Budget**.
+  **Explicit Admin data always outranks inferred metadata and survives republication.** Ambiguity
+  falls back visibly or escalates to Admin; it is never silently guessed. AQENO never rewrites source
+  media, and is not a tag editor. No confidence scoring, online matching or AI inference in core.
 - AQENO does not compete for attention (`PRODUCT_FOUNDATION.md` P19). No engagement loop, artificial
   badge, permanently changing content or unnecessary notification.
 - No development toward a news feed, weather dashboard, browser, app store, games, social feed,

@@ -219,6 +219,17 @@ mechanical feedback stays primary (P20). Every AQENO sound belongs to one of fou
 it may be heard. **Dark is not mute and Night is not a master mute:** an alarm may sound with the
 panel completely black, while a message arriving at night makes no sound at all.
 
+### P26 — Accept messy, infer obvious, never guess
+**ADR 0029.** Real personal collections are imperfect: absent tags, wrong tags, `Track 01`,
+`Audio CD`, filenames that carry more than the tags do. AQENO is **forgiving about input and
+conservative about interpretation**. It reads a small number of documented conventions, and where
+evidence is ambiguous it falls back visibly rather than deciding. **Explicit beats inferred** — an
+Admin correction outlives every later interpretation. Automatic interpretation is limited by a
+**Magic Budget**: a rule qualifies only if it is deterministic, bounded, testable and explainable to
+an ordinary administrator in one sentence. **Wrong is worse than ugly** — a plain `Hörspiel 017` is a
+better outcome than confidently presenting the wrong episode of the wrong series. Conventions
+improve the result; they are never a precondition for playback.
+
 ## 4. Adaptive experience
 
 AQENO should use a shared capability model rather than separate rigid products for each age,

@@ -1,12 +1,15 @@
 # Content Ingestion
 
-**Date:** 2026-08-18, revised 2026-08-19 for ADR 0028
+**Date:** 2026-08-18, revised 2026-08-19 for ADR 0028 and ADR 0029
 **Closes:** gap G14, together with ADR 0014.
 
 ADR 0014 decides *how* content is discovered and identified. **ADR 0028 decides when that work runs
-and when its result becomes visible.** This document specifies both precisely enough to implement
-without a second decision: the preparation pass, the grouping and identity rules, the kind-inference
-table, chapter derivation, artwork resolution, playlist handling and what the library stores.
+and when its result becomes visible. ADR 0029 decides what its metadata may claim.** This document
+specifies all three precisely enough to implement without a second decision: the preparation pass, the
+grouping and identity rules, the kind-inference table, chapter derivation, metadata resolution,
+artwork resolution, playlist handling and what the library stores.
+`docs/product/MEDIA_CONVENTIONS.md` says the same thing to an administrator in one page and must stay
+true to §§ 3, 6, 7, 16, 18 and 21.
 
 Vocabulary: a **work** is what becomes one `ContentItem` (ADR 0009 § 4). A **member file** is one
 audio file belonging to a work. A **chapter** is one entry in `ContentItem.chapters` — a scene, track
@@ -182,13 +185,15 @@ work has `has_chapters == False` and `Next`/`Previous` fall back to the kind's s
 
 | Field | Source, in order |
 |---|---|
-| `title` | `aqeno.toml` `title` → album tag → playlist `#EXTINF` title (§ 18) → work directory name → filename stem |
+| `title` | Admin override (§ 21) → `aqeno.toml` `title` → album tag **if not a placeholder** (§ 21) → work directory name, unless the work is a root-level single file → playlist `#EXTINF` title (§ 18) → filename stem → `Audio N` |
 | `artwork` | the seven-rule chain in § 16 |
-| `language` | `aqeno.toml` `language` → language tag → `None` |
-| `kind_overridden` | `True` only for rule 1 of § 5 |
+| `language` | Admin override → `aqeno.toml` `language` → language tag if not a placeholder → `None` |
+| `kind` | § 5, rule 1 of which is the Admin override |
 
-The directory name is used as a title unchanged — no stripping of leading track numbers, no
-title-casing. Cleverness here corrupts legitimate titles, and a Manager can rename.
+The directory name and the work title are used unchanged — no stripping of leading track numbers, no
+title-casing. Cleverness here corrupts legitimate titles: `225 - Der Puppenmacher` is the title. A
+**chapter** title may drop a leading track number, because a chapter's position is already carried by
+its order (§ 21).
 
 **Artwork is referenced by path and never copied into the database** (ADR 0007 § 3). A missing artwork
 is not a failure — the Device UI renders AQENO's own fallback treatment, which is a presentation
@@ -338,6 +343,18 @@ Added by ADR 0028:
     absolute path.
 21. **Corrupt artwork leaves the work playable.**
 22. **Artwork precedence is deterministic** for each rule of § 16.
+
+Added by ADR 0029:
+
+23. **An Admin override of any field survives preparation** and is never recomputed — title,
+    language and artwork as well as kind.
+24. **A placeholder album tag loses to the work directory name**; a useful album tag beats an ugly
+    directory name.
+25. **A work with no usable metadata is still playable**, titled from its filename or the fallback.
+26. **An ambiguous folder asserts nothing**: no series, no arbitrary cover, fallback title,
+    `needs_review` — and it still publishes.
+27. **Chapter order is numeric**, not lexical, from track numbers or leading filename numbers.
+28. **The Device UI performs no metadata resolution** and never exposes `needs_review` or provenance.
 
 ## 14. Deliberately out of scope
 
@@ -489,3 +506,59 @@ Imported media is untrusted input, and preparation is where it is bounded:
 - symlinks are followed only when `library.follow_symlinks` is set, and never out of a root;
 - unusual Unicode in filenames is preserved, not normalised into a collision;
 - archives are **not** supported, and are not made supported by this document.
+
+## 21. Metadata resolution: overrides, placeholders, provenance and review
+
+ADR 0029. The precedence table in § 7 is the contract; this section defines the four mechanisms it
+depends on. All of them are Admin-facing — none reaches the Device UI (§ 22).
+
+**Overrides.** `ContentItem.overrides: frozenset[str]` names the fields an Admin has set explicitly.
+The member names are a closed set — `title`, `kind`, `language`, `artwork`. Preparation never computes
+a field named there; it carries the stored value forward unchanged. `kind_overridden` is
+`"kind" in overrides`. Because overrides live on the `ContentId`, they survive republication by the
+same mechanism as resume positions (§ 17), including republication that *would* now infer something
+different. Clearing a name returns the field to inference and is the only way back — including after
+the source tags are repaired.
+
+**Placeholders.** A tag value is treated as absent when, trimmed and lowercased, it is:
+
+| Form | Values |
+|---|---|
+| empty | `""`, whitespace only |
+| unknown | `unknown`, `unknown artist`, `unknown album`, `unknown title`, `untitled`, `no title` |
+| generic medium | `audio cd`, `audio track`, `audio file` |
+| numbered stub | `track`, `title`, `spur` or `titel` followed only by digits, with or without a separator |
+
+That is the entire list, and it is a constant with a test per entry so that extending it is an argued
+change. `Various Artists` is a real answer and is **not** a placeholder.
+
+**Chapter titles.** Embedded title if not a placeholder → filename stem with a leading track number
+removed → the raw stem. A leading number is `digits` optionally followed by `.`, `-`, `_` or a space,
+removed only when something non-empty remains. This applies to chapters and never to work titles,
+because a chapter's position is already carried by its order while a work's number is meaning.
+
+**Provenance.** `title` and `artwork` each store a `MetadataSource`: `ADMIN`, `EMBEDDED`, `PLAYLIST`,
+`FILESYSTEM` or `FALLBACK`. Enough for Admin to say *"Title from folder name"*. The existing
+`kind_inference_rule` string continues to serve this purpose for kind and is not replaced.
+
+**Review.** `needs_review: bool`, true only when the title reached the § 7 fallback, artwork was
+ambiguous (§ 16), or playlist entries were rejected or missing (§ 18). Absent tags are not a review
+reason, and neither is a placeholder that a convention resolved. **Review never blocks publication**
+— only invalid media or a broken structural relationship does (§ 10).
+
+## 22. What the Device UI receives
+
+The device model exposes resolved values: title, chapter title, artwork, duration, position, kind,
+availability. It does **not** expose `overrides`, `MetadataSource`, `needs_review` or any preparation
+finding, and QML performs no resolution of its own — a QML file must never need to know whether a
+title came from a tag or a folder. The device never renders `Metadata incomplete`, `ID3 missing` or
+`Please review tags`; those are Admin concerns, and on the device a missing value becomes AQENO's own
+fallback treatment.
+
+## 23. Never written back
+
+Preparation does not rewrite ID3 tags, rename source files, reorganise folders, replace embedded
+artwork or modify M3U files. AQENO's resolved metadata is AQENO's, stored in its own library; the
+source tree is read-only input. AQENO stores the fields it presents or acts on — not BPM, composer,
+conductor, encoder settings, ID3 versions or arbitrary frames. It is not a tag editor, and there is
+no online lookup, acoustic fingerprinting or AI inference in core resolution.

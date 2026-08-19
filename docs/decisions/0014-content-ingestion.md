@@ -99,6 +99,10 @@ A hand-editable `aqeno.toml` beside the media is accepted as an explicit declara
 below a Manager override. A device without a keyboard needs a way to fix things over SSH — the same
 argument that gave settings a TOML file in ADR 0007.
 
+> **Amended by ADR 0029.** "Persisted against the `ContentId` and never re-inferred" now holds for
+> every correctable field, not only kind: an override is a set of field names on `ContentItem`, and
+> `kind_overridden` is `"kind" in overrides`.
+
 ### 5. Scanning never blocks playback
 
 *Superseded by ADR 0028 § 1 and § 3. The goal below — playback never waits for ingestion — is kept and
