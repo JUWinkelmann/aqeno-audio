@@ -30,6 +30,8 @@ hardware inventory, the Device UI and the audio/attention contracts were consoli
 | Hardware inventory | `INVENTORY.md` is canonical; **procurement freeze active, BUY NOW = nothing** |
 | Device UI | Home → Browse → Now Playing implemented, physical-first, presentation levels |
 | Design targets | clock, timer, alarm, message, context actions drawn in `scripts/ui_preview/`, **not routed** |
+| Media preparation | **ADR 0028/0029** — candidate revisions, atomic publication, Magic Budget; implementation in progress |
+| Adversarial verification | role defined in `docs/agents/ADVERSARIAL_VERIFIER.md`, **not executed**; run at the next stable checkpoint |
 
 **What is real and what is only drawn.** The device plays local content, browses it by content area,
 and is fully operable with the five controls. Clock, timer, alarm and messages have **no domain
@@ -369,6 +371,38 @@ until the parts arrive and the smoke test has run.
   that erode quietly — a level may not change what a person can do, and a drawn screen may not
   become an available capability.
 
+### 2026-08-19 — media preparation decided, and an adversarial verifier role created
+
+- **ADR 0028** put a publication boundary into the architecture: preparation writes a candidate
+  revision no device surface can read, publication is one SQLite transaction moving a pointer, and
+  startup opens a prepared revision instead of walking the media tree. `4aaf0d4`, with `76bb6f4`
+  naming Pillow as the optional, lazily imported image library for artwork derivation.
+- **`f102fa1` corrected an over-claim in ADR 0028 § 6.** "The completion boundary for a copy is the
+  human" was written as a property of the model; it is a property of the one import path that exists.
+  Atomicity comes from the candidate being unreadable until publication, not from who signals
+  completion — so a later automatic import path may define its own explicit boundary without breaking
+  the ADR, and the size/mtime stability check may never be promoted into that role.
+- **ADR 0029** decided what prepared metadata may claim. Two real problems: a placeholder album tag
+  (`Audio CD`) beat a meaningful folder name, and an Admin correction to title, language or artwork
+  was silently reverted by the next preparation because only `kind` carried an override flag. Fixed by
+  bounding interpretation rather than growing it — a closed placeholder set, an `overrides` set of
+  field names preparation never recomputes, and the **Magic Budget**: one explainable sentence is the
+  admission price for any inference rule. Series stays uninferred. `ae2fe54`.
+- `PRODUCT_FOUNDATION.md` P26 and `docs/product/MEDIA_CONVENTIONS.md` carry that outward; the latter
+  is the one-page answer to "how do I organise files so AQENO understands them".
+- **ADR 0029's code is deliberately not written.** The ADR 0028 implementation worker owns
+  `application/ingestion.py`, `domain/content.py` and `ports/persistence.py` right now, and the
+  override carry-over has to live inside the preparation pass it is rewriting. The remaining work is
+  small: the placeholder constant, one inserted test in the title chain, `overrides` replacing
+  `kind_overridden` with a forward-only migration, two provenance fields and `needs_review`.
+- Created the **AQENO Adversarial Verifier** as a permanent role, `docs/agents/ADVERSARIAL_VERIFIER.md`
+  — independent adversarial review at stable checkpoints only, read-only for production code during
+  its primary pass, with "every escaped defect must pay rent" as a standing principle. **Defined and
+  not executed:** implementation is in progress, which is precisely the condition under which the role
+  forbids itself to run.
+- No code changed in any of this. Documentation only, so the gates were not re-run; the last recorded
+  green state stands at `1141 passed, 1 deselected`.
+
 ## Next action
 
 Each item is labelled **[hardware]** (needs the assembled box), **[architect]** (needs a product or
@@ -445,3 +479,6 @@ python scripts/device_ui_preview.py --out build/ui-preview    # the design targe
 - Push only on the maintainer's explicit instruction.
 - Remaining hardware-only questions include true panel OFF/display-server behaviour, wake/startup
   timing and calibrated child volume. Do not fabricate results without Reference Hardware.
+- At the next stable milestone, run the AQENO Adversarial Verifier
+  (`docs/agents/ADVERSARIAL_VERIFIER.md`). Not while implementation of the reviewed area is active,
+  and not as a background job.

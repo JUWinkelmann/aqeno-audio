@@ -119,6 +119,13 @@ Expected MVP themes:
 - Set and monitor the Reference targets from `PRODUCT_FOUNDATION.md`.
 - Prefer optimisation that improves perceived readiness without coupling the core to a single SBC.
 
+### Adversarial verification
+- At the next stable milestone, run the AQENO Adversarial Verifier
+  (`docs/agents/ADVERSARIAL_VERIFIER.md`).
+- Run it before RH1 and RH2 validation and before any release candidate — not continuously, and not
+  while implementation of the area under review is still active.
+- Carry its `PHYSICAL_ONLY` register into the hardware validation checklists.
+
 ### Display behaviour
 - Prototype `OFF`, `DIM`, `INTERACTIVE`, `AMBIENT` and `SETUP`.
 - Test Kids playback with automatic transition to visual quiet.

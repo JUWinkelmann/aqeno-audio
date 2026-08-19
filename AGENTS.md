@@ -229,6 +229,25 @@ At minimum, protect these invariants when the relevant modules exist:
 
 Prefer deterministic unit tests for domain logic and a small number of integration tests at hardware/service boundaries.
 
+Deterministic product invariants belong in executable tests, not in prose that nothing can check.
+
+## Adversarial verification
+
+The **AQENO Adversarial Verifier** is a permanent independent review role, defined in
+`docs/agents/ADVERSARIAL_VERIFIER.md`. Its question is not "do the tests pass" but "how could this
+violate its contracts while every test still passes".
+
+- It runs **only at deliberate stable checkpoints** — never after each commit, never as a background
+  job, and never while an agent is still implementing the area under review.
+- It must be **independent of the work it verifies**: it does not change production code during its
+  primary pass, and it never finishes somebody else's implementation to have something to verify. If
+  the checkpoint is unstable it stops and says so.
+- **Every escaped defect must pay rent.** A real defect must leave durable protection behind — a
+  regression test, a generalised invariant, a boundary enforcement, a clarified contract or a
+  simplification that removes the state. Fixing the line of code alone is insufficient.
+
+Do not restate the procedure elsewhere; the role file is canonical.
+
 ## Documentation discipline
 
 - New durable product rule → update `PRODUCT_FOUNDATION.md` or add an ADR.
