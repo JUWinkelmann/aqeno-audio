@@ -177,6 +177,14 @@ modal screens. They remain calm, contain no technical language and never wake an
 Personal messages, Send to AQENO and remote content are recorded future concepts. They do not add a
 Device UI state today and must not become a notification centre later.
 
+**Their visual direction is drawn rather than described.** `scripts/ui_preview/` holds design-target
+screens for the clock, the visual timer, the alarm and personal messages, rendered by
+`scripts/device_ui_preview.py`. They share this document's `Theme.qml`, so a decision made there is
+the decision the product inherits — but they are outside `src/`, carry no application state and are
+unreachable from `Main.qml`. A capability earns its surface when its domain exists, not when its
+picture does. They also decide no behaviour: neither the alarm nor the running timer draws a control
+label, because C1 and C2 in `INTERACTION_MATRIX.md` § 9 are still open.
+
 ## Display-state presentation
 
 | State | Device UI presentation | Interaction |

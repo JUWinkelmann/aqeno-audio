@@ -237,6 +237,16 @@ Renders every implemented Device UI state offscreen at RH1's 800 × 480 and at a
 QML that compiles is not a surface that reads well, so look at the output before claiming anything
 about it. `build/` is ignored by Git; the screenshots are review material, not artefacts.
 
+```bash
+python scripts/device_ui_preview.py --out build/ui-preview
+```
+
+Renders the **design targets** in `scripts/ui_preview/` — clock, visual timer, alarm and personal
+messages. These are screens for capabilities AQENO does not have yet. They live outside `src/` and
+are not reachable from the running Device UI, because an unavailable capability has no device
+surface (P15). Two scripts rather than one flag, so a design target is never mistaken for a shipped
+screen; `scripts/ui_preview/README.md` states the boundary.
+
 ## Testing
 
 ```bash

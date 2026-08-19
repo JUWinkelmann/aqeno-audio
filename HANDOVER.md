@@ -296,10 +296,14 @@ contracts they changed, not here; that gap is known rather than an indication th
 - `scripts/device_ui_screenshots.py` renders every state offscreen at 800 × 480 and 480 × 320. The
   screens in this change were reviewed as images, not as QML source.
 - Verification: 1133 passed, 1 deselected; Ruff, format and mypy green.
-- **Deliberately not built:** the Clock/Ambient, Timer, Alarm and Message screens. Their visual
-  direction is recorded in ADR 0025 and ADR 0026, but none has domain behaviour, and giving an
-  unavailable capability a device surface is precisely what P15 forbids. They arrive with their
-  capabilities.
+- **Design targets added afterwards, on request:** `scripts/ui_preview/` now holds seven drawn
+  screens — clock, timer setup/running/finished, ringing alarm, message available and message
+  playing — rendered by `scripts/device_ui_preview.py` at both viewports. They are outside `src/`,
+  hold no application state and are unreachable from `Main.qml`, so an unavailable capability still
+  has no device surface (P15). The visual timer follows ADR 0025 § 3: a shrinking coloured ring is
+  the primary carrier and the numerals are secondary, so it reads without being able to read a
+  clock. Neither the alarm nor the running timer draws a control label — C1 and C2 stay open, and a
+  drawn label would settle them quietly.
 
 ### 2026-08-19 — audio, attention and Send to AQENO became contracts
 
