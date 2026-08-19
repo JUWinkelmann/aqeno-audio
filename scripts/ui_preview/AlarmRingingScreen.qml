@@ -13,6 +13,20 @@ Item {
     id: root
     property var theme
 
+    // A frame nothing else in AQENO wears. Clock is a bare time, the timer is a
+    // circle and a message is a heart, so this state is distinguishable at two
+    // metres by silhouette rather than by colour or by reading. It is static:
+    // audio carries the time-critical attention (ADR 0027 § 5), and a display
+    // must not try to do that job with animation.
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: theme.spaceSm
+        radius: theme.radius
+        color: "transparent"
+        border.width: Math.round(10 * theme.unit)
+        border.color: theme.accent
+    }
+
     property string timeText: "07:00"
     property string greetingText: qsTr("Guten Morgen")
     property string sourceText: qsTr("Nordwelle")
@@ -32,6 +46,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            visible: theme.showsLabels
             text: root.greetingText
             color: theme.ink
             font.family: theme.fontFamily
@@ -43,7 +58,7 @@ Item {
 
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: !theme.compact
+            visible: theme.showsDetails
             spacing: theme.spaceSm
 
             Rectangle {

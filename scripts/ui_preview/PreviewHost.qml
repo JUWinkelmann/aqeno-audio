@@ -2,9 +2,10 @@ import QtQuick
 import QtQuick.Window
 import "../../src/aqeno/ui/qml"
 
-// Hosts one design-target screen at a given viewport. The screen name arrives as
-// the `previewScreen` context property; the shared Theme is handed to the loaded
-// item so a design decision here is the same decision the product inherits.
+// Hosts one design-target screen at a given viewport. The screen name and any
+// per-variant properties arrive as context properties; the shared Theme is
+// handed to the loaded item so a design decision here is the same decision the
+// product inherits.
 Window {
     id: window
     visible: false
@@ -17,12 +18,17 @@ Window {
         id: theme
         viewportWidth: window.width
         viewportHeight: window.height
+        presentationLevel: previewLevel
     }
 
     Loader {
         id: loader
         anchors.fill: parent
         source: previewScreen + ".qml"
-        onLoaded: item.theme = theme
+        onLoaded: {
+            item.theme = theme
+            for (var key in previewProperties)
+                item[key] = previewProperties[key]
+        }
     }
 }

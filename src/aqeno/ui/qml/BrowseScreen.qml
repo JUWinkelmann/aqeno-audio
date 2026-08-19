@@ -13,8 +13,8 @@ Item {
         id: carousel
         anchors.fill: parent
 
-        readonly property real labelHeight: theme.titleSize * 1.35
-            + (ui.itemCount > 1 ? theme.captionSize * 1.6 : 0)
+        readonly property real labelHeight: (theme.showsLabels ? theme.titleSize * 1.35 : 0)
+            + (theme.showsDetails && ui.itemCount > 1 ? theme.captionSize * 1.6 : 0)
         readonly property real available: height - labelHeight - theme.edge * 2
         readonly property real cardWidth: Math.max(
             80, Math.min(width * (theme.wide ? 0.4 : 0.58), available))
@@ -93,6 +93,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width
+                visible: theme.showsLabels
                 text: ui.focusedTitle
                 color: theme.ink
                 font.family: theme.fontFamily
@@ -104,7 +105,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: ui.itemCount > 1
+                visible: theme.showsDetails && ui.itemCount > 1
                 text: ui.focusedIndex + " / " + ui.itemCount
                 color: theme.inkMuted
                 font.family: theme.fontFamily

@@ -93,6 +93,49 @@ The preferred mental model is: present the physical object, AQENO plays. Core li
 require menu navigation. Each additional choice must justify the cognitive load it adds for a child
 who cannot be expected to read.
 
+## Presentation levels
+
+**A presentation level is not an age classification.** There is no child mode, senior mode or
+disabled mode; a small child, an older person and an adult who simply prefers calm may all choose
+the same level, and the interaction is identical for all of them.
+
+| Level | What it shows |
+|---|---|
+| `VISUAL` | meaning carried by image, form and position; text is not required |
+| `VISUAL_LABEL` | the same structure, with a short label confirming the visual meaning |
+| `INFORMATIVE` | the same structure, plus counts, context, time and status |
+
+A level changes **information density only**. It must never change navigation, available functions,
+SELECT or PREVIOUS/NEXT semantics, HOME, touch capability or domain behaviour — that would be a
+second interaction architecture, which AQENO does not have. The experience configurations of
+`PRODUCT_FOUNDATION.md` § 4 map onto this one axis rather than adding another; no profile defaults
+to `VISUAL`, which stays a deliberate preference rather than an inference about anyone.
+
+> **Text confirms meaning. Text does not create core meaning.**
+
+Text remains valuable for precision, titles, sender names, context, learning support and adults.
+The rule is about where meaning *originates*. Where information is unavoidably textual, say so
+honestly rather than claiming accessibility that is not there.
+
+## Context actions
+
+Secondary actions are a **visual action carousel**, not a text menu: one dominant action object,
+neighbours hinted, SELECT rotating between them and its press executing the focused one. HOME still
+rescues, and a visible action may also be tapped — the same action, never a touch-only path.
+
+Deliberately small: two to four frequent actions. A surface that appears to need more has an
+information-architecture problem, and a "More…" bin is semantically weak for anyone who cannot read
+it. Before an action earns a place, work through: can a strong visual object carry it; is the
+silhouette distinguishable at distance; is the metaphor plausible for a pre-reader; is text only
+confirmation; if text is required to understand it, does it belong on the device at all, or in the
+administration client?
+
+**An unknown symbol is only an unknown symbol.** Icon libraries may serve as development reference
+and never as AQENO's language.
+
+Now Playing does not gain permanent secondary controls: context actions appear only after a
+deliberate SELECT interaction and disappear again.
+
 ## What stays outside
 
 Wi-Fi configuration, library management, NFC assignment, accounts, backup, integrations,

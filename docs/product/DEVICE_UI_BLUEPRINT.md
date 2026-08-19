@@ -177,6 +177,10 @@ modal screens. They remain calm, contain no technical language and never wake an
 Personal messages, Send to AQENO and remote content are recorded future concepts. They do not add a
 Device UI state today and must not become a notification centre later.
 
+Presentation levels (`DEVICE_UI_PRINCIPLES.md` § Presentation levels) decide how much each surface
+says: at `VISUAL_LABEL` Home shows the area's name but not its count, and Now Playing shows the
+title but not the elapsed time. Density only — every level navigates identically.
+
 **Their visual direction is drawn rather than described.** `scripts/ui_preview/` holds design-target
 screens for the clock, the visual timer, the alarm and personal messages, rendered by
 `scripts/device_ui_preview.py`. They share this document's `Theme.qml`, so a decision made there is
@@ -266,6 +270,11 @@ on hardware already present.
 These are safe device-wide defaults, not properties of the boards. The controlled mapping contract
 in `PLATFORM_CONTRACTS.md` may assign another available AQENO action; hardware drivers still emit
 only logical control events, and mappings remain independent of profiles, network and display state.
+
+**Accent is one voice, not a status palette.** It marks the live thing — what is playing, what
+remains, what has arrived — and never carries a meaning on its own; form, size and position do that
+first and colour confirms. When a state needs distinguishing, the answer is a different silhouette
+rather than a second accent, which is why AQENO needs no colour-coded status language.
 
 Lighting is semantic output, not decoration:
 

@@ -178,6 +178,12 @@ class DeviceUiModel(QObject):
     def openSectionKey(self) -> str:
         return self._snapshot.open_section_key
 
+    @Property(str, notify=stateChanged)
+    def presentationLevel(self) -> str:
+        """`visual`, `visual_label` or `informative` — density only, never
+        capability (`DEVICE_UI_PRINCIPLES.md` § Presentation levels)."""
+        return self._snapshot.presentation_level.value
+
     @Property(int, notify=stateChanged)
     def focusedSectionIndex(self) -> int:
         return next(

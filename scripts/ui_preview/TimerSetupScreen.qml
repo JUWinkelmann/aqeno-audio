@@ -36,6 +36,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: ring.bottom
         anchors.topMargin: theme.spaceMd
+        visible: theme.showsLabels
         text: qsTr("Timer")
         color: theme.inkMuted
         font.family: theme.fontFamily

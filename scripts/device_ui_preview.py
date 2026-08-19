@@ -22,21 +22,35 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QCoreApplication, QElapsedTimer, QEventLoop, QUrl
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QColor, QGuiApplication, QLinearGradient, QPainter, QPixmap
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow
 
 VIEWPORTS = {"rh1": (800, 480), "small": (480, 320)}
 
-SCREENS = (
-    "ClockScreen",
-    "TimerSetupScreen",
-    "TimerRunningScreen",
-    "TimerFinishedScreen",
-    "AlarmRingingScreen",
-    "MessageAvailableScreen",
-    "MessagePlayingScreen",
+VARIANTS: tuple[tuple[str, str, str, dict[str, object]], ...] = (
+    # name, screen, presentation level, per-variant properties
+    ("Clock", "ClockScreen", "informative", {}),
+    ("TimerSetup", "TimerSetupScreen", "informative", {}),
+    ("TimerRunning", "TimerRunningScreen", "informative", {}),
+    ("TimerFinished", "TimerFinishedScreen", "informative", {}),
+    ("AlarmRinging", "AlarmRingingScreen", "informative", {}),
+    ("MessageAvailable", "MessageAvailableScreen", "informative", {}),
+    ("MessagePlaying", "MessagePlayingScreen", "informative", {}),
+    ("ContextActions", "ContextActionsScreen", "informative", {}),
+    # Presentation levels change density only, never what a surface can do.
+    # `visual` is the honest pre-reader test: what survives with no text at all.
+    ("Clock-visual", "ClockScreen", "visual", {}),
+    ("TimerRunning-visual", "TimerRunningScreen", "visual", {}),
+    ("TimerFinished-visual", "TimerFinishedScreen", "visual", {}),
+    ("AlarmRinging-visual", "AlarmRingingScreen", "visual", {}),
+    ("MessageAvailable-visual", "MessageAvailableScreen", "visual", {}),
+    # With portrait material the person becomes the mark rather than the name.
+    ("MessageAvailable-portrait", "MessageAvailableScreen", "visual", {}),
+    ("MessagePlaying-portrait", "MessagePlayingScreen", "informative", {}),
 )
+
+PORTRAIT_VARIANTS = frozenset({"MessageAvailable-portrait", "MessagePlaying-portrait"})
 
 PREVIEW_DIR = Path(__file__).resolve().parent / "ui_preview"
 
@@ -49,9 +63,35 @@ def _settle(milliseconds: int) -> None:
         QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
 
 
-def _render(screen: str, size: tuple[int, int], out: Path) -> None:
+def _portrait(path: Path) -> Path:
+    """A neutral stand-in for sender material AQENO does not have.
+
+    Deliberately abstract: it shows the *hierarchy* a portrait would create and
+    claims nothing about a portrait system existing.
+    """
+    pixmap = QPixmap(400, 400)
+    gradient = QLinearGradient(0, 0, 400, 400)
+    gradient.setColorAt(0.0, QColor("#3d4f63"))
+    gradient.setColorAt(1.0, QColor("#22303f"))
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.fillRect(0, 0, 400, 400, gradient)
+    painter.setBrush(QColor(255, 255, 255, 48))
+    painter.setPen(QColor(0, 0, 0, 0))
+    painter.drawEllipse(150, 96, 100, 100)
+    painter.drawEllipse(96, 226, 208, 200)
+    painter.end()
+    pixmap.save(str(path), "PNG")
+    return path
+
+
+def _render(
+    screen: str, size: tuple[int, int], out: Path, level: str, props: dict[str, object]
+) -> None:
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("previewScreen", screen)
+    engine.rootContext().setContextProperty("previewLevel", level)
+    engine.rootContext().setContextProperty("previewProperties", props)
     engine.load(QUrl.fromLocalFile(str(PREVIEW_DIR / "PreviewHost.qml")))
     roots = engine.rootObjects()
     if not roots:
@@ -74,11 +114,15 @@ def main() -> int:
     args = parser.parse_args()
 
     QGuiApplication(sys.argv[:1])
+    args.out.mkdir(parents=True, exist_ok=True)
+    portrait = _portrait(args.out / "_sender.png")
     for viewport, size in VIEWPORTS.items():
-        for screen in SCREENS:
-            name = screen.removesuffix("Screen")
-            _render(screen, size, args.out / viewport / f"{name}.png")
-        print(f"rendered {viewport} ({size[0]}x{size[1]})")
+        for name, screen, level, props in VARIANTS:
+            variant = dict(props)
+            if name in PORTRAIT_VARIANTS:
+                variant["senderPortrait"] = portrait.resolve().as_uri()
+            _render(screen, size, args.out / viewport / f"{name}.png", level, variant)
+        print(f"rendered {viewport} ({size[0]}x{size[1]}), {len(VARIANTS)} states")
     print(f"design targets in {args.out} — not product surfaces, see ui_preview/README.md")
     return 0
 

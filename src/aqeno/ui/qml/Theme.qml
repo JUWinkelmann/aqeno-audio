@@ -20,7 +20,23 @@ QtObject {
     readonly property bool compact: Math.min(viewportWidth, viewportHeight) < 380
     readonly property bool wide: viewportWidth > viewportHeight * 1.45
 
+    // --- presentation level ---------------------------------------------
+    // `visual` · `visual_label` · `informative`. Density only: no level changes
+    // navigation, available functions, control semantics or touch. It is not an
+    // age classification (`DEVICE_UI_PRINCIPLES.md` § Presentation levels).
+    property string presentationLevel: "visual_label"
+
+    readonly property bool showsLabels: presentationLevel !== "visual"
+    readonly property bool showsDetails: presentationLevel === "informative" && !compact
+    // Two independent reasons to say less: who is looking, and how much room
+    // there is. A small panel drops detail even at `informative`.
+
     // --- colour ---------------------------------------------------------
+    // Accent is one voice, not a status palette: it marks *the live thing* —
+    // what is playing, what remains, what has arrived. It never carries a
+    // meaning alone; form, size and position do that first, and colour
+    // confirms (ADR 0026 § 1, P22). AQENO needs no colour-coded status
+    // language, so no second or third accent is introduced.
     // True black is deliberate: it is free contrast on an LCD and genuine
     // pixel-off on the preferred later AMOLED panel. Nothing important is
     // defined by black alone, so RH1's LCD loses nothing (ADR 0025 § 1).

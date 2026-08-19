@@ -41,6 +41,7 @@ Item {
 
         Text {
             width: parent.width
+            visible: theme.showsLabels
             text: ui.nowPlayingTitle
             color: theme.ink
             font.family: theme.fontFamily
@@ -54,7 +55,7 @@ Item {
 
         Text {
             width: parent.width
-            visible: ui.nowPlayingChapter !== "" && !theme.compact
+            visible: ui.nowPlayingChapter !== "" && theme.showsDetails
             text: ui.nowPlayingChapter
             color: theme.inkMuted
             font.family: theme.fontFamily
@@ -100,7 +101,7 @@ Item {
         Item {
             width: parent.width
             height: theme.captionSize + theme.spaceXs
-            visible: !ui.hasPlaybackFailure && ui.durationText !== "" && !theme.compact
+            visible: !ui.hasPlaybackFailure && ui.durationText !== "" && theme.showsDetails
 
             Text {
                 anchors.left: parent.left
@@ -119,35 +120,35 @@ Item {
         }
     }
 
-    // Paused is shown by the one thing that actually changed — the progress bar
-    // going quiet — plus this small mark. Not by a control bar nobody can press
-    // without touching the screen.
+    // Paused reads from the artwork itself: the cover recedes and one large
+    // mark sits over it. Not a control — nothing here is pressable, and the
+    // physical VOLUME press remains the only way to resume. A corner chip was
+    // too quiet to notice from across a room, which matters most for a person
+    // who cannot simply hear that the audio stopped (brief § 29).
     Rectangle {
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: theme.edge
+        anchors.fill: art
+        radius: art.cornerRadius
         visible: !ui.playing && !ui.hasPlaybackFailure
-        width: Math.round(46 * theme.unit)
-        height: width
-        radius: width / 2
-        color: theme.surfaceRaised
+        color: theme.background
+        opacity: 0.55
+    }
 
-        Row {
-            anchors.centerIn: parent
-            spacing: Math.round(5 * theme.unit)
+    Row {
+        anchors.centerIn: art
+        visible: !ui.playing && !ui.hasPlaybackFailure
+        spacing: root.artSize * 0.07
 
-            Rectangle {
-                width: Math.round(5 * theme.unit)
-                height: Math.round(18 * theme.unit)
-                radius: width / 2
-                color: theme.inkMuted
-            }
-            Rectangle {
-                width: Math.round(5 * theme.unit)
-                height: Math.round(18 * theme.unit)
-                radius: width / 2
-                color: theme.inkMuted
-            }
+        Rectangle {
+            width: root.artSize * 0.07
+            height: root.artSize * 0.26
+            radius: width / 2
+            color: theme.ink
+        }
+        Rectangle {
+            width: root.artSize * 0.07
+            height: root.artSize * 0.26
+            radius: width / 2
+            color: theme.ink
         }
     }
 }

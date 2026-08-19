@@ -20,6 +20,7 @@ Window {
         id: theme
         viewportWidth: window.width
         viewportHeight: window.height
+        presentationLevel: deviceUi.presentationLevel
     }
 
     Item {

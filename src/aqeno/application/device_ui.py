@@ -16,7 +16,7 @@ from pathlib import Path
 from aqeno.application.display import DisplayService, DisplaySnapshot
 from aqeno.application.playback import PlaybackSession, PlaybackSnapshot
 from aqeno.domain.content import ContentId, ContentKind
-from aqeno.domain.profile import Profile
+from aqeno.domain.profile import ExperienceLevel, Profile
 from aqeno.ports.audio import TransportState
 from aqeno.ports.input import FocusNext, FocusPrevious, Home, InputEvent, Select
 from aqeno.ports.persistence import ContentQuery, Library
@@ -52,6 +52,37 @@ class LibrarySection:
     artwork: Path | None
 
 
+class PresentationLevel(StrEnum):
+    """How much the surface says, never what it can do.
+
+    A presentation contract, not an age classification and not a persona: a
+    small child, an older person and an adult who simply prefers calm may all
+    choose `VISUAL`. Navigation, available functions, SELECT and PREVIOUS/NEXT
+    semantics, HOME and touch are identical at every level — only information
+    density changes (`PRODUCT_FOUNDATION.md` § 4).
+    """
+
+    VISUAL = auto()
+    """Meaning is carried by image, form and position. Text is not required."""
+    VISUAL_LABEL = auto()
+    """The same structure, with a short label confirming the visual meaning."""
+    INFORMATIVE = auto()
+    """The same structure, plus counts, context, time and status."""
+
+
+_PRESENTATION_BY_LEVEL = {
+    ExperienceLevel.KIDS_EARLY: PresentationLevel.VISUAL_LABEL,
+    ExperienceLevel.KIDS_READER: PresentationLevel.VISUAL_LABEL,
+    ExperienceLevel.KIDS_EXPLORER: PresentationLevel.INFORMATIVE,
+    ExperienceLevel.EASY: PresentationLevel.VISUAL_LABEL,
+    ExperienceLevel.STANDARD: PresentationLevel.INFORMATIVE,
+}
+"""The experience configurations of `PRODUCT_FOUNDATION.md` § 4 mapped onto
+presentation. One axis, not a second one: no profile currently defaults to
+`VISUAL`, which stays available as a deliberate preference rather than an
+inference about anybody."""
+
+
 SECTION_KINDS: tuple[tuple[str, tuple[ContentKind, ...]], ...] = (
     ("audio_drama", (ContentKind.AUDIO_DRAMA,)),
     ("audiobook", (ContentKind.AUDIOBOOK,)),
@@ -77,6 +108,8 @@ class DeviceUiSnapshot:
     """What a SELECT press would activate (ADR 0026). `None` wherever the
     surface offers no item choice, and on an empty library."""
     open_section_key: str = ""
+    presentation_level: PresentationLevel = PresentationLevel.VISUAL_LABEL
+    """How much this surface may say. Never changes what it can do."""
     now_playing_artwork: Path | None = None
     """Resolved from the library rather than from `tiles`: what is playing may
     live in a section the person has since navigated away from."""
@@ -367,6 +400,9 @@ class DeviceUiState:
             focused_section_key=section.key if section is not None else "",
             focused_content_id=self._focused_id(),
             open_section_key=self._open_section_key,
+            presentation_level=_PRESENTATION_BY_LEVEL.get(
+                self._profile.level, PresentationLevel.VISUAL_LABEL
+            ),
             now_playing_artwork=self._now_playing_artwork(),
         )
 

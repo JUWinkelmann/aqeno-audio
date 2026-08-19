@@ -15,6 +15,11 @@ Render them with:
 
     python scripts/device_ui_preview.py --out build/ui-preview
 
+Each state is rendered at 800 × 480 and 480 × 320. Several are also rendered at presentation level
+`visual` — the honest pre-reader test, showing what survives when no text is drawn at all — and the
+message states additionally with placeholder sender material, to show the hierarchy a portrait would
+create. None of that implies the domain or transport must carry portraits.
+
 They share `Theme.qml` with the real surfaces, so a design decision made here is the same decision
 the product will inherit. What they must not do is decide behaviour: the open interaction questions
 in `docs/implementation/INTERACTION_MATRIX.md` § 9 — C1 snooze semantics and C2 cancelling a running

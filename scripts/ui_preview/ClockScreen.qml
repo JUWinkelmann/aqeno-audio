@@ -25,7 +25,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: !theme.compact
+            visible: theme.showsDetails
             text: root.dayText
             color: theme.inkMuted
             font.family: theme.fontFamily

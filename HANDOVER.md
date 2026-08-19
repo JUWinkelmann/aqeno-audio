@@ -335,6 +335,41 @@ contracts they changed, not here; that gap is known rather than an indication th
   live in `AGENTS.md` § Security and privacy and `PRODUCT_FOUNDATION.md` § 15, and ADR 0027 adds the
   personal-audio rules there rather than opening a third place.
 
+### 2026-08-19 — presentation levels, context-action pattern and a pre-reader pass
+
+- Consolidated the remaining semantic layer of the Device UI without redoing the reduction pass.
+  **Presentation levels** — `VISUAL`, `VISUAL_LABEL`, `INFORMATIVE` — are now a contract: density
+  only, never a second interaction architecture, and explicitly not an age classification. The
+  experience configurations of `PRODUCT_FOUNDATION.md` § 4 map onto that one axis; no profile
+  defaults to `VISUAL`, which stays a preference rather than an inference about anyone.
+- Visible effect on the product surface, and it is a further reduction rather than a redesign: at
+  Kids Early's `VISUAL_LABEL` Home no longer prints "3 verfügbar", Browse drops "1 / 3" and Now
+  Playing drops the elapsed time. One obvious thing, and a three-year-old could read none of it.
+- **Pre-reader review of every screen.** Two came back text-dependent and were corrected. Timer
+  Finished had its state in the word "Fertig"; it now changes silhouette — a running timer is a ring
+  with an empty middle, a finished one is a solid disc — with the label demoted to confirmation and
+  no borrowed checkmark. Message Available put the person in a name; where portrait material exists
+  the person is now the dominant mark and the heart a small qualifier, with the text fallback kept
+  and no obligation created on domain or transport.
+- **Alarm Ringing gained a silhouette nothing else wears** — a full-screen frame — so it is
+  distinguishable from Clock, Timer and Message at two metres without a control label and without
+  aggressive animation. Audio still carries the time-critical attention (ADR 0027 § 5).
+- **Pause reads at distance now.** The corner chip was too quiet, which matters most for someone who
+  cannot simply hear that the audio stopped. The cover recedes and one large mark sits over it —
+  state, not a control, and nothing pressable returned.
+- **Context actions are a defined pattern but deliberately not a product surface.** A visual action
+  carousel, two to four actions, SELECT rotating and pressing. AQENO has **no set of decided device
+  context actions**: favourites exist in the domain (ADR 0019) but device-side favouriting was never
+  decided, and the sleep timer exists only as settings. Inventing actions to fill a carousel is what
+  the brief forbids, so it exists as a design target whose placeholders mean nothing and which can
+  be judged for geometry only.
+- Recorded that accent is one voice rather than a status palette: it marks the live thing, never
+  carries meaning alone, and a state that needs distinguishing gets a different silhouette rather
+  than a second colour.
+- Verification: 1141 passed, 1 deselected; Ruff, format and mypy green. New tests hold the two rules
+  that erode quietly — a level may not change what a person can do, and a drawn screen may not
+  become an available capability.
+
 ## Next action
 
 1. Wait for delivery, then run the **seven-phase hardware smoke test** in

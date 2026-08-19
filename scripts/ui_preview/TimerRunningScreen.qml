@@ -40,7 +40,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: ring.bottom
         anchors.topMargin: theme.spaceMd
-        visible: !theme.compact
+        visible: theme.showsDetails
         text: root.humanText
         color: theme.inkMuted
         font.family: theme.fontFamily

@@ -29,7 +29,7 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             width: parent.width
-            visible: !theme.compact
+            visible: theme.showsDetails
             text: qsTr("Inhalte werden im AQENO Client hinzugefügt.")
             color: theme.inkMuted
             font.family: theme.fontFamily
@@ -48,8 +48,8 @@ Item {
         // The label band is reserved first; the artwork takes whatever is left.
         // That keeps the same hierarchy on a 4" panel instead of pushing the
         // caption off the bottom edge (brief § 7, § 31).
-        readonly property real labelHeight: theme.titleSize * 1.35
-            + (theme.compact ? 0 : theme.captionSize * 1.6)
+        readonly property real labelHeight: (theme.showsLabels ? theme.titleSize * 1.35 : 0)
+            + (theme.showsDetails ? theme.captionSize * 1.6 : 0)
         readonly property real available: height - labelHeight - theme.edge * 2
         readonly property real cardWidth: Math.max(
             80, Math.min(width * (theme.wide ? 0.42 : 0.6), available))
@@ -121,6 +121,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width
+                visible: theme.showsLabels
                 text: theme.sectionTitle(ui.focusedSectionKey)
                 color: theme.ink
                 font.family: theme.fontFamily
@@ -132,7 +133,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: !theme.compact
+                visible: theme.showsDetails
                 text: qsTr("%1 verfügbar").arg(ui.focusedSectionCount)
                 color: theme.inkMuted
                 font.family: theme.fontFamily
