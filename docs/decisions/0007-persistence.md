@@ -1,9 +1,15 @@
 # ADR 0007 — Local persistence
 
-**Status:** Accepted
+**Status:** Accepted; amended by ADR 0028 (2026-08-19)
 **Date:** 2026-08-17
 **Accepted:** 2026-08-17
 **Closes:** gap G09
+
+> **Amendment, ADR 0028.** The library schema gains a revision generation and a current-revision
+> pointer, so library *membership* is versioned while identity and personal state are not. § 2's "one
+> SQLite file" is unchanged and is what provides publication atomicity — one transaction moves the
+> pointer. § 5's forward-only migration rule and § 6's refusal to recover by automatic wipe both still
+> govern: a corrupt or missing library never triggers a media rescan.
 
 ## Context
 

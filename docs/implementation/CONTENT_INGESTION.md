@@ -1,49 +1,80 @@
 # Content Ingestion
 
-**Date:** 2026-08-18
+**Date:** 2026-08-18, revised 2026-08-19 for ADR 0028
 **Closes:** gap G14, together with ADR 0014.
 
-ADR 0014 decides *how* content is discovered and identified. This document specifies it precisely
-enough to implement without a second decision: the scan pass, the grouping and identity rules, the
-kind-inference table, chapter derivation and what the library stores.
+ADR 0014 decides *how* content is discovered and identified. **ADR 0028 decides when that work runs
+and when its result becomes visible.** This document specifies both precisely enough to implement
+without a second decision: the preparation pass, the grouping and identity rules, the kind-inference
+table, chapter derivation, artwork resolution, playlist handling and what the library stores.
 
 Vocabulary: a **work** is what becomes one `ContentItem` (ADR 0009 § 4). A **member file** is one
 audio file belonging to a work. A **chapter** is one entry in `ContentItem.chapters` — a scene, track
-or chapter depending on kind. Every work has at least one chapter.
+or chapter depending on kind. Every work has at least one chapter. A **revision** is one published
+generation of library membership (§ 16). A **candidate** is a revision under preparation, which no
+Device surface can read.
+
+The governing invariant, from ADR 0028 § 1:
+
+> Device startup opens an already prepared revision. It never walks the media tree, probes a file,
+> parses a playlist, resolves artwork or decodes an image — and no failure changes that.
 
 ## 1. Where media lives
 
 | Setting | Default | Range / form | Tier |
 |---|---|---|---|
 | `library.roots` | `["$XDG_DATA_HOME/aqeno/media"]` | 1–8 absolute directory paths | Manager |
-| `library.scan_on_startup` | `true` | boolean | Manager |
 | `library.follow_symlinks` | `false` | boolean | Manager |
 
 `AQENO_MEDIA_DIR` overrides the default root, alongside the existing overrides in ADR 0007 § 4, so
 tests never touch real media. A configured root that does not exist is logged once and skipped — it is
 not created, and it is not an error: a removed USB disk must not stop startup.
 
+**`library.scan_on_startup` no longer exists.** It was removed by ADR 0028 § 1 rather than defaulted
+to `false`, because a setting implies the behaviour is a choice. Preparation is always explicitly
+triggered; boot is never a trigger.
+
+A media root is an **authorised root**: the only region of the filesystem preparation may read, and
+the boundary every resolved playlist path is tested against (§ 18).
+
 Recognised extensions, case-insensitive: `.mp3` `.flac` `.ogg` `.opus` `.m4a` `.m4b` `.wav` `.aac`
 `.wma`. Everything else is ignored silently, including artwork, `.cue`, `.m3u` and `aqeno.toml`, which
 are read as *inputs* to a work but are never content themselves. Hidden files and directories
 (leading `.`) are skipped.
 
-## 2. The scan pass
+## 2. The preparation pass
 
-1. Walk each root depth-first. Symlinks are followed only if `library.follow_symlinks` is set; a
-   directory already visited in this scan is never visited twice.
-2. Partition the tree into **work candidates** by § 3.
-3. For each candidate, probe member files that are new or changed — a file whose path, byte size and
-   modification time all match the last scan is not re-probed, and its stored fingerprint stands.
-   *(Not yet implemented — see § 15.)*
-4. Resolve identity by § 4: an existing `ContentId`, or a new one.
-5. Derive kind (§ 5), chapters (§ 6) and the remaining fields (§ 7).
-6. Write the work to the library and continue. **Results are committed per work, not per scan**, so a
-   scan interrupted by a power cut leaves a smaller library, never a corrupt one.
-7. After the walk, mark every previously-known work whose files were all absent as unavailable (§ 8).
+Preparation builds a **candidate revision**. Nothing it writes is visible to any Device surface until
+§ 16 publishes it.
 
-The scan is single-threaded, runs off the playback thread, and yields the library connection between
-works. It never holds a transaction across a probe.
+1. Open a candidate revision, seeded from the current published revision so unchanged work is reused
+   (§ 19).
+2. Walk each root depth-first. Symlinks are followed only if `library.follow_symlinks` is set; a
+   directory already visited in this pass is never visited twice.
+3. Partition the tree into **work candidates** by § 3.
+4. For each candidate, probe member files that are new or changed — a file whose path, byte size and
+   modification time all match the previous revision is not re-probed, and its stored fingerprint
+   stands.
+5. Resolve identity by § 4: an existing `ContentId`, or a new one.
+6. Derive kind (§ 5), chapters (§ 6), artwork (§ 16) and the remaining fields (§ 7).
+7. Write the work into the **candidate**, and continue.
+8. After the walk, mark every work known to the previous revision whose files were all absent as
+   unavailable (§ 8).
+9. Validate the candidate (§ 17). On success it may be published; on failure it is discarded and the
+   current revision is untouched.
+
+Preparation is single-threaded, runs off the playback thread and off the startup path, and never holds
+a transaction across a probe.
+
+**Per-work commits are commits into the candidate, not exposure.** ADR 0014 § 5 committed each work
+into the live library, which made a half-finished pass user-visible; ADR 0028 § 3 replaces that with
+one atomic publication at the end. A pass interrupted by a power cut leaves an abandoned candidate,
+not a smaller library.
+
+**Copy-completion boundary (ADR 0028 § 6).** The explicit trigger is the boundary. As a secondary
+defensive measure only, a file whose size or mtime changes during the pass is excluded from this
+candidate and reported; it is picked up by the next preparation. This is best-effort and is not what
+makes the model correct.
 
 ## 3. What becomes one work
 
@@ -151,19 +182,17 @@ work has `has_chapters == False` and `Next`/`Previous` fall back to the kind's s
 
 | Field | Source, in order |
 |---|---|
-| `title` | `aqeno.toml` `title` → album tag → work directory name → filename stem |
-| `artwork` | embedded picture of the first chapter → `cover.*`, `folder.*`, `front.*` in the work directory (jpg/jpeg/png/webp) → `None` |
+| `title` | `aqeno.toml` `title` → album tag → playlist `#EXTINF` title (§ 18) → work directory name → filename stem |
+| `artwork` | the seven-rule chain in § 16 |
 | `language` | `aqeno.toml` `language` → language tag → `None` |
 | `kind_overridden` | `True` only for rule 1 of § 5 |
 
 The directory name is used as a title unchanged — no stripping of leading track numbers, no
 title-casing. Cleverness here corrupts legitimate titles, and a Manager can rename.
 
-**Artwork is referenced by path and never copied into the database** (ADR 0007 § 3). Embedded artwork
-is extracted once into `$XDG_DATA_HOME/aqeno/artwork/<content-id>.<ext>` and referenced from there; the
-extraction is skipped when the file already exists and the work is unchanged. A missing artwork is not
-a failure — the Kids Early surface renders a calm placeholder, which is a presentation concern and not
-specified here.
+**Artwork is referenced by path and never copied into the database** (ADR 0007 § 3). A missing artwork
+is not a failure — the Device UI renders AQENO's own fallback treatment, which is a presentation
+concern and not specified here. § 16 specifies resolution, derivation and ownership.
 
 **ReplayGain** track and album gain/peak tags are read and stored when present, even though
 normalisation is not implemented (ADR 0009 § 6). Reading them costs nothing at scan time and having
@@ -197,19 +226,28 @@ language = "de"
 It ranks below a Manager override and above every heuristic. A malformed file never prevents the work
 from being ingested — worst case the work is ingested entirely by inference.
 
-## 10. Failures during a scan
+## 10. Failures during preparation
 
-No failure in this table aborts the scan or wakes the display.
+No failure in this table aborts preparation or wakes the display. Every one of them is an **Admin
+finding** carried on the `Operation` resource; none of them reaches the Device UI (ADR 0028 § 14).
 
 | Condition | Effect | Code |
 |---|---|---|
-| File unreadable (permissions, I/O error) | excluded from its work, logged | `source_unreadable` |
-| File parses but has no usable duration | excluded from its work, logged | `source_unreadable` |
-| Container or codec unsupported by the probe | excluded from its work, logged | `codec_unsupported` |
+| File unreadable (permissions, I/O error) | excluded from its work, reported | `source_unreadable` |
+| File parses but has no usable duration | excluded from its work, reported | `source_unreadable` |
+| Container or codec unsupported by the probe | excluded from its work, reported | `codec_unsupported` |
+| File changed size/mtime during the pass | excluded from this candidate, reported (§ 2) | `source_unstable` |
 | Every file of a candidate excluded | no work created; a *known* work becomes unavailable (§ 8) | — |
-| Root missing or unreadable | root skipped, logged once | — |
-| Library empty after a completed scan | calm empty surface, setup guidance for a Manager | `library_empty` |
-| Storage read-only or full | scan runs, results are not persisted; degraded mode per ADR 0007 § 6 | `storage_unwritable` |
+| Root missing or unreadable | root skipped, reported once | — |
+| Artwork fails to decode | fallback used, **work stays playable**, reported | `artwork_unreadable` |
+| Several ambiguous folder images | fallback used, reported (§ 16 rule 6) | `artwork_ambiguous` |
+| Playlist entry missing, outside a root, or foreign-absolute | entry omitted, reported (§ 18) | `playlist_entry_invalid` |
+| Library empty after a published revision | calm empty surface, setup guidance for a Manager | `library_empty` |
+| Storage read-only or full | **candidate fails; the current revision stays published** (§ 17) | `storage_unwritable` |
+
+The last row is the one that changed with ADR 0028. Previously a scan on a full disk simply failed to
+persist. Now it fails *the candidate*, which is a safe outcome by construction: the published revision
+was never written to, and no source media is deleted to make room.
 
 ## 11. Persistence
 
@@ -228,17 +266,45 @@ one operation shape is the defect that was removed from this port once already. 
 leaves stored fingerprints untouched, so non-scan callers are unaffected. The port keeps its
 storage-agnostic vocabulary: no `upsert`, no SQL nouns.
 
+ADR 0028 adds a second forward-only migration:
+
+- a **revision** table: generation number, state (`candidate | published | superseded`), created and
+  published timestamps;
+- a single-row **current revision** pointer;
+- a revision column on content membership, so a work belongs to a named generation;
+- derived-artwork columns beside the artwork reference: the cache identity that detects a changed
+  source, and the prepared dominant colour (§ 16).
+
+What deliberately gains **no** revision column: resume positions, tag mappings, favourites, audience
+and access overrides, and profiles. They are keyed by `ContentId` and their lifecycle is the person's,
+not the library's (ADR 0028 § 2). This is the property that makes publication safe, and it is worth a
+named test rather than a comment.
+
 ## 12. Modules
 
 | Module | Responsibility |
 |---|---|
 | `ports/media_probe.py` | `MediaProbe` protocol; `ProbedFile` value object (duration, tags, chapters, artwork, ReplayGain, fingerprint). No adapter type crosses it. |
-| `application/ingestion.py` | The whole of §§ 2–8: walking, grouping, identity, inference, chapter assembly. Standard library only. |
+| `application/ingestion.py` | The whole of §§ 2–8 and § 18: walking, grouping, identity, inference, chapter assembly, playlist parsing and path validation. Standard library only. |
 | `adapters/metadata/mutagen_probe.py` | The only module importing `mutagen`. Reads headers and the fingerprint window. |
 | `adapters/fakes/metadata.py` | A dict of path → `ProbedFile`, so the whole policy is testable without files. |
 
+The separation ADR 0028 § 72 asks for is expressed as modules, not as one media god-object:
+
+| Concern | Where |
+|---|---|
+| source transport (how bytes arrive) | Management API upload; a share or USB importer if one is ever decided |
+| interpret/validate incoming media | `application/ingestion.py` |
+| artwork resolution (which image) | `application/ingestion.py` — policy, no decoding |
+| derived asset preparation (decode, resize, dominant colour) | an image adapter behind a narrow port; the only module that decodes an image |
+| library build | `application/ingestion.py` writing a candidate |
+| publication | the `Library` store — one transaction |
+| device consumption | `application/device_ui.py` reading the current revision |
+| playback | `application/playback.py` on the resolved `ContentItem` |
+
 Directory walking with `pathlib` stays in `application/` — layout rule 1 permits the standard library —
-but reading audio bytes is the adapter's job, including the fingerprint window.
+but reading audio bytes is the adapter's job, including the fingerprint window. **Decoding an image is
+likewise an adapter's job**, for the same reason and with the same boundary.
 
 ## 13. Invariants worth a named test
 
@@ -250,25 +316,45 @@ but reading audio bytes is the adapter's job, including the fingerprint window.
 5. `Kapitel 10` sorts after `Kapitel 2`.
 6. A work with no kind signal is ingested as `AUDIO_DRAMA` and therefore resumes exactly.
 7. A Manager override survives a rescan and is never re-inferred.
-8. An unreadable file removes itself from its work without failing the scan or the other works.
-9. A scan interrupted between two works leaves a consistent, smaller library.
-10. A read-only filesystem produces a scan that plays but does not persist.
+8. An unreadable file removes itself from its work without failing the pass or the other works.
+9. A preparation interrupted between two works leaves an abandoned candidate, not a changed library.
+10. A read-only or full filesystem fails the candidate and leaves the published revision intact.
+
+Added by ADR 0028:
+
+11. **Startup opens the published revision and reads no media.** Given a prepared library, startup
+    performs no directory walk, no probe, no playlist read, no artwork resolution and no image decode.
+12. **A missing or corrupt index does not cause a scan.** It yields the retained previous revision, or
+    an empty degraded library — never an emergency walk.
+13. **A candidate is invisible.** Works written into a candidate are absent from every Device-facing
+    read until publication.
+14. **Publication is all-or-nothing.** No observable state shows part of N+1.
+15. **A failed candidate leaves N byte-for-byte current**, including on a full disk.
+16. **Publication adopts without restart**, and the adopting read is cheap.
+17. **Publication does not interrupt playback**, does not requeue it and does not move focus.
+18. **A work removed in N+1 keeps playing** until its session ends.
+19. **Resume, tags and favourites survive republication** for an unchanged `ContentId`.
+20. **A playlist entry cannot escape an authorised root**, including via `..`, a symlink or a foreign
+    absolute path.
+21. **Corrupt artwork leaves the work playable.**
+22. **Artwork precedence is deterministic** for each rule of § 16.
 
 ## 14. Deliberately out of scope
 
-Podcast/RSS and radio entry (Sources without a filesystem), multi-disc merging, duplicate detection,
-artwork placeholders, loudness normalisation, and any Manager UI for corrections. Each attaches to this
+Podcast/RSS and radio entry (Sources without a filesystem), multi-disc merging, sophisticated
+duplicate matching, loudness normalisation, and any Manager UI for corrections. Each attaches to this
 model without changing it.
+
+Left open by ADR 0028 rather than answered here: a playlist as its own browsable object (§ 18), how
+bytes arrive for a file-manager copy (a network share is a candidate, not a decision), the
+review-before-publish interface and its default, destructive storage cleanup, and the exact pixel
+dimensions of derived artwork.
 
 ## 15. Implementation status
 
 Implemented 2026-08-18 on `wip/content-ingestion` (commits `91588bb`, `5234c69`, `904e1ec`). Two parts
 of this document are **not** yet true of the code, recorded here rather than left to be discovered:
 
-- **§ 2 step 3, the incremental re-probe skip.** Every scan currently re-probes every file. Identity,
-  availability and fingerprints are all still correct — this is cost, not correctness, and the scan
-  runs off the startup path (ADR 0014 § 5), so nothing user-visible waits on it. It becomes worth
-  doing when a real library is large enough to measure.
 - **§ 6 rule 1, MP4 chapter atoms.** `mutagen` has no reader for `chpl`/Nero chapter atoms, and
   writing one is a container-parsing project of its own. An `.m4b` still classifies as `AUDIOBOOK` by
   extension (§ 5 rule 3) and still plays; it falls back to a single chapter, so `Next` and `Previous`
@@ -280,3 +366,126 @@ One test limitation worth knowing when reading the suite: the ID3 `CHAP` fixture
 `mutagen` and read back with `mutagen`, because no second chapter-writing tool was available. It
 proves the adapter's plumbing, not that it reads what other rippers produce. Retire it against a real
 file when one exists.
+
+## 16. Artwork resolution and derived assets
+
+### Resolution
+
+Resolved once during preparation. First match wins, and the extension order inside a rule is fixed as
+written so two candidates never race. Matching is case-insensitive.
+
+| # | Source | Notes |
+|---:|---|---|
+| 1 | explicit AQENO assignment for this `ContentId` | a Manager correction is never undone by the next preparation |
+| 2 | embedded picture of the work's first chapter | |
+| 3 | `<media-stem>.jpg` `.jpeg` `.png` `.webp` beside the file | the single-file work's own sidecar |
+| 4 | `<playlist-stem>.jpg` `.jpeg` `.png` `.webp` | only when that playlist orders this work's files (§ 18) — the `Einschlafen.m3u` / `Einschlafen.jpg` case |
+| 5 | `cover` → `folder` → `front` → `album`, each `.jpg` `.jpeg` `.png` `.webp` | conventional folder artwork |
+| 6 | the one plausible image in the work directory | **only** when the count is exactly one |
+| 7 | AQENO's generated fallback | presentation treatment, never a broken-image glyph |
+
+Rule 6 does not guess: two or more ambiguous images fall through to rule 7 and raise
+`artwork_ambiguous` for Admin. Rule 3 sits above rule 5 because a file-specific name is a stronger
+statement of intent than a folder convention.
+
+Artwork may belong to a work, a track, an album/series or — if a playlist ever becomes an object — a
+playlist. Source images are never duplicated to express that; derivatives are shared where the cache
+identity is the same.
+
+### Derivation and ownership
+
+Everything under AQENO's artwork directory is a **derivative** and is disposable (ADR 0028 § 9). The
+originals are inputs and are never modified, moved, overwritten or deleted.
+
+- A source image is decoded **once**, during preparation, with bounded dimensions and bounded memory,
+  and stored at the size the Device UI actually displays. Only variants with a demonstrated use exist.
+- The **cache identity** is the source artwork's identity plus its size and mtime. Audio files are
+  never hashed to detect that a `cover.jpg` changed.
+- The **dominant colour** is computed once from a downscaled sample and stored beside the derivative.
+  It exists so the Device UI can place a cheap tinted ambience behind a cover without analysing an
+  image at runtime. It is one colour, not an image-analysis subsystem.
+- Clearing the derived cache is always safe: published metadata plus source media regenerate it.
+
+**QML never resolves artwork.** It receives a resolved URI, a fallback kind and the prepared colour. It
+does not search directories, inspect filenames, parse tags, choose between `cover.jpg` and
+`folder.jpg`, resize anything or compute identity (ADR 0028 § 1).
+
+## 17. Revisions, publication and hot swap
+
+A **revision** is a generation of library membership, numbered monotonically. A **candidate** is one
+under preparation; exactly one revision is **published** at a time; the one it replaced becomes
+**superseded**.
+
+**Publication** is a single transaction: mark the candidate published, move the current pointer, mark
+the previous revision superseded. SQLite's atomic commit is the mechanism, so a reader always sees the
+complete membership of exactly one revision, and a crash mid-publication leaves N or N+1 — never a
+mixture.
+
+**Validation** before publication is structural and cheap: the candidate's schema generation is
+understood, its pointer targets exist, and every member work has at least one chapter and at least one
+resolvable source. Validation does not re-probe media.
+
+**Adoption** raises one in-process notification. Presentation re-reads the current revision at a safe
+boundary — surface entry, or idle — never underneath an active rotation, and retains focus by
+`ContentId` where the focused work is still a member. No notice is shown; new content simply exists.
+
+**Retention and cleanup.** The current and the previous revision are retained, which is what makes
+rollback possible when a new revision turns out to be unopenable. Superseded generations beyond that
+are pruned by explicit or opportunistic maintenance — never as a startup prerequisite, never removing
+the current revision, and never removing derived assets a retained revision still references.
+
+**Startup** locates the current revision, opens it, validates it cheaply, exposes it and becomes ready.
+Cost is a function of the prepared index, never of the collection. If the current revision cannot be
+opened, the retained previous one is used; if neither opens, AQENO starts with an empty degraded
+library and an Admin-visible repair requirement. **No path here scans media** (§ 13 invariant 12).
+
+## 18. Playlists and path safety
+
+`.m3u`/`.m3u8` are read as descriptions of **order and membership**, never as content carrying artwork
+of their own.
+
+Parsing rules, all of which are testable and none of which is claimed beyond what is implemented:
+
+- Entries resolve **relative to the playlist's own directory**.
+- `\` is accepted as a separator, so a playlist authored on Windows works.
+- Text is read as UTF-8; undecodable bytes are replaced rather than failing the file.
+- A line beginning `#` is a comment. `#EXTINF` contributes its title only, and only where present.
+- A resolved entry is accepted **only if its fully resolved real path lies inside an authorised root**,
+  so `..` segments and symlinks cannot escape.
+- An **absolute path from the authoring machine** is not treated as a device path. It is rejected and
+  reported; where a remap is safe and unambiguous a client may offer one, which is a client concern.
+- A missing target is omitted and reported. It never becomes a visible broken entry.
+
+Every rejection is an Admin finding (`playlist_entry_invalid`), never a Device UI condition. A playlist
+path is untrusted input, not a filesystem capability.
+
+**Not decided here:** a playlist whose tracks span several albums is not a work under ADR 0009 § 4 and
+has no `ContentKind`. Making a curated cross-album sequence browsable is a product decision about
+content kinds; ADR 0028 § 10 records it as open, and the artwork chain in § 16 is written so adding it
+later changes nothing already decided.
+
+## 19. Incremental preparation
+
+Preparation is incremental; publication is atomic. Conflating the two is what makes atomicity sound
+expensive.
+
+A candidate is seeded from the current revision, and a work whose member files all match the previous
+revision by path, size and mtime is carried over whole: fingerprints, metadata, chapters, artwork
+derivative and dominant colour are all reused, and nothing is re-probed or re-decoded. Only changed,
+new or vanished works cost anything.
+
+This is the unchanged-file skip that § 2 step 3 has always specified. Under ADR 0014 it was cost
+optimisation and was never implemented; under ADR 0028 it is **load-bearing**, because it is what stops
+"publish a complete revision" from meaning "rebuild everything every time".
+
+## 20. Resource bounds
+
+Imported media is untrusted input, and preparation is where it is bounded:
+
+- filesystem access stays inside authorised roots;
+- image decoding is bounded in pixel dimensions and memory before a decode is attempted, so an absurd
+  or hostile image cannot exhaust RAM;
+- oversized metadata and artwork are rejected rather than stored;
+- symlinks are followed only when `library.follow_symlinks` is set, and never out of a root;
+- unusual Unicode in filenames is preserved, not normalised into a collision;
+- archives are **not** supported, and are not made supported by this document.

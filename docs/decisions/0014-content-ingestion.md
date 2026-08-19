@@ -1,9 +1,16 @@
 # ADR 0014 — Content ingestion: discovery, identity and metadata
 
-**Status:** Accepted
+**Status:** Accepted; § 2 and § 5 superseded by ADR 0028 (2026-08-19)
 **Date:** 2026-08-18
 **Accepted:** 2026-08-18
 **Closes:** gap G14 (with `docs/implementation/CONTENT_INGESTION.md`)
+
+> **Superseded in part.** ADR 0028 keeps everything this ADR decided about *how* content is discovered
+> and identified — the `mutagen` port, the fingerprint, work grouping, the long-form default, the
+> `aqeno.toml` sidecar, and "nothing is ever deleted by a scan". It replaces two things: **§ 2's
+> startup scan** (preparation is now only ever explicitly triggered) and **§ 5's incremental commit**
+> (results now land in a candidate revision that is published atomically). Read § 2 and § 5 below as
+> history; ADR 0028 § 1 and § 3 are current.
 
 ## Context
 
@@ -46,7 +53,10 @@ that module is replaced — the fallback is named in § 5 below, not left to be 
 Media lives under configured **library roots**. The default root is `$XDG_DATA_HOME/aqeno/media/`;
 further roots are Manager-tier settings.
 
-A scan runs at startup and on explicit Manager request. There is **no `inotify` watcher.** Content on
+A scan runs at startup and on explicit Manager request. *(Superseded by ADR 0028 § 1: preparation runs
+on explicit request only. The rejection of a watcher below stands, and ADR 0028 § 6 leans on it — with
+no watcher, the human trigger is itself the copy-completion boundary.)* There is **no `inotify`
+watcher.** Content on
 this device changes when an adult deliberately copies files onto it — a rare, human-initiated event
 that pairs naturally with a "rescan" action. A watcher would add recursive watch descriptors on an SD
 card, a debounce policy for half-copied files, and a second concurrent writer to the library, to
@@ -90,6 +100,10 @@ below a Manager override. A device without a keyboard needs a way to fix things 
 argument that gave settings a TOML file in ADR 0007.
 
 ### 5. Scanning never blocks playback
+
+*Superseded by ADR 0028 § 1 and § 3. The goal below — playback never waits for ingestion — is kept and
+strengthened: preparation no longer runs at startup at all, and its results are no longer visible
+incrementally. The reasoning recorded here is why "off the critical path" once seemed sufficient.*
 
 Ingestion runs after `LOCAL_READY`, off the thread that serves input and playback, and commits its
 results incrementally. Content already in the library is playable while a scan runs, which is what
