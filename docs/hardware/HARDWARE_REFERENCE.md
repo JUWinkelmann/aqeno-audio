@@ -92,8 +92,14 @@ Raspberry Pi 4B
         │   ├── socket 2 → deliberately empty; tactile gap before HOME
         │   └── socket 3 → HOME
         │
-        ├── free branch → unused; PN532 candidate is SPI, not I2C
-        └── free branch → future hardware if a real use case requires it
+        ├── SparkFun Qwiic Twist DEV-15083  (PENDING_ORDER)
+        │      └── SELECT: rotate → focus/value, press → activate
+        │
+        └── Adafruit VCNL4040 4161          (PENDING_ORDER)
+               └── ambient light + near-hand proximity
+
+    (sensor comparison only) VEML7700 daisy-chained from a device's
+    second Qwiic connector — the hub's four downstream ports are full
 ```
 
 The Qwiic SHIM is the thin, HAT-stackable DEV-15794. It carries the Pi I2C bus and power beside the
@@ -104,7 +110,7 @@ MiniAmp; it does not consume any of the MiniAmp's I2S/control GPIOs.
 | Resource | Physical pins/interface | Owner(s) | State |
 |---|---|---|---|
 | MIPI DSI | dedicated DSI connector | FREENOVE display | exclusive, no GPIO-header conflict |
-| I2C1 SDA/SCL | GPIO2/3, pins 3/5 | Qwiic SHIM → 5880 (`0x36`) + NeoKey (`0x30`) | shared bus; addresses distinct |
+| I2C1 SDA/SCL | GPIO2/3, pins 3/5 | Qwiic SHIM → hub → all Qwiic devices (§ Qwiic address map) | shared bus; every planned address distinct |
 | I2S PCM clock/data | GPIO18-21, pins 12/35/38/40 | HiFiBerry MiniAmp | exclusive to audio |
 | amplifier mute | GPIO16, pin 36 | HiFiBerry MiniAmp | exclusive/reserved by MiniAmp |
 | amplifier shutdown | GPIO26, pin 37 | HiFiBerry MiniAmp | exclusive/reserved by MiniAmp |
@@ -117,6 +123,46 @@ MiniAmp; it does not consume any of the MiniAmp's I2S/control GPIOs.
 This map follows HiFiBerry's MiniAmp GPIO contract: GPIO18-21 are I2S, GPIO16 is mute and GPIO26 is
 shutdown. A shared rail or bus is not a conflict. Any new module must be checked against this table
 before it is called RH1-compatible.
+
+### Qwiic address map
+
+Verified against vendor documentation on 2026-08-19, not assumed. Every planned RH1 device has a
+distinct address, so **no bus conflict exists** and no multiplexer is required.
+
+| Device | Address | Possession | Evidence |
+|---|---|---|---|
+| NeoKey 1x4 (4980) | `0x30` | ORDERED | Adafruit default; in `adapters/input/i2c_seesaw.py` |
+| Rotary encoder (5880) | `0x36` | ORDERED | Adafruit default; in `adapters/input/i2c_seesaw.py` |
+| Qwiic Twist (DEV-15083) | `0x3F` (jumper `0x3E`; software `0x08`–`0x77`) | PENDING_ORDER | SparkFun product page |
+| VEML7700 (4162) | `0x10` | ORDERED | Adafruit CircuitPython library default; in `adapters/ambient_light/veml7700.py` |
+| VCNL4040 (4161) | `0x60` | PENDING_ORDER | Adafruit CircuitPython library default |
+
+### Qwiic capacity and cabling
+
+The Adafruit 5625 hub is a **5-port passive hub whose ports are all electrically parallel**, so one
+port is consumed by the uplink from the Qwiic SHIM and **four downstream ports remain**. The SHIM
+itself has a single Qwiic connector and carries a 3.3 V regulator fed from the Pi's 5 V rail.
+
+| Configuration | Devices | Hub ports | Cables |
+|---|---:|---|---:|
+| RH1 steady state | NeoKey, 5880, Twist, VCNL4040 | 4 of 4 — exactly fits | 5 |
+| Sensor comparison | the above **plus** VEML7700 | one short | 6 |
+
+The comparison configuration therefore needs **one daisy-chain hop** through a device's second Qwiic
+connector rather than a second hub. The Twist and the VCNL4040 breakout each have two connectors
+(vendor-confirmed); confirm the same for the NeoKey, 5880 and VEML7700 from the units.
+
+Cable requirement: **6 total, of which 3 are already owned** (300 mm). Three more are genuinely
+needed; up to two spares are defensible. The owned 300 mm cables cover the long runs, so short
+cables are for hub-to-adjacent-board hops — verify a short length actually reaches before relying
+on it, since the enclosure layout is not fixed.
+
+Primary vendor evidence for this section:
+[Qwiic Twist product page](https://www.sparkfun.com/products/15083),
+[Qwiic Twist hookup guide](https://learn.sparkfun.com/tutorials/qwiic-twist-hookup-guide/all),
+[VCNL4040 breakout](https://www.adafruit.com/product/4161),
+[STEMMA QT 5-port hub](https://www.adafruit.com/product/5625),
+[Qwiic SHIM](https://www.sparkfun.com/sparkfun-qwiic-shim-for-raspberry-pi.html).
 
 Primary vendor evidence: [MiniAmp data sheet](https://www.hifiberry.com/docs/data-sheets/datasheet-miniamp/),
 [HiFiBerry GPIO use](https://www.hifiberry.com/docs/hardware/gpio-usage-of-hifiberry-boards/),
@@ -234,15 +280,70 @@ is physically separated from them (P22 Tactile identity). That layout is **provi
 assembled unit is felt in the dark**, and the socket assignment lives in
 `adapters/input/i2c_seesaw.py` where the mapping is.
 
-Only SELECT still has no hardware. It is simulated until a suitable encoder exists. **No purchase and
-no component decision follows from this plan** — the address-jumper question on a second 5880 must be
-checked against Adafruit's documentation first, because bridging solder jumpers would collide with
-the no-solder acceptance gate below, and ADR 0026 § 7 wants an encoder chosen against the rotary
-contract rather than because it is the board already in the drawer.
+Only SELECT still has no hardware on the box. The **SparkFun Qwiic Twist DEV-15083** is the accepted
+RH1 candidate for it — see § Qwiic Twist acceptance below. That earlier note about checking a second
+Adafruit 5880's address jumper is therefore moot: the Twist is a different board at a different
+address and needs no jumper bridging.
+
+**`APPROVED_FOR_RH1` is not a production encoder decision.** ADR 0026 § 7 remains the contract, and
+the Twist is one prototype implementation of it.
 
 Until SELECT exists on the box, RH1 cannot demonstrate the complete touch-free journey physically.
 The physical path from Now Playing back to Home is no longer part of that gap: HOME closes it on
 hardware already present.
+
+### Qwiic Twist acceptance — `APPROVED_FOR_RH1`
+
+Checked against ADR 0026 § 7 (AQENO Rotary Control Contract) and the real RH1 I²C build on
+2026-08-19, from vendor documentation.
+
+| Requirement | Verified result |
+|---|---|
+| Push function | Built-in momentary button ✓ |
+| Incremental, detented | 24 detents per 360°, direction detected ✓ |
+| Shaft | **6 mm**, takes any knob with a 6 mm knurled hole — matches § 7's 6 mm preference ✓ |
+| Exchangeable caps | Any 6 mm knob; **no knob included** ✓ |
+| I²C address | `0x3F`, jumper `0x3E`, software `0x08`–`0x77`; no conflict with `0x30`, `0x36`, `0x10`, `0x60` ✓ |
+| Solderless | Qwiic/STEMMA QT, 2 connectors, no soldering ✓ |
+| Supply | 3.3 V; 2.8 mA with LEDs off, 40.6 mA at 100 % ✓ |
+| RGB to true off | Per-channel 0–255 PWM, so `(0,0,0)` is reachable — satisfies **DARK means zero visible light** ✓ |
+| Runs on existing SHIM + hub | Yes, occupies one of the four downstream ports ✓ |
+| Extra adapters needed | None ✓ |
+
+**Not verifiable from documentation, so real-test items:** detent feel, rotational torque, push force
+and whether a child or a person with reduced hand strength operates it comfortably (ADR 0026 § 7);
+blind distinguishability from the VOLUME encoder (P22).
+
+**Recorded limitation of the prototype.** ADR 0026 § 7 prefers SELECT and VOLUME to be the *same*
+part with different caps. On RH1 they will be two different encoders — Twist and Adafruit 5880 — so
+**RH1 cannot validate that preference**, and a blind-distinguishability result on RH1 is confounded:
+two different encoders feel different regardless of their caps. Treat an RH1 pass as necessary, not
+sufficient.
+
+**Illumination caveat.** SparkFun's RGB LED sits on the board beneath the knob and the vendor
+recommends a clear plastic knob so the light is visible. An opaque metal knob may block it entirely
+— see § Encoder cap evaluation.
+
+### Encoder cap evaluation — `REAL_TEST_REQUIRED`
+
+Two aluminium knobs are in play, and both are ergonomics samples rather than AQENO cap decisions:
+the owned 32 mm knob with grub-screw fixing, and the 22.2 mm Elecrow illuminated-ring knobs in the
+pending order.
+
+**Mechanical fit on the Twist is unverified.** Elecrow does not publish a bore diameter or shaft type
+for the illuminated knob, so whether it seats on the Twist's 6 mm knurled shaft cannot be decided
+from documentation. Test physically: seating, fixing, play, feel, grip, operation by a child, use
+with reduced fine motor control, and blind findability.
+
+**A functional concern is documented rather than assumed.** The Elecrow knob is sold *for RGB
+encoders*, and Elecrow's own illuminated RGB encoder has a **transparent knurled shaft lit by an LED
+inside the encoder**. The Twist has neither: it is an opaque shaft with one RGB LED on the PCB below.
+A ring designed to be lit by a glowing shaft may therefore stay dark on a Twist. If it does, that
+result says nothing about AQENO's illumination policy — it is a pairing mismatch. Neither knob in the
+inventory is light-transmitting, so the *ergonomics* half of this test is fully covered by hardware
+already owned, while the *illumination* half needs a light-transmitting knob that nothing in the
+inventory or the pending order provides. That is a purchasing decision, not a technical requirement,
+and nothing is recommended here.
 
 ## Target display and light direction
 
@@ -283,12 +384,14 @@ large button, an LED symbol or audio. The underlying application capability need
 Not yet selected or acquired:
 
 - NFC reader and tags;
-- a second rotary encoder for SELECT, chosen against the AQENO Rotary Control Contract;
-- VCNL4040 ambient-light + proximity breakout; target sensor candidate, **not to be bought before
-  the bus/mounting contract is settled** (§ Sensing below);
+- final enclosure-side NFC antenna and object area;
 - final mains/mobile power arrangement;
 - final enclosure and mechanical fixtures;
 - any additional sensor or actuator justified by later product work.
+
+Two former entries have moved on: the SELECT encoder and the VCNL4040 are no longer undecided
+candidates but accepted RH1 prototype components awaiting purchase — see § Qwiic Twist acceptance
+and § VCNL4040 acceptance. Accepted for RH1 still means prototype, never production.
 
 NFC remains simulated until the current Vertical Slice works. PN532 is still a candidate technology
 family, but a specific board requires a feasibility check for Linux support, I2C compatibility,
@@ -302,10 +405,36 @@ shared bus, useful placement away from panel spill and whether its readings prod
 in real use. Raw lux belongs to the sensor adapter; display policy interprets it. No generic
 adaptive-brightness engine is implied.
 
-The **VCNL4040** (ambient light *and* IR proximity, I²C, available as a STEMMA QT/Qwiic breakout) is
-the current **target candidate**, because ADR 0026 § 10 wants near-hand proximity for one purpose:
-temporarily illuminating the relevant controls in a dark room. It would functionally replace the
-VEML7700, and a later AQENO reference device most likely needs one sensor rather than both.
+The **Adafruit VCNL4040 (PID 4161)** — ambient light *and* IR proximity over I²C on a STEMMA QT
+breakout — is the current **target candidate**, because ADR 0026 § 10 wants near-hand proximity for
+one purpose: temporarily illuminating the relevant controls in a dark room. It would functionally
+replace the VEML7700, and a later AQENO reference device most likely needs one sensor rather than
+both.
+
+#### VCNL4040 acceptance — `APPROVED_FOR_RH1`
+
+Checked on 2026-08-19 against ADR 0026 § 10 and the real RH1 build, from vendor documentation.
+
+| Requirement | Verified result |
+|---|---|
+| I²C address / bus conflict | `0x60`; distinct from `0x30`, `0x36`, `0x3F` and `0x10` — no conflict ✓ |
+| Runs on the existing hub | Yes, two STEMMA QT connectors; occupies one downstream port ✓ |
+| Soldering | None required ✓ |
+| Extra hardware for the open RH1 test | None — the sensor runs bare or behind a defined test opening ✓ |
+| Ambient light **and** proximity under Linux | Both exposed: proximity 0–200 mm, light 0.0125–6553 lux, via the CircuitPython driver on the Blinka path RH1 already uses ✓ |
+| VEML7700 in parallel for comparison | Yes — `0x10` and `0x60` coexist; needs the daisy-chain hop in § Qwiic capacity ✓ |
+
+`APPROVED_FOR_RH1` covers the prototype only. It is not a production sensor decision, and it is not
+a claim that the VCNL4040's ambient-light quality suffices — that is the measurement the retained
+VEML7700 exists for.
+
+Not yet done, and deliberately not now: the CircuitPython VCNL4040 driver is not in the `rh1`
+optional dependencies and no `Proximity` port, adapter or illumination policy exists. Nothing is
+implemented for hardware that has not arrived.
+
+**No optical cover is to be bought** (ADR 0026 § 10). RH1 tests the sensor bare or behind a defined
+opening first; front material, window size, sensor distance, internal reflection, crosstalk, range,
+false positives, full darkness and direct sunlight are measured before any material is specified.
 
 "Most likely" is not evidence, and the following is deliberate:
 

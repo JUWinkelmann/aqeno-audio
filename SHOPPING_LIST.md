@@ -36,12 +36,14 @@ on hand. Selection never counts as electrical or acoustic validation.
 Nothing on this list is ordered before the AQENO Hardware Interaction Contract (ADR 0026) has been
 tested on RH1. The order of work is: interaction → contract → requirements → RH1 test → component.
 
-- **second rotary encoder for SELECT** — required for the complete touch-free journey, and precisely
-  the thing not to buy reflexively. Choose against the AQENO Rotary Control Contract (ADR 0026 § 7),
-  not because a board is already in the drawer. Check first whether a second Adafruit 5880's I²C
-  address can be changed without bridging solder jumpers; if it cannot, it fails the no-solder gate.
-- **VCNL4040 proximity/ambient breakout** — not before the bus and mounting contract is settled and
-  the VEML7700 baseline exists.
+- ~~second rotary encoder for SELECT~~ and ~~VCNL4040~~ — **both cleared to buy for RH1** by the
+  hardware acceptance check on 2026-08-19: SparkFun Qwiic Twist DEV-15083 and Adafruit VCNL4040
+  4161, each `APPROVED_FOR_RH1`. Addresses, solderless fit, supply and hub capacity are verified in
+  `docs/hardware/HARDWARE_REFERENCE.md`. Approved for the prototype is **not** a production decision.
+- **Qwiic cables** — 6 are needed in total and 3 are already owned, so **3 more, at most 5 with
+  spares**. Do not order a round number on top of that.
+- **an optical cover or window material for the VCNL4040** — RH1 tests the sensor bare or behind a
+  defined opening first (ADR 0026 § 10).
 - **NFC module** — simulate NFC first, then choose a genuinely solderless PN532 implementation.
   Validate read range over the whole flat object area, with a card and a standing object.
 - **AMOLED panel** — a preference, not a dependency (ADR 0025 § 1). No order.
