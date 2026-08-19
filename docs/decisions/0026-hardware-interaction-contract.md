@@ -367,4 +367,5 @@ the area and forbidding a recess is what actually constrains the enclosure.
   visual timer is set with SELECT and left with HOME. The ringing-alarm hypothesis in
   `INTERACTION_MATRIX.md` § 5 is the one place where a control's permanent meaning is under real
   tension, and it is recorded as open rather than decided.
-- Purchasing is now gated on this contract. The current "do not buy" list is in `SHOPPING_LIST.md`.
+- Purchasing is now gated on this contract. The canonical inventory, possession/role split and the
+  procurement freeze live in `INVENTORY.md`.

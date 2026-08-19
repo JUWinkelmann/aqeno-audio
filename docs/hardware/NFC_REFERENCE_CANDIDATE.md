@@ -1,10 +1,17 @@
 # RH1 NFC reader candidate
 
-**Status:** Candidate for acquisition and hardware spike; not yet Reference-supported.
+**Status:** **Deferred — do not buy.** Recorded candidate reasoning for a future decision; not
+Reference-supported and not part of RH1.
 
-RH1 currently has no NFC reader. The smallest evidence-driven next step is one **Adafruit PN532
-NFC/RFID Controller Breakout v1.6 (Product 364)** connected over **SPI**, plus appropriate female
-jumper leads or a deliberately made harness.
+RH1 has no NFC reader and is not getting one now. Tag interaction is developed on the owned 125 kHz
+EM4100 USB reader instead — `TRANSITIONAL` hardware, documented in `HARDWARE_REFERENCE.md`
+§ Transitional tag reader — so the software boundary can be built without a purchase. **NFC remains
+the target technology**; only its hardware is postponed until RH1 tag interaction and the real
+object-area requirement are better understood.
+
+Everything below is the reasoning to resume from at that point, not a current instruction to buy.
+The candidate then examined was one **Adafruit PN532 NFC/RFID Controller Breakout v1.6 (Product
+364)** connected over **SPI**, plus appropriate female jumper leads or a deliberately made harness.
 
 Why this candidate:
 

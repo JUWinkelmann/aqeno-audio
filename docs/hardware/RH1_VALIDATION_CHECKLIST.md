@@ -1,7 +1,34 @@
 # RH1 commissioning and validation checklist
 
 Record results and measurements in `docs/product/USE_OBSERVATIONS.md`; do not mark an item complete
-from desktop simulation alone.
+from desktop simulation alone. What hardware exists and what it is for is in `INVENTORY.md`.
+
+## Hardware smoke test — run this first, before any further implementation
+
+When the ordered parts arrive, do not start building features. Work these seven phases in order;
+each one can fail in a way that makes the next meaningless.
+
+**Phase 1 — I²C.** SHIM, hub, NeoKey, 5880, Twist and VEML7700 are all detected **simultaneously**,
+at `0x30`, `0x36`, `0x3F` and `0x10`, with no bus errors and no dropouts under sustained polling.
+
+**Phase 2 — controls.** Each event individually: PREVIOUS, NEXT, HOME, SELECT rotate, SELECT press,
+VOLUME rotate, VOLUME press.
+
+**Phase 3 — blind.** Without looking at the device: find HOME · tell PREVIOUS and NEXT apart · find
+SELECT · find VOLUME · change volume · pause · reach Home · operate a menu.
+
+**Phase 4 — mechanics.** One-handed operation; does the device slide? Knob torque, switch force,
+accidental inputs, and whether the empty NeoKey socket between NEXT and HOME actually separates them
+by feel.
+
+**Phase 5 — knobs.** 32 mm against 22.2 mm, judged blind and with different hands — not by looks.
+
+**Phase 6 — light.** Twist RGB verified at `(0,0,0)`, NeoPixels at 0, display off; hunt for any
+remaining stray LED; check the VEML7700 in a genuinely dark room.
+
+**Phase 7 — tag reader.** Identify the owned USB RFID device physically (`lsusb`, then
+`/dev/input/by-id`, `/dev/serial/by-id` or the kernel log as applicable) **before** any adapter is
+written.
 
 ## Installation and boot
 
@@ -46,10 +73,9 @@ this test.
 - verify no step required a touch, and that the input which woke the display did not also select
   anything;
 - verify that no step needed a long press or a double press (ADR 0024 § A2);
-- **partly blocked physically:** the RH1 control plan is SELECT · PREVIOUS · NEXT · VOLUME · HOME,
-  and no SELECT encoder exists yet. Focus movement and activation therefore still run on the desktop
-  simulator only. Returning from Now Playing to Home is **no longer blocked** — HOME runs on
-  hardware already present. Recorded rather than worked around.
+- **unblocked once the parts arrive:** all five controls now exist as hardware — SELECT is the
+  Qwiic Twist, PREVIOUS/NEXT/HOME are Cherry MX switches on NeoKey sockets 0, 1 and 3. The complete
+  journey can be attempted physically for the first time.
 
 ## Blind operation and tactile identity (ADR 0026 § 1)
 
@@ -75,14 +101,20 @@ Run each item with the eyes closed or the device out of sight, in a fully dark r
 
 ## Sensing (ADR 0026 § 10)
 
-- record VEML7700 lux behaviour at very low room brightness, away from panel spill;
-- **only after that:** compare a VCNL4040's ambient-light readings against it before any claim that
-  one sensor suffices;
-- measure proximity detection range, and the false-positive rate when someone walks past or turns
-  over in bed;
+- record VEML7700 lux behaviour at very low room brightness, away from panel spill and away from
+  control-LED spill; it is RH1's working ambient sensor, so brightness thresholds, dark/night
+  behaviour and real bedroom transitions are testable now;
+- verify that removing the sensor leaves every control fully usable with no error surface;
+- verify AQENO is complete **without proximity**, which RH1 does not have: `DARK means zero visible
+  light` must be fully demonstrable, and only "hand approaches → controls illuminate" stays untested;
+- **deferred until a VCNL4040 exists:** run both sensors in parallel (`0x10` and `0x60`) and compare
+  very low lux, dark bedroom, both brightness transitions, stability, response speed, display and
+  LED stray light, and suitability for automatic display brightness. Only then decide whether the
+  VCNL4040 takes over ambient as well, the VEML7700 keeps ambient while the VCNL4040 supplies
+  proximity, or a later product solution replaces both;
+- measure proximity range and the false-positive rate when someone walks past or turns over in bed;
 - validate any sensor behind the real front material: IR transmission, internal reflection and
-  crosstalk;
-- verify that removing the sensor leaves every control fully usable with no error surface.
+  crosstalk.
 
 ## NFC object area (ADR 0026 § 11)
 
@@ -112,7 +144,11 @@ Run each item with the eyes closed or the device out of sight, in a fully dark r
 
 ## NFC candidate
 
-- complete `NFC_REFERENCE_CANDIDATE.md` spike before calling NFC Reference-supported;
+- the reader on RH1 is the owned 125 kHz EM4100 USB device, `TRANSITIONAL` and **not** NFC: identify
+  it physically (Phase 7) before writing any adapter;
+- prove the semantic chain is hardware-independent — tag identifier in, AQENO assignment out — so a
+  future 13.56 MHz reader replaces only the adapter;
+- `NFC_REFERENCE_CANDIDATE.md` is deferred; no NFC hardware is bought or validated yet;
 - unassigned token is calm and non-destructive;
 - assigned token launches through the active profile's effective access policy;
 - management capture never launches an existing assignment and cancellation restores playback;

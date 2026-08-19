@@ -135,7 +135,7 @@ These are cheap, and they protect the posture:
   out of.
 - **No safety claims anywhere.** Never "safe for children", "child-proof", "tested", "certified", or
   any implication of conformity assessment.
-- **Build instructions carry an explicit build-at-your-own-risk notice**, and `SHOPPING_LIST.md` is
+- **Build instructions carry an explicit build-at-your-own-risk notice**, and `INVENTORY.md` is
   documented as a description of what the maintainer used, not a recommendation or a bill of
   materials for a product.
 - **Only CE-marked power supplies are referenced.** No specific battery or power-bank product is
@@ -273,7 +273,7 @@ This ADR is Proposed. On acceptance, and not before:
    business case" and the licensing decision; keep the DIY BOM, enclosure, security and privacy
    reviews;
 6. `ARCHITECTURE.md` § "Decision still open" — remove "final open-source license";
-7. `SHOPPING_LIST.md` and `docs/hardware/HARDWARE_REFERENCE.md` — add the § 5 notices;
+7. `INVENTORY.md` and `docs/hardware/HARDWARE_REFERENCE.md` — add the § 5 notices;
 8. `README.md` — state the licence and the non-commercial, no-safety-claims positioning;
 9. mark ADR 0004 as Superseded, retaining it for its Qt/GStreamer module facts and its five named
    legal uncertainties, which remain valid reference material;

@@ -83,6 +83,7 @@ Do not skim these. They are contracts, not background.
 | 15a | `docs/implementation/INTERACTION_MATRIX.md` | **Normative** control meaning per situation; the design conflicts it found |
 | 16 | `DEVELOPMENT.md` | Toolchain, layout, how to run and test |
 | 17 | `docs/hardware/HARDWARE_REFERENCE.md` | Acquired prototype, topology and verification boundary |
+| 17a | `INVENTORY.md` | **Canonical** hardware inventory: what we own, ordered, deferred, what it cost, and the procurement freeze |
 | 18 | `HANDOVER.md` | Current live state and exact next action |
 | 19 | `MISTAKES.md` | Mistakes already made. Do not repeat them. |
 | 20 | `docs/DOCUMENTATION_GAPS.md` | Remaining known gaps; historical analysis is retained |

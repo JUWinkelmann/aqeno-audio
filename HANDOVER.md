@@ -241,16 +241,48 @@ contracts they changed, not here; that gap is known rather than an indication th
 - Verification: 1125 passed, 1 deselected; Ruff, format, mypy, Admin check/build and the browser E2E
   tests green.
 
+### 2026-08-19 — RH1 hardware ordered, inventory consolidated
+
+- The BerryBase order was placed, so the last `PENDING_ORDER` items became `ORDERED`: SparkFun Qwiic
+  Twist DEV-15083 as **SELECT**, 3 × Elecrow 100 mm Qwiic cables, 2 × Elecrow 22.2 mm illuminated
+  knobs. **All five AQENO controls now exist as hardware for the first time.**
+- Ran a hardware acceptance check against vendor documentation before that purchase. Qwiic Twist and
+  VCNL4040 are both `APPROVED_FOR_RH1`; the Twist's 6 mm shaft, 24 detents, momentary press, address
+  `0x3F` and PWM reaching `(0,0,0)` all check out. The earlier question about a second Adafruit
+  5880's address jumper is moot — RH1 uses no second 5880.
+- One assumption was corrected by that check: the Adafruit 5625 is a **five-port passive hub whose
+  ports are all parallel**, so the uplink consumes one and four remain. Four devices fit exactly; the
+  later sensor comparison needs one daisy-chain hop, not a second hub.
+- **`SHOPPING_LIST.md` became `INVENTORY.md`, the single canonical hardware record.** The duplicate
+  BOM in `HARDWARE_REFERENCE.md` is gone; that document now answers only *why* a component is used,
+  what its interfaces and limits are, and which tests it owes. Every component carries two
+  independent dimensions — `possession_status` and `product_role` — so "we ordered it" can never
+  again be read as "we decided it".
+- **VCNL4040 is accepted but deferred**: unavailable, deliberately not ordered. The VEML7700 is RH1's
+  real working ambient sensor, not a placeholder, and **proximity simply does not exist** — it is not
+  simulated to look present. `DARK means zero visible light` stays fully testable without it.
+- Verified in code rather than assumed: the later VEML7700 → VCNL4040 swap is one adapter behind the
+  existing `AmbientLight` port, and `DisplayService` already accepts `None` for an absent sensor. No
+  Display, Night or UI logic changes, and no capability framework is created.
+- The owned 125 kHz **EM4100 USB RFID reader is documented as `TRANSITIONAL`** — explicitly not
+  AQENO's NFC solution. It lets the tag chain be built without a purchase. No adapter is written
+  before the physical device is identified. `NFC_REFERENCE_CANDIDATE.md` is marked deferred.
+- **RH1 procurement freeze is active: `BUY NOW = nothing`**, with one documented exception path for a
+  proven missing connector. A seven-phase hardware smoke test is now the first thing to run on
+  delivery (`RH1_VALIDATION_CHECKLIST.md`).
+- No code changed. Verification: 1125 passed, 1 deselected; Ruff, format and mypy green.
+
 ## Next action
 
-1. Install the MiniAmp, Qwiic controls and speakers on RH1; run the documented stereo/control/offline
-   acceptance sequence and record measured evidence.
+1. Wait for delivery, then run the **seven-phase hardware smoke test** in
+   `RH1_VALIDATION_CHECKLIST.md` before any further implementation: I²C → controls → blind operation
+   → mechanics → knobs → light → tag-reader identification. Then the documented
+   stereo/control/offline acceptance sequence, with measured evidence.
 2. Supply the canonical AQENO SVG and resolve G24's real DSI adapter before enabling the Plymouth
    presentation and measuring splash-to-first-frame handover.
-3. Fit the third Cherry MX switch as HOME on NeoKey socket 3 and verify the new socket layout and
-   blind findability. Then decide how RH1 gets a SELECT encoder, chosen against the AQENO Rotary
-   Control Contract rather than because a board is on hand — and check the 5880 address-jumper
-   question against the no-solder gate first.
+3. Fit three Cherry MX switches as PREVIOUS, NEXT and HOME on NeoKey sockets 0, 1 and 3, leaving
+   socket 2 empty, and verify the layout and blind findability. Write the Qwiic Twist input adapter
+   only once the board is physically present and Phase 1 passes.
 4. Open UX questions that only real use can answer: whether HOME removes the need for a BACK control
    once browsing is deeper than one level (ADR 0026 § 4), what counts as a "section" per content
    kind, whether focus wrapping reads as helpful or confusing to a three-year-old, and the design

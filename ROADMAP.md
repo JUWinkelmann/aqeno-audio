@@ -42,9 +42,11 @@ but unchecked historic spike items do not mean the implemented slice is absent.
 - [ ] UI stack validation on Raspberry Pi 4 reference prototype.
 - [ ] Display sleep/wake + dark-room spike.
 - [ ] Validate the implemented rotary encoder/NeoKey adapter on assembled RH1, including the
-      PREVIOUS/NEXT/HOME socket layout and blind findability (ADR 0026).
-- [ ] Ambient-light baseline with the ordered VEML7700, then the VCNL4040 comparison and a proximity
-      range/false-positive measurement behind real front material. No sensor purchase before it.
+      PREVIOUS/NEXT/HOME socket layout and blind findability (ADR 0026), plus a Qwiic Twist adapter
+      for SELECT once the board is in hand.
+- [ ] Ambient-light behaviour with the VEML7700, RH1's working sensor: thresholds, dark/night and
+      real bedroom transitions. The VCNL4040 comparison and proximity measurements are deferred with
+      the sensor itself (`INVENTORY.md`).
 - [ ] NFC spike.
 - [ ] Podcast/RSS + local file content spike.
 - [ ] Power-bank compatibility constraints.
@@ -86,9 +88,8 @@ Expected MVP themes:
 - [x] Playback application layer.
 - [x] Bounded Kids Early Device UI over adaptive architecture.
 - [x] Physical navigation vocabulary and encoder-first focus model; automated touch-free journey.
-- [ ] Physical touch-free journey on RH1 — partly unblocked by ADR 0026. HOME, PREVIOUS and NEXT
-      run on hardware already present; focus movement and activation still need a SELECT encoder
-      (control plan: SELECT · PREVIOUS · NEXT · VOLUME · HOME).
+- [ ] Physical touch-free journey on RH1 — all five controls are now ordered hardware
+      (SELECT · PREVIOUS · NEXT · VOLUME · HOME). Gated on delivery and the hardware smoke test.
 - [ ] Visual timer, end to end — the first time capability, after RH1 validation (ADR 0025
       amendment). Clock, alarm and sunrise wait for its UX and hardware validation.
 - [x] Versioned local Management API and OpenAPI handover.
