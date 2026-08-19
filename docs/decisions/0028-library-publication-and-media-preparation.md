@@ -218,6 +218,32 @@ image-analysis subsystem.
 Cleanup retains the current and the previous revision, runs only on explicit or opportunistic
 maintenance, never as a startup prerequisite, and never removes the current revision.
 
+### 9a. Image work uses Pillow, behind a port, and is optional
+
+Deriving a display-sized cover and a dominant colour is the first time AQENO decodes an image at all,
+and § 54 of the brief requires that decode to be *bounded* — an absurd or hostile file must not exhaust
+RAM. That needs a real imaging library.
+
+**Pillow**, behind an `ArtworkPreparer` port. It is MIT-CMU licensed, so unlike `mutagen` it raises no
+question against ADR 0004; it ships ARM wheels, so there is no build step on a Raspberry Pi; and it has
+the two things that make bounding cheap rather than theoretical: `Image.draft()` downscales a JPEG
+*during* decode instead of after it, and `MAX_IMAGE_PIXELS` refuses a decompression bomb before it is
+decoded.
+
+Three constraints on how it is used:
+
+- **Optional.** It is imported lazily inside the adapter. If Pillow is absent, artwork *resolution*
+  (§ 8) still works completely and the source image is referenced directly; only the derivative and the
+  dominant colour are skipped. A missing optional dependency must not cost AQENO its covers.
+- **Never on the device path.** Preparation only. Nothing in startup, playback or the Device UI imports
+  it, and the existing import-boundary test is the place that stays true.
+- **Not Qt.** `QImage` would decode images with a dependency AQENO already has, and is rejected: it
+  would couple media preparation to the UI toolkit and break the headless core's freedom from Qt.
+
+Rejected alternative: computing a dominant colour by hand from raw bytes. Feasible for uncompressed
+formats and not worth it for JPEG, PNG and WebP — it would mean writing three decoders to avoid one
+permissively licensed dependency that is already packaged for the target.
+
 ### 10. Playlists are ordering inputs; a playlist as its own visible object is *not* decided here
 
 `.m3u`/`.m3u8` are read as **descriptions of order and membership**, never as content with artwork of
