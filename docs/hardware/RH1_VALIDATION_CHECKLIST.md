@@ -132,6 +132,13 @@ Run each item with the eyes closed or the device out of sight, in a fully dark r
 - INTERACTIVE, DIM, OFF, SETUP and permitted AMBIENT transitions follow policy;
 - playback continues in OFF; routine metadata/playback events do not wake the display;
 - Dark Room reaches fully black display and LEDs; wake and return paths have no dead ends.
+- **Rendering cost is measured, not argued.** The premium visual language is built entirely from cheap
+  primitives — no blur, drop shadow, shader, offscreen layer or particle system — and the argument that
+  it is affordable is structural, not measured: the offscreen grab path used for screenshots reports no
+  scene-graph timings. On RH1, measure encoder-to-focus response, focus movement and the artwork
+  ambience under continuous rotation, and confirm the two MODERATE effects (the layered artwork glow
+  and the progress ring's bloom arc) hold frame rate. If either does not, its cost class was wrong.
+- The first cover shown after boot must not stall the surface while its ambient colour is obtained.
 
 ## Audio
 

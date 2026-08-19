@@ -446,15 +446,24 @@ Each item is labelled **[hardware]** (needs the assembled box), **[architect]** 
 architecture decision) or **[delegable]** (bounded implementation; what it needs specified up front
 is stated with it).
 
-1. **[hardware]** Wait for delivery, then run the **seven-phase hardware smoke test** in
+1. **[architect, at ADR 0028 integration]** **One dominant artwork colour, not two.** The Device UI
+   model now derives an ambient tint itself (`_ambient_tint`, a cached 12×12 decode per cover), while
+   ADR 0028 § 9 decided that value is computed once during preparation and stored as
+   `ContentItem.artwork_color` — precisely so the display path decodes no images. Both are defensible
+   alone; together they are one value with two algorithms that will disagree, and the UI copy puts an
+   image decode on the path that shows the first cover after boot. When the publication work lands,
+   the model must read the prepared colour and its local derivation becomes a fallback for
+   not-yet-prepared items, or is deleted. Do not resolve this by changing the ADR: the reason the
+   value is prepared once is a Pi 4 with an SD card.
+2. **[hardware]** Wait for delivery, then run the **seven-phase hardware smoke test** in
    `RH1_VALIDATION_CHECKLIST.md` before any further implementation: I²C → controls → blind operation
    → mechanics → knobs → light → tag-reader identification. Then the documented
    stereo/control/offline acceptance sequence, with measured evidence.
-2. **[hardware]** Supply the canonical AQENO SVG and resolve G24's real DSI adapter before enabling
+3. **[hardware]** Supply the canonical AQENO SVG and resolve G24's real DSI adapter before enabling
    the Plymouth presentation and measuring splash-to-first-frame handover.
-3. **[hardware]** Fit three Cherry MX switches as PREVIOUS, NEXT and HOME on NeoKey sockets 0, 1 and
+4. **[hardware]** Fit three Cherry MX switches as PREVIOUS, NEXT and HOME on NeoKey sockets 0, 1 and
    3, leaving socket 2 empty, and verify the layout and blind findability.
-4. **[delegable, after Phase 1 passes]** Write the **Qwiic Twist input adapter** for SELECT. It is
+5. **[delegable, after Phase 1 passes]** Write the **Qwiic Twist input adapter** for SELECT. It is
    the one clearly bounded implementation task waiting. Specify up front: it implements
    `PhysicalInputSource` exactly as `adapters/input/i2c_seesaw.py` does, reports
    `LogicalControl.SELECT_ENCODER` with rotate-left/right plus short and long press, imports its
@@ -464,11 +473,11 @@ is stated with it).
    injected fake device — no sleeps, no hardware in unit tests. Out of scope: the RGB LED, any
    change to `MappedInputBus`, and any new port. Do not write it before the board is physically
    present and its address is confirmed on the assembled bus.
-5. **[architect]** Open UX questions that only real use can answer: whether HOME removes the need for a BACK control
+6. **[architect]** Open UX questions that only real use can answer: whether HOME removes the need for a BACK control
    once browsing is deeper than one level (ADR 0026 § 4), what counts as a "section" per content
    kind, whether focus wrapping reads as helpful or confusing to a three-year-old, and the design
    conflicts C1–C5 in `INTERACTION_MATRIX.md` § 9.
-6. **[delegable, with review]** Documentation consolidation, when there is a natural occasion: `docs/DOCUMENTATION_GAPS.md` is
+7. **[delegable, with review]** Documentation consolidation, when there is a natural occasion: `docs/DOCUMENTATION_GAPS.md` is
    now mostly historical — 11 of 24 gaps are marked closed, 2 deferred by intent, and several open
    ones (G08 failure taxonomy, G16 roadmap contradiction, G20 language convention) were overtaken by
    documents that now exist. The proposal is to move the genuinely live items to their owning
