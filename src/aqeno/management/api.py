@@ -1335,7 +1335,7 @@ def _controls_resource(controls: MappedInputBus) -> ControlsResource:
         controls=[
             ControlCapabilityResource(
                 id=item.control.value,
-                type=cast(Literal["button", "rotary_encoder"], item.type.value),
+                type=item.type.value,
                 label=item.label,
                 events=[event.value for event in item.events],
                 illumination=item.illumination,
