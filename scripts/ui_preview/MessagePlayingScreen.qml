@@ -1,8 +1,10 @@
 import QtQuick
+import "../../src/aqeno/ui/qml"
 
 // Playing a personal message. It is *content*, not a notification, so it looks
 // like content and pauses media the way content does (ADR 0027 § 5) — the same
-// hierarchy as Now Playing, with the person in place of artwork.
+// hierarchy as Now Playing, with the person in place of artwork, and the same
+// progress track. A message deserves no separate visual language.
 //
 // A delivered message is local and may be played again later (§ 8), so nothing
 // here treats it as consumed or disappearing.
@@ -20,7 +22,7 @@ Item {
 
     Column {
         anchors.centerIn: parent
-        width: Math.min(parent.width * 0.72, 620 * theme.unit)
+        width: Math.min(parent.width * 0.66, 620 * theme.unit)
         spacing: theme.spaceMd
 
         SenderMark {
@@ -29,6 +31,9 @@ Item {
             portrait: root.senderPortrait
             width: root.markSize
             height: width
+            // The same light a cover throws on Now Playing. A message is
+            // content and gets the treatment content gets.
+            glow: 0.7
         }
 
         Text {
@@ -50,18 +55,10 @@ Item {
             font.pixelSize: theme.captionSize
         }
 
-        Rectangle {
+        ProgressTrack {
             width: parent.width
-            height: theme.progressHeight
-            radius: height / 2
-            color: theme.hairline
-
-            Rectangle {
-                width: parent.width * root.progress
-                height: parent.height
-                radius: parent.radius
-                color: theme.accent
-            }
+            theme: root.theme
+            fraction: root.progress
         }
     }
 }

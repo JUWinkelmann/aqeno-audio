@@ -1,4 +1,4 @@
-import QtQuick 2.15
+import QtQuick
 
 // Home is not an app grid. One area is dominant; its neighbours are visible
 // only as a hint that rotation has somewhere to go (ADR 0026, brief § 6).
@@ -11,31 +11,53 @@ Item {
     readonly property int focusIndex: ui.focusedSectionIndex
 
     // --- empty library ---------------------------------------------------
-    Column {
-        anchors.centerIn: parent
-        width: Math.min(parent.width * 0.8, 560 * theme.unit)
-        spacing: theme.spaceMd
+    Item {
+        anchors.fill: parent
         visible: ui.libraryEmpty
 
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: qsTr("Noch nichts zum Hören")
-            color: theme.ink
-            font.family: theme.fontFamily
-            font.pixelSize: theme.titleSize
-            font.weight: Font.DemiBold
-            horizontalAlignment: Text.AlignHCenter
-        }
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width
-            visible: theme.showsDetails
-            text: qsTr("Inhalte werden im AQENO Client hinzugefügt.")
-            color: theme.inkMuted
-            font.family: theme.fontFamily
-            font.pixelSize: theme.bodySize
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.Wrap
+        Column {
+            anchors.centerIn: parent
+            width: Math.min(parent.width * 0.8, 560 * theme.unit)
+            spacing: theme.spaceMd
+
+            // Nothing to play is still a state of the product, not a fault: the
+            // same frame every cover uses, lit just enough to look deliberate.
+            // Neutral rather than mint — nothing here is live (brief § 44).
+            ArtworkFrame {
+                anchors.horizontalCenter: parent.horizontalCenter
+                theme: root.theme
+                width: Math.min(parent.width * 0.42, root.height * 0.34)
+                height: width
+
+                ArtworkGlow {
+                    anchors.fill: parent
+                    theme: root.theme
+                    cornerRadius: parent.cornerRadius
+                    tint: theme.inkMuted
+                    intensity: 0.5
+                }
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: qsTr("Noch nichts zum Hören")
+                color: theme.ink
+                font.family: theme.fontFamily
+                font.pixelSize: theme.titleSize
+                font.weight: Font.DemiBold
+                horizontalAlignment: Text.AlignHCenter
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
+                visible: theme.showsDetails
+                text: qsTr("Inhalte werden im AQENO Client hinzugefügt.")
+                color: theme.inkMuted
+                font.family: theme.fontFamily
+                font.pixelSize: theme.bodySize
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+            }
         }
     }
 
@@ -45,62 +67,51 @@ Item {
         anchors.fill: parent
         visible: !ui.libraryEmpty
 
-        // The label band is reserved first; the artwork takes whatever is left.
+        // The label band is reserved first; the card takes whatever is left.
         // That keeps the same hierarchy on a 4" panel instead of pushing the
-        // caption off the bottom edge (brief § 7, § 31).
-        readonly property real labelHeight: (theme.showsLabels ? theme.titleSize * 1.35 : 0)
-            + (theme.showsDetails ? theme.captionSize * 1.6 : 0)
-        readonly property real available: height - labelHeight - theme.edge * 2
+        // caption off the bottom edge (brief § 42, § 43).
+        readonly property real labelBand: theme.cardLabelBand()
+        readonly property real available: height - theme.edge * 2
+            - indicator.height - theme.spaceMd
         readonly property real cardWidth: Math.max(
-            80, Math.min(width * (theme.wide ? 0.42 : 0.6), available))
-        readonly property real step: cardWidth + theme.spaceLg
+            80, Math.min(width * 0.55, available - theme.spaceSm - labelBand))
+        readonly property real cardHeight: cardWidth + theme.spaceSm + labelBand
+
+        // The next card's near edge sits this far inside the screen edge, so
+        // rotation visibly has somewhere to go without a second card competing
+        // for attention.
+        readonly property real step: width / 2 - width * 0.11
+            + cardWidth * theme.restScale / 2
 
         Row {
             id: row
-            spacing: theme.spaceLg
-            height: carousel.cardWidth
-            y: theme.edge + (carousel.available - carousel.cardWidth) / 2
+            height: carousel.cardHeight
+            y: theme.edge + (carousel.available - carousel.cardHeight) / 2
             x: parent.width / 2 - carousel.cardWidth / 2 - root.focusIndex * carousel.step
+            spacing: carousel.step - carousel.cardWidth
 
+            // State-driven, so it always converges on the latest focus. Several
+            // fast detents retarget this one animation instead of queueing a
+            // sequence, and no detent is lost (brief § 12).
             Behavior on x {
-                NumberAnimation { duration: theme.durationBase; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: theme.durationBase
+                    easing.type: theme.easingEmphasis
+                }
             }
 
             Repeater {
                 id: sectionRepeater
                 model: ui.sections
 
-                delegate: Item {
-                    id: card
-                    readonly property bool focused: model.sectionKey === ui.focusedSectionKey
-
+                delegate: ContentCard {
                     width: carousel.cardWidth
-                    height: carousel.cardWidth
-                    opacity: focused ? 1.0 : 0.34
-                    scale: focused ? 1.0 : 0.84
-
-                    Behavior on opacity { NumberAnimation { duration: theme.durationBase } }
-                    Behavior on scale { NumberAnimation { duration: theme.durationBase } }
-
-                    // Focus is carried by four cues at once — size, opacity, a
-                    // ring and the label weight below — so it never depends on
-                    // colour alone and reads from across a room (ADR 0026 § 1).
-                    Rectangle {
-                        anchors.fill: art
-                        anchors.margins: -theme.focusRingWidth * 1.5
-                        radius: art.cornerRadius + theme.focusRingWidth * 1.5
-                        visible: card.focused
-                        color: "transparent"
-                        border.width: theme.focusRingWidth
-                        border.color: theme.ink
-                    }
-
-                    ArtworkFrame {
-                        id: art
-                        anchors.fill: parent
-                        theme: root.theme
-                        source: model.artworkUrl
-                    }
+                    height: carousel.cardHeight
+                    theme: root.theme
+                    focused: model.sectionKey === ui.focusedSectionKey
+                    title: theme.sectionTitle(model.sectionKey)
+                    subtitle: qsTr("%1 verfügbar").arg(model.itemCount)
+                    artworkUrl: model.artworkUrl
 
                     TapHandler {
                         // Touch reaches the same action as a SELECT press and is
@@ -111,34 +122,14 @@ Item {
             }
         }
 
-        Column {
+        PageIndicator {
+            id: indicator
+            anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: theme.edge
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width - theme.edge * 2
-            spacing: theme.spaceXs
-
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width
-                visible: theme.showsLabels
-                text: theme.sectionTitle(ui.focusedSectionKey)
-                color: theme.ink
-                font.family: theme.fontFamily
-                font.pixelSize: theme.titleSize
-                font.weight: Font.DemiBold
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
-            }
-
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: theme.showsDetails
-                text: qsTr("%1 verfügbar").arg(ui.focusedSectionCount)
-                color: theme.inkMuted
-                font.family: theme.fontFamily
-                font.pixelSize: theme.captionSize
-            }
+            theme: root.theme
+            count: sectionRepeater.count
+            index: root.focusIndex
         }
     }
 }

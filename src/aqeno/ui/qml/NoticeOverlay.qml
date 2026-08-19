@@ -1,4 +1,4 @@
-import QtQuick 2.15
+import QtQuick
 
 // A calm, transient sentence. Used where an action produced no inherent
 // feedback of its own — an unassigned token being the case that exists today
@@ -27,14 +27,30 @@ Item {
         onTriggered: root.showing = false
     }
 
+    // Depth level 3: the overlay comes forward and what it covers steps back.
     Rectangle {
+        anchors.fill: parent
+        color: theme.background
+        opacity: 0.86
+    }
+
+    Item {
+        id: panel
         anchors.centerIn: parent
         width: Math.min(parent.width * 0.74, 560 * theme.unit)
         height: label.height + theme.spaceLg * 2
-        radius: theme.radius
-        color: theme.surfaceRaised
-        border.width: 1
-        border.color: theme.hairline
+
+        scale: root.showing ? 1.0 : 0.96
+        Behavior on scale {
+            NumberAnimation { duration: theme.durationBase; easing.type: theme.easingStandard }
+        }
+
+        PremiumSurface {
+            anchors.fill: parent
+            theme: root.theme
+            focused: true
+            cornerRadius: theme.radiusLg
+        }
 
         Text {
             id: label

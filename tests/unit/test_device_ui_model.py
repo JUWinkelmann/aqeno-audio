@@ -137,16 +137,19 @@ def test_focus_is_rendered_so_navigation_is_operable_without_touch() -> None:
     """ADR 0024: an encoder-first surface must show what a press would activate."""
     home = _qml("HomeScreen.qml")
     browse = _qml("BrowseScreen.qml")
+    card = _qml("ContentCard.qml")
 
-    assert "ui.focusedSectionKey" in home
-    assert "visible: card.focused" in home
-    assert "ui.focusedContentId" in browse
-    assert "visible: parent.focused" in browse
-    # Focus is never carried by colour alone (ADR 0026 § 1): both surfaces also
-    # change size and opacity.
-    for source in (home, browse):
-        assert "scale: focused" in source
-        assert "opacity: focused" in source
+    # Both carousels state which item is focused, from application state rather
+    # than from a local selection of their own.
+    assert "focused: model.sectionKey === ui.focusedSectionKey" in home
+    assert "focused: model.contentId === ui.focusedContentId" in browse
+
+    # And the card they share renders it. Focus is never carried by colour alone
+    # (ADR 0026 § 1): size, luminance and a mark that is simply present or
+    # absent each carry it independently.
+    assert "scale: focused ?" in card
+    assert "opacity: focused ?" in card
+    assert "opacity: root.focused ? 1.0 : 0.0" in card, "focus mark missing"
 
 
 def test_model_exposes_the_focused_tile() -> None:

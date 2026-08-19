@@ -1,4 +1,5 @@
 import QtQuick
+import "../../src/aqeno/ui/qml"
 
 // The context-action pattern: a visual action carousel, not a text menu.
 //
@@ -40,34 +41,39 @@ Item {
 
                 width: root.cardSize
                 height: root.cardSize
-                opacity: focused ? 1.0 : 0.3
-                scale: focused ? 1.0 : 0.84
+                opacity: focused ? 1.0 : theme.restOpacity
+                scale: focused ? 1.0 : theme.restScale
 
-                Rectangle {
+                // The same surface and the same focus treatment the content
+                // carousels use — an action is another object on the shelf, not
+                // a differently-styled button.
+                PremiumSurface {
                     anchors.fill: parent
-                    anchors.margins: -theme.focusRingWidth * 1.5
-                    radius: theme.radius + theme.focusRingWidth * 1.5
-                    visible: parent.focused
-                    color: "transparent"
-                    border.width: theme.focusRingWidth
-                    border.color: theme.ink
+                    theme: root.theme
+                    focused: parent.focused
+                    cornerRadius: theme.radius
+                }
+
+                // A neutral silhouette standing in for an action object. Large,
+                // low-detail, warm rather than technical — the shape language a
+                // real action would have to satisfy.
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width * 0.42
+                    height: width
+                    radius: width * 0.3
+                    color: theme.hairline
                 }
 
                 Rectangle {
-                    anchors.fill: parent
-                    radius: theme.radius
-                    color: theme.surfaceRaised
-
-                    // A neutral silhouette standing in for an action object.
-                    // Large, low-detail, warm rather than technical — the shape
-                    // language a real action would have to satisfy.
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.width * 0.42
-                        height: width
-                        radius: width * 0.3
-                        color: theme.hairline
-                    }
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: theme.spaceSm
+                    width: parent.width * 0.42
+                    height: Math.max(3, Math.round(5 * theme.unit))
+                    radius: height / 2
+                    visible: parent.focused
+                    color: theme.accent
                 }
             }
         }

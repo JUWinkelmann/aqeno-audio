@@ -14,9 +14,20 @@ import threading
 import uuid
 from collections.abc import Sequence
 from datetime import timedelta
+from functools import lru_cache
 from pathlib import Path
 
-from PySide6.QtCore import Property, QAbstractListModel, QModelIndex, QObject, Qt, Signal, Slot
+from PySide6.QtCore import (
+    Property,
+    QAbstractListModel,
+    QModelIndex,
+    QObject,
+    QSize,
+    Qt,
+    Signal,
+    Slot,
+)
+from PySide6.QtGui import QColor, QImageReader
 
 from aqeno.application.device_ui import (
     DeviceUiSnapshot,
@@ -31,6 +42,51 @@ def _artwork_url(artwork: Path | None) -> str:
     if artwork is None:
         return ""
     return artwork.resolve().as_uri()
+
+
+@lru_cache(maxsize=64)
+def _ambient_tint(artwork: str) -> str:
+    """The one colour a cover lends to the light around it.
+
+    Computed once per artwork from a 12 x 12 decode, never from the displayed
+    pixels every frame: the premium look comes from a cheap tinted halo, not
+    from blurring the image live (brief, "visual fidelity through cheap
+    primitives"). Returns an empty string when there is nothing to take.
+    """
+    reader = QImageReader(artwork)
+    reader.setScaledSize(QSize(12, 12))
+    image = reader.read()
+    if image.isNull():
+        return ""
+
+    red = green = blue = weight_total = 0.0
+    for y in range(image.height()):
+        for x in range(image.width()):
+            pixel = image.pixelColor(x, y)
+            # Colourful pixels lead: an average over a mostly dark cover would
+            # otherwise return a grey that lights nothing.
+            weight = 0.25 + pixel.saturationF() * pixel.valueF() * 3.0
+            red += pixel.redF() * weight
+            green += pixel.greenF() * weight
+            blue += pixel.blueF() * weight
+            weight_total += weight
+    if weight_total <= 0:
+        return ""
+
+    average = QColor.fromRgbF(red / weight_total, green / weight_total, blue / weight_total)
+    hue = average.hueF()
+    if hue < 0:
+        hue = 0.0
+    # Held at a constant, restrained lightness so a dark cover and a bright one
+    # produce the same *amount* of light, only a different colour.
+    tint = QColor.fromHsvF(hue, min(0.68, average.saturationF() * 1.5), 0.92)
+    return str(tint.name())
+
+
+def _ambient_color(artwork: Path | None) -> str:
+    if artwork is None:
+        return ""
+    return _ambient_tint(str(artwork.resolve()))
 
 
 def _clock_text(value: timedelta | None) -> str:
@@ -271,6 +327,13 @@ class DeviceUiModel(QObject):
     @Property(str, notify=stateChanged)
     def nowPlayingArtworkUrl(self) -> str:
         return _artwork_url(self._snapshot.now_playing_artwork)
+
+    @Property(str, notify=stateChanged)
+    def nowPlayingAmbientColor(self) -> str:
+        """The dominant colour of the current cover, for the light around it.
+        Empty when there is no artwork, so the presentation can stay dark
+        rather than invent a colour."""
+        return _ambient_color(self._snapshot.now_playing_artwork)
 
     @Property(str, notify=stateChanged)
     def focusedContentId(self) -> str:

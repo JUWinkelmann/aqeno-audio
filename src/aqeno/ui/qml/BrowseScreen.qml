@@ -1,4 +1,4 @@
-import QtQuick 2.15
+import QtQuick
 
 // One dominant item, neighbours only hinted. A library, never a file manager
 // (brief § 8). PREVIOUS/NEXT are content order and deliberately do not reach
@@ -9,72 +9,47 @@ Item {
     property var theme
     property var ui
 
+    readonly property int focusIndex: Math.max(0, ui.focusedIndex - 1)
+
     Item {
         id: carousel
         anchors.fill: parent
 
-        readonly property real labelHeight: (theme.showsLabels ? theme.titleSize * 1.35 : 0)
-            + (theme.showsDetails && ui.itemCount > 1 ? theme.captionSize * 1.6 : 0)
-        readonly property real available: height - labelHeight - theme.edge * 2
+        readonly property real labelBand: theme.cardLabelBand()
+        readonly property real available: height - theme.edge * 2
+            - indicator.height - theme.spaceMd
         readonly property real cardWidth: Math.max(
-            80, Math.min(width * (theme.wide ? 0.4 : 0.58), available))
-        readonly property real step: cardWidth + theme.spaceLg
+            80, Math.min(width * 0.55, available - theme.spaceSm - labelBand))
+        readonly property real cardHeight: cardWidth + theme.spaceSm + labelBand
+        readonly property real step: width / 2 - width * 0.11
+            + cardWidth * theme.restScale / 2
 
         Row {
             id: row
-            spacing: theme.spaceLg
-            height: carousel.cardWidth
-            y: theme.edge + (carousel.available - carousel.cardWidth) / 2
-            x: parent.width / 2 - carousel.cardWidth / 2
-               - Math.max(0, ui.focusedIndex - 1) * carousel.step
+            height: carousel.cardHeight
+            y: theme.edge + (carousel.available - carousel.cardHeight) / 2
+            x: parent.width / 2 - carousel.cardWidth / 2 - root.focusIndex * carousel.step
+            spacing: carousel.step - carousel.cardWidth
 
             Behavior on x {
-                NumberAnimation { duration: theme.durationBase; easing.type: Easing.OutCubic }
+                NumberAnimation {
+                    duration: theme.durationBase
+                    easing.type: theme.easingEmphasis
+                }
             }
 
             Repeater {
+                id: tileRepeater
                 model: ui.tiles
 
-                delegate: Item {
-                    readonly property bool focused: model.contentId === ui.focusedContentId
-
+                delegate: ContentCard {
                     width: carousel.cardWidth
-                    height: carousel.cardWidth
-                    opacity: focused ? 1.0 : 0.3
-                    scale: focused ? 1.0 : 0.86
-
-                    Behavior on opacity { NumberAnimation { duration: theme.durationBase } }
-                    Behavior on scale { NumberAnimation { duration: theme.durationBase } }
-
-                    Rectangle {
-                        anchors.fill: cover
-                        anchors.margins: -theme.focusRingWidth * 1.6
-                        radius: cover.cornerRadius + theme.focusRingWidth * 1.6
-                        visible: parent.focused
-                        color: "transparent"
-                        border.width: theme.focusRingWidth
-                        border.color: theme.ink
-                    }
-
-                    ArtworkFrame {
-                        id: cover
-                        anchors.fill: parent
-                        theme: root.theme
-                        source: model.artworkUrl
-                    }
-
-                    // A quiet marker on whatever is currently playing, so
-                    // returning to a list still says where you were.
-                    Rectangle {
-                        anchors.right: cover.right
-                        anchors.bottom: cover.bottom
-                        anchors.margins: theme.spaceSm
-                        width: Math.round(18 * theme.unit)
-                        height: width
-                        radius: width / 2
-                        visible: model.contentId === ui.nowPlayingContentId
-                        color: theme.accent
-                    }
+                    height: carousel.cardHeight
+                    theme: root.theme
+                    focused: model.contentId === ui.focusedContentId
+                    title: model.title
+                    artworkUrl: model.artworkUrl
+                    marked: model.contentId === ui.nowPlayingContentId
 
                     TapHandler {
                         onTapped: ui.selectContent(model.contentId)
@@ -83,33 +58,31 @@ Item {
             }
         }
 
-        Column {
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: theme.edge
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width - theme.edge * 2
-            spacing: theme.spaceXs
+            spacing: theme.spaceMd
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width
-                visible: theme.showsLabels
-                text: ui.focusedTitle
-                color: theme.ink
-                font.family: theme.fontFamily
-                font.pixelSize: theme.titleSize
-                font.weight: Font.DemiBold
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideRight
+            PageIndicator {
+                id: indicator
+                anchors.verticalCenter: parent.verticalCenter
+                theme: root.theme
+                count: tileRepeater.count
+                index: root.focusIndex
             }
 
+            // The dots place you; the count says exactly where, for someone who
+            // wants exactly. It stays out of a header bar — AQENO is a device,
+            // not an app (brief § 46).
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
                 visible: theme.showsDetails && ui.itemCount > 1
                 text: ui.focusedIndex + " / " + ui.itemCount
                 color: theme.inkMuted
                 font.family: theme.fontFamily
                 font.pixelSize: theme.captionSize
+                font.features: theme.numericFeatures
             }
         }
     }

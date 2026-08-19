@@ -403,6 +403,43 @@ until the parts arrive and the smoke test has run.
 - No code changed in any of this. Documentation only, so the gates were not re-run; the last recorded
   green state stands at `1141 passed, 1 deselected`.
 
+### 2026-08-19 — the approved visual direction was implemented
+
+- Implemented the approved visual reference across the Device UI. This was an implementation pass,
+  not a design exploration: no surface, navigation path, control meaning or capability changed, and
+  nothing was routed that was not routed before.
+- **The screens are now composed, not drawn.** `Theme.qml` holds every token, and one set of shared
+  primitives carries the language: `PremiumSurface`, `ContentCard`, `ArtworkFrame` + `RoundedCorners`,
+  `ArtworkGlow`, `ProgressTrack`, `ProgressRing`, `PageIndicator` and `AqenoGlyph`. Home and Browse
+  use the *same* card, because showing an area and showing a work are the same act.
+- **The rendering budget was treated as a product constraint.** RH1 is a Raspberry Pi 4, so every
+  effect was built from the cheapest primitive that reaches the same perception. There is no realtime
+  blur, drop shadow, shader effect, offscreen layer or particle system anywhere in the Device UI —
+  verified by search, not by intention. Depth is luminance and layering; artwork ambience is
+  concentric translucent geometry driven by a dominant colour the Python model computes once per
+  cover and caches; the halo on the design targets is a radial gradient painted once and held as a
+  texture; rings are `QtQuick.Shapes` arcs; celebration is seven declarative items.
+- **Nothing that is animated is animated through a repaint.** Both glows take their brightness from
+  the item's opacity rather than from their own paint or from per-band colour bindings, so fading
+  light costs one node property per frame instead of a texture upload or sixteen re-evaluated
+  bindings.
+- Two rendering realities are recorded in `DEVICE_UI_BLUEPRINT.md § Visual language` rather than left
+  in the code: `clip` on this Qt build is rectangular, so rounded artwork corners are *covered* in
+  the surrounding colour; and `font.families` does not exist in this PySide6 build, so the font
+  fallback chain is a single family.
+- Icons are drawn in `AqenoGlyph` instead of bundled from Lucide. That keeps one weight and one
+  softness across the set and avoids a dependency decision; the blueprint's "outline vector assets"
+  intent stands and the amendment says so explicitly.
+- Reviewed as rendered images at both viewports, which is how the overflow in the alarm and timer
+  targets, the ring cutting behind the sender portrait and the volume overlay's dialog-like
+  proportions were found. Fixed all three.
+- Verification: `1180 passed, 1 deselected`. Ruff check and format green over `src/aqeno/ui` and
+  `scripts`. The repository-wide `ruff check .` currently reports four unused imports in
+  `application/ingestion.py`, which belongs to the in-flight ADR 0028 implementation and was left
+  untouched.
+- **Not verified: anything about frame rate.** The cost argument above is structural. Measuring it
+  needs RH1, and the offscreen grab path used for screenshots reports no scene-graph timings.
+
 ## Next action
 
 Each item is labelled **[hardware]** (needs the assembled box), **[architect]** (needs a product or

@@ -1,4 +1,5 @@
 import QtQuick
+import "../../src/aqeno/ui/qml"
 
 // Who a personal message is from, before anyone can read a name.
 //
@@ -15,67 +16,65 @@ Item {
 
     property var theme
     property string portrait: ""
+    property real glow: 0.0
     readonly property bool hasPortrait: portrait !== ""
 
-    // Square with the product's small radius, like every other image AQENO
-    // shows. A circular crop would need masking, which this Qt build renders
-    // as an empty square inside a delegate — and consistency with ArtworkFrame
-    // is worth more than an avatar shape borrowed from messengers anyway.
-    Rectangle {
-        id: disc
+    // The frame every image on the device wears, at the same proportional
+    // radius. A circular avatar crop would be a shape borrowed from messengers,
+    // and a person is not a different kind of picture from a cover.
+    ArtworkFrame {
+        id: face
         anchors.fill: parent
         visible: root.hasPortrait
-        radius: theme ? theme.radiusSm : 12
-        color: theme ? theme.surface : "#12171d"
-        clip: true
+        theme: root.theme
+        source: root.portrait
 
-        Image {
+        // Nested inside the frame on purpose: the bands then paint over the
+        // corner covers, so the rounded corners are lit rather than black.
+        ArtworkGlow {
             anchors.fill: parent
-            source: root.portrait
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: false
+            theme: root.theme
+            cornerRadius: parent.cornerRadius
+            tint: root.theme ? root.theme.accent : "#23d5b6"
+            intensity: root.glow
         }
     }
 
-    Canvas {
+    AqenoGlyph {
         id: heart
-        antialiasing: true
-        width: root.hasPortrait ? root.width * 0.36 : root.width
+        theme: root.theme
+        name: "heart"
+        color: root.theme ? root.theme.accent : "#23d5b6"
+        width: root.hasPortrait ? root.width * 0.26 : root.width * 0.72
         height: width
-        anchors.right: root.hasPortrait ? disc.right : undefined
-        anchors.bottom: root.hasPortrait ? disc.bottom : undefined
-        anchors.rightMargin: root.hasPortrait ? -width * 0.22 : 0
-        anchors.bottomMargin: root.hasPortrait ? -height * 0.22 : 0
         anchors.centerIn: root.hasPortrait ? undefined : parent
 
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.reset()
-            var w = width
-            var h = height
-            if (root.hasPortrait) {
-                // A quiet ground so the mark stays legible over any portrait.
-                ctx.fillStyle = theme.background
-                ctx.beginPath()
-                ctx.arc(w / 2, h / 2, w / 2, 0, Math.PI * 2)
-                ctx.fill()
-            }
-            var s = root.hasPortrait ? 0.74 : 1.0
-            var ox = w * (1 - s) / 2
-            var oy = h * (1 - s) / 2
-            var pw = w * s
-            var ph = h * s
-            ctx.fillStyle = theme.accent
-            ctx.beginPath()
-            ctx.moveTo(ox + pw * 0.5, oy + ph * 0.86)
-            ctx.bezierCurveTo(ox + pw * 0.06, oy + ph * 0.56,
-                              ox + pw * 0.12, oy + ph * 0.14,
-                              ox + pw * 0.5, oy + ph * 0.32)
-            ctx.bezierCurveTo(ox + pw * 0.88, oy + ph * 0.14,
-                              ox + pw * 0.94, oy + ph * 0.56,
-                              ox + pw * 0.5, oy + ph * 0.86)
-            ctx.closePath()
-            ctx.fill()
+        // A quiet ground so the mark stays legible over any portrait.
+        Rectangle {
+            anchors.centerIn: parent
+            z: -1
+            width: parent.width * 1.6
+            height: width
+            radius: width / 2
+            visible: root.hasPortrait
+            color: root.theme ? root.theme.background : "#000000"
+        }
+    }
+
+    states: State {
+        when: root.hasPortrait
+        AnchorChanges {
+            target: heart
+            anchors.right: face.right
+            anchors.bottom: face.bottom
+        }
+        PropertyChanges {
+            target: heart
+            // Inside the frame, not straddling it. Hung over the corner the
+            // chip's dark ground cuts a bite out of whatever surrounds the
+            // portrait — including the arrival ring.
+            anchors.rightMargin: root.width * 0.05
+            anchors.bottomMargin: root.width * 0.05
         }
     }
 }

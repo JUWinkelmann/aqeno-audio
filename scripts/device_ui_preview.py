@@ -48,6 +48,27 @@ VARIANTS: tuple[tuple[str, str, str, dict[str, object]], ...] = (
     # With portrait material the person becomes the mark rather than the name.
     ("MessageAvailable-portrait", "MessageAvailableScreen", "visual", {}),
     ("MessagePlaying-portrait", "MessagePlayingScreen", "informative", {}),
+    # Two moments AQENO animates, held at fixed points so the sequence can be
+    # judged from stills. `phase` drives the whole composition, which is also
+    # what lets the real animation be interrupted or replayed (brief § 51).
+    *(
+        (
+            f"MessageArrival-{int(phase * 100):03d}",
+            "MessageAvailableScreen",
+            "informative",
+            {"phase": phase},
+        )
+        for phase in (0.15, 0.35, 0.55, 0.8, 1.0)
+    ),
+    *(
+        (
+            f"TimerCompletion-{int(phase * 100):03d}",
+            "TimerFinishedScreen",
+            "informative",
+            {"phase": phase},
+        )
+        for phase in (0.2, 0.45, 0.65, 0.85, 1.0)
+    ),
 )
 
 PORTRAIT_VARIANTS = frozenset({"MessageAvailable-portrait", "MessagePlaying-portrait"})

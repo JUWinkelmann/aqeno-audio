@@ -20,7 +20,12 @@ Each state is rendered at 800 × 480 and 480 × 320. Several are also rendered a
 message states additionally with placeholder sender material, to show the hierarchy a portrait would
 create. None of that implies the domain or transport must carry portraits.
 
-They share `Theme.qml` with the real surfaces, so a design decision made here is the same decision
-the product will inherit. What they must not do is decide behaviour: the open interaction questions
+Two of them are moments rather than states. `MessageAvailableScreen` and `TimerFinishedScreen` are
+driven entirely by one `phase` property from 0 to 1, which is why `device_ui_preview.py` can hold
+them at five fixed points and render the sequence as stills. The same property makes the real
+animation interruptible: there is no timeline to unwind, only a number to re-target.
+
+They share `Theme.qml` and the shared visual primitives with the real surfaces, so a design decision
+made here is the same decision the product will inherit. What they must not do is decide behaviour: the open interaction questions
 in `docs/implementation/INTERACTION_MATRIX.md` § 9 — C1 snooze semantics and C2 cancelling a running
 timer blind — stay open, and no screen here shows a control label that would quietly settle them.

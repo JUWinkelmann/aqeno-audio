@@ -306,6 +306,33 @@ coherent product surface, not a runtime theme engine. Inter is a suitable OFL-1.
 Lucide a suitable ISC-licensed SVG candidate; selecting and bundling either remains an implementation
 dependency decision with retained licence notices.
 
+### As implemented (2026-08)
+
+`ui/qml/Theme.qml` holds every colour, size, radius, spacing and duration, and the surfaces are
+composed from a small set of shared primitives rather than from per-screen drawing: `PremiumSurface`
+(a raised surface), `ContentCard` (the one card Home and Browse both use), `ArtworkFrame` with
+`RoundedCorners`, `ArtworkGlow`, `ProgressTrack`, `ProgressRing`, `PageIndicator` and `AqenoGlyph`.
+A visual decision therefore has one place to be made.
+
+Two points depart from the wording above and are recorded rather than silently taken:
+
+- **Icons are drawn, not bundled.** `AqenoGlyph` holds every symbol as a path in a shared 100 × 100
+  space, so the set has one weight and one softness and no icon library becomes a dependency. The
+  intent of "simple outline vector assets" stands; the delivery mechanism is a QML path rather than
+  an SVG file.
+- **Rounded artwork is covered, not clipped.** `clip` on this Qt build clips to the bounding box, so
+  `ArtworkFrame` paints the four corner regions in the surrounding colour instead. This is a
+  rendering detail, not a change to how artwork is treated.
+
+**Cost discipline.** The visual result is produced by the cheapest primitive that reaches it, because
+RH1 is a Raspberry Pi 4 and the rendering budget belongs to encoder response, focus movement and
+typography before it belongs to decoration. Concretely: no realtime blur, no drop shadow, no shader
+effect, no offscreen layer and no particle system exists anywhere in the Device UI. Depth is
+luminance and layering; glow is concentric translucent geometry or a radial gradient painted once and
+held as a texture; artwork ambience comes from a dominant colour computed once per cover in the
+Python model; rings are `QtQuick.Shapes` arcs; celebration is seven declarative items. Anything that
+is animated is animated through transform, opacity or scale, never through a repaint.
+
 ## Motion
 
 - short press feedback, restrained crossfade and position-preserving surface transitions are useful;

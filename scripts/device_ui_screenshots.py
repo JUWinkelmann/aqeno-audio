@@ -16,8 +16,10 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import partial
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -107,7 +109,9 @@ class Harness:
     state: DeviceUiState
     playback: PlaybackSession
     display: DisplayService
+    library: FakeLibrary
     items: tuple[ContentItem, ...]
+    profile: Profile
 
 
 def _harness(art_dir: Path, *, empty: bool = False) -> Harness:
@@ -158,7 +162,14 @@ def _harness(art_dir: Path, *, empty: bool = False) -> Harness:
     display.on_navigation(state.handle_navigation)
     playback.on_tag_unassigned(state.note_unassigned_tag)
     state.refresh_library()
-    return Harness(state=state, playback=playback, display=display, items=tuple(items))
+    return Harness(
+        state=state,
+        playback=playback,
+        display=display,
+        library=library,
+        items=tuple(items),
+        profile=profile,
+    )
 
 
 def _settle(milliseconds: int) -> None:
@@ -173,7 +184,12 @@ def _settle(milliseconds: int) -> None:
         QCoreApplication.processEvents(QEventLoop.ProcessEventsFlag.AllEvents, 20)
 
 
-def _render(model: DeviceUiModel, size: tuple[int, int], out: Path) -> None:
+def _render(
+    model: DeviceUiModel,
+    size: tuple[int, int],
+    out: Path,
+    once_showing: Callable[[], None] | None = None,
+) -> None:
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("deviceUi", model)
     qml = Path(__file__).resolve().parents[1] / "src/aqeno/ui/qml/Main.qml"
@@ -186,6 +202,11 @@ def _render(model: DeviceUiModel, size: tuple[int, int], out: Path) -> None:
     window.setVisibility(QQuickWindow.Visibility.Windowed)
     window.setGeometry(0, 0, size[0], size[1])
     window.setVisible(True)
+    _settle(200)
+    if once_showing is not None:
+        # A transient overlay reacts to a change it *observed*, so the change
+        # has to happen with the surface already on screen.
+        once_showing()
     _settle(400)
     image = window.grabWindow()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -205,18 +226,26 @@ def main() -> int:
     art_dir.mkdir(parents=True, exist_ok=True)
 
     for viewport, size in VIEWPORTS.items():
-        for name, prepare in _states():
+        for name, prepare, after in _states():
             harness = _harness(art_dir, empty=name == "empty")
             prepare(harness)
             model = DeviceUiModel(harness.state)
-            _render(model, size, args.out / viewport / f"{name}.png")
+            _render(
+                model,
+                size,
+                args.out / viewport / f"{name}.png",
+                once_showing=partial(after, harness),
+            )
             model.deleteLater()
         print(f"rendered {viewport} ({size[0]}x{size[1]})")
     print(f"screenshots in {args.out}")
     return 0
 
 
-def _states() -> tuple[tuple[str, object], ...]:
+def _states() -> tuple[tuple[str, object, object], ...]:
+    def nothing(_: Harness) -> None:
+        return None
+
     def home(_: Harness) -> None:
         return None
 
@@ -230,12 +259,25 @@ def _states() -> tuple[tuple[str, object], ...]:
         harness.state.handle_navigation(FocusNext())
 
     def now_playing(harness: Harness) -> None:
+        # Resume part-way through, so progress is actually reviewable. It goes
+        # through the real resume path rather than being poked into the model.
+        harness.library.set_resume(
+            harness.items[0].id, harness.profile.name, timedelta(minutes=15, seconds=40)
+        )
         harness.state.open_section("audio_drama")
         harness.state.select_content(harness.items[0].id)
 
     def paused(harness: Harness) -> None:
         now_playing(harness)
         harness.playback.toggle_playback()
+
+    def turn_volume(harness: Harness) -> None:
+        from aqeno.ports.input import VolumeDelta
+
+        harness.playback.handle_input(VolumeDelta(-2))
+
+    def present_unknown_tag(harness: Harness) -> None:
+        harness.state.note_unassigned_tag()
 
     def dim(harness: Harness) -> None:
         now_playing(harness)
@@ -248,14 +290,16 @@ def _states() -> tuple[tuple[str, object], ...]:
         return None
 
     return (
-        ("home", home),
-        ("browse", browse),
-        ("browse-second", browse_second),
-        ("now-playing", now_playing),
-        ("paused", paused),
-        ("dim", dim),
-        ("off", off),
-        ("empty", empty),
+        ("home", home, nothing),
+        ("browse", browse, nothing),
+        ("browse-second", browse_second, nothing),
+        ("now-playing", now_playing, nothing),
+        ("paused", paused, nothing),
+        ("volume", now_playing, turn_volume),
+        ("notice", home, present_unknown_tag),
+        ("dim", dim, nothing),
+        ("off", off, nothing),
+        ("empty", empty, nothing),
     )
 
 

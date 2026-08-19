@@ -1,154 +1,152 @@
-import QtQuick 2.15
+import QtQuick
 
 // Artwork, title, context, progress — and nothing else. The five physical
 // controls already carry Previous, Next, Volume, Play/Pause and Home, so no
-// virtual transport row exists (brief § 10, PRODUCT_FOUNDATION.md P20).
+// virtual transport row exists (brief § 13, PRODUCT_FOUNDATION.md P20).
 //
-// Geometry is computed rather than anchored: the two arrangements differ too
-// much for conditional anchors to stay readable or correct.
+// One vertical hierarchy at every size. The artwork is the object; everything
+// below it is caption. Splitting it left/right made a wide panel look like a
+// media player window rather than a thing playing something.
 Item {
     id: root
 
     property var theme
     property var ui
 
-    readonly property bool stacked: !theme.wide
-    readonly property real pad: theme.edge
-    readonly property real artSize: stacked
-        ? Math.min(width * 0.46, height * 0.4)
-        : Math.min(width * 0.34, height * 0.66)
-
-    ArtworkFrame {
-        id: art
-        theme: root.theme
-        source: ui.nowPlayingArtworkUrl
-        width: root.artSize
-        height: root.artSize
-        x: root.stacked ? (root.width - root.artSize) / 2 : root.pad * 1.3
-        y: root.stacked ? root.pad : (root.height - root.artSize) / 2
-    }
+    readonly property real artSize: Math.min(
+        width * 0.42, height * (theme.showsDetails ? 0.46 : 0.54))
 
     Column {
-        id: details
-        x: root.stacked ? root.pad : art.x + root.artSize + theme.spaceLg
-        width: root.stacked
-               ? root.width - root.pad * 2
-               : root.width - (art.x + root.artSize + theme.spaceLg) - root.pad
-        y: root.stacked
-           ? art.y + root.artSize + theme.spaceMd
-           : (root.height - height) / 2
-        spacing: theme.spaceSm
+        id: stack
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: (root.height - height) / 2
+        width: Math.min(root.width * 0.66, 620 * theme.unit)
+        spacing: theme.spaceMd
 
-        Text {
-            width: parent.width
-            visible: theme.showsLabels
-            text: ui.nowPlayingTitle
-            color: theme.ink
-            font.family: theme.fontFamily
-            font.pixelSize: theme.titleSize
-            font.weight: Font.DemiBold
-            horizontalAlignment: root.stacked ? Text.AlignHCenter : Text.AlignLeft
-            wrapMode: Text.Wrap
-            maximumLineCount: 2
-            elide: Text.ElideRight
-        }
+        ArtworkFrame {
+            id: art
+            anchors.horizontalCenter: parent.horizontalCenter
+            theme: root.theme
+            source: ui.nowPlayingArtworkUrl
+            width: root.artSize
+            height: root.artSize
 
-        Text {
-            width: parent.width
-            visible: ui.nowPlayingChapter !== "" && theme.showsDetails
-            text: ui.nowPlayingChapter
-            color: theme.inkMuted
-            font.family: theme.fontFamily
-            font.pixelSize: theme.bodySize
-            horizontalAlignment: root.stacked ? Text.AlignHCenter : Text.AlignLeft
-            elide: Text.ElideRight
-        }
+            // The cover lends its colour to the light around it. With no
+            // artwork there is no invented colour: the surface simply stays
+            // dark (brief § 14, § 44).
+            ArtworkGlow {
+                anchors.fill: parent
+                theme: root.theme
+                cornerRadius: parent.cornerRadius
+                tint: ui.nowPlayingAmbientColor !== "" ? ui.nowPlayingAmbientColor : theme.accent
+                intensity: ui.nowPlayingAmbientColor !== ""
+                    ? (ui.playing ? 1.0 : 0.4)
+                    : 0.0
+            }
 
-        // A failure is a state of this surface, never a modal dead end, and it
-        // is phrased for the person rather than the log (FAILURE_STATES.md).
-        Text {
-            width: parent.width
-            visible: ui.hasPlaybackFailure
-            text: theme.failureText(ui.failureCode)
-            color: theme.attention
-            font.family: theme.fontFamily
-            font.pixelSize: theme.bodySize
-            horizontalAlignment: root.stacked ? Text.AlignHCenter : Text.AlignLeft
-            wrapMode: Text.Wrap
-        }
-
-        Item { width: 1; height: theme.spaceMd }
-
-        Rectangle {
-            width: parent.width
-            height: theme.progressHeight
-            radius: height / 2
-            visible: !ui.hasPlaybackFailure
-            color: theme.hairline
-
+            // Paused reads from the artwork itself: the cover recedes and one
+            // large mark sits over it. Not a control — nothing here is
+            // pressable, and the physical VOLUME press remains the only way to
+            // resume. A corner chip was too quiet to notice from across a room,
+            // which matters most for a person who cannot simply hear that the
+            // audio stopped.
             Rectangle {
-                width: parent.width * ui.progress
-                height: parent.height
-                radius: parent.radius
-                color: ui.playing ? theme.accent : theme.inkMuted
+                anchors.fill: parent
+                radius: parent.cornerRadius
+                visible: !ui.playing && !ui.hasPlaybackFailure
+                color: theme.background
+                opacity: 0.62
+            }
 
-                Behavior on width {
-                    NumberAnimation { duration: theme.durationBase; easing.type: Easing.OutCubic }
+            AqenoGlyph {
+                anchors.centerIn: parent
+                width: parent.width * 0.3
+                height: width
+                visible: !ui.playing && !ui.hasPlaybackFailure
+                theme: root.theme
+                name: "pause"
+                color: theme.ink
+            }
+        }
+
+        Column {
+            width: parent.width
+            spacing: theme.spaceXs
+
+            Text {
+                width: parent.width
+                visible: theme.showsLabels
+                text: ui.nowPlayingTitle
+                color: theme.ink
+                font.family: theme.fontFamily
+                font.pixelSize: theme.titleSize
+                font.weight: Font.DemiBold
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+                maximumLineCount: 2
+                elide: Text.ElideRight
+            }
+
+            Text {
+                width: parent.width
+                visible: ui.nowPlayingChapter !== "" && theme.showsDetails
+                text: ui.nowPlayingChapter
+                color: theme.inkMuted
+                font.family: theme.fontFamily
+                font.pixelSize: theme.bodySize
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+            }
+
+            // A failure is a state of this surface, never a modal dead end, and
+            // it is phrased for the person rather than the log
+            // (FAILURE_STATES.md).
+            Text {
+                width: parent.width
+                visible: ui.hasPlaybackFailure
+                text: theme.failureText(ui.failureCode)
+                color: theme.attention
+                font.family: theme.fontFamily
+                font.pixelSize: theme.bodySize
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
+            }
+        }
+
+        Column {
+            width: parent.width
+            visible: !ui.hasPlaybackFailure
+            spacing: theme.spaceSm
+
+            ProgressTrack {
+                width: parent.width
+                theme: root.theme
+                fraction: ui.progress
+                live: ui.playing
+            }
+
+            Item {
+                width: parent.width
+                height: theme.captionSize
+                visible: ui.durationText !== "" && theme.showsDetails
+
+                Text {
+                    anchors.left: parent.left
+                    text: ui.positionText
+                    color: theme.inkMuted
+                    font.family: theme.fontFamily
+                    font.pixelSize: theme.captionSize
+                    font.features: theme.numericFeatures
+                }
+                Text {
+                    anchors.right: parent.right
+                    text: ui.durationText
+                    color: theme.inkMuted
+                    font.family: theme.fontFamily
+                    font.pixelSize: theme.captionSize
+                    font.features: theme.numericFeatures
                 }
             }
-        }
-
-        Item {
-            width: parent.width
-            height: theme.captionSize + theme.spaceXs
-            visible: !ui.hasPlaybackFailure && ui.durationText !== "" && theme.showsDetails
-
-            Text {
-                anchors.left: parent.left
-                text: ui.positionText
-                color: theme.inkMuted
-                font.family: theme.fontFamily
-                font.pixelSize: theme.captionSize
-            }
-            Text {
-                anchors.right: parent.right
-                text: ui.durationText
-                color: theme.inkMuted
-                font.family: theme.fontFamily
-                font.pixelSize: theme.captionSize
-            }
-        }
-    }
-
-    // Paused reads from the artwork itself: the cover recedes and one large
-    // mark sits over it. Not a control — nothing here is pressable, and the
-    // physical VOLUME press remains the only way to resume. A corner chip was
-    // too quiet to notice from across a room, which matters most for a person
-    // who cannot simply hear that the audio stopped (brief § 29).
-    Rectangle {
-        anchors.fill: art
-        radius: art.cornerRadius
-        visible: !ui.playing && !ui.hasPlaybackFailure
-        color: theme.background
-        opacity: 0.55
-    }
-
-    Row {
-        anchors.centerIn: art
-        visible: !ui.playing && !ui.hasPlaybackFailure
-        spacing: root.artSize * 0.07
-
-        Rectangle {
-            width: root.artSize * 0.07
-            height: root.artSize * 0.26
-            radius: width / 2
-            color: theme.ink
-        }
-        Rectangle {
-            width: root.artSize * 0.07
-            height: root.artSize * 0.26
-            radius: width / 2
-            color: theme.ink
         }
     }
 }
