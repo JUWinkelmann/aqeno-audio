@@ -25,6 +25,9 @@ class _State:
     def on_changed(self, listener) -> None:
         self._listeners.append(listener)
 
+    def on_unassigned_tag(self, listener) -> None:
+        self.unassigned_listener = listener
+
     def emit(self, snapshot: DeviceUiSnapshot) -> None:
         self.snapshot = snapshot
         for listener in self._listeners:
@@ -94,31 +97,56 @@ def test_snapshot_callbacks_are_applied_on_qt_thread() -> None:
     assert model.displayState == "dim"
 
 
+QML_DIR = Path("src/aqeno/ui/qml")
+
+
+def _qml(name: str) -> str:
+    return (QML_DIR / name).read_text()
+
+
 def test_off_surface_cannot_receive_the_touch_that_wakes_the_panel() -> None:
     # Panel touch is consumed by DisplayService before a visible QML surface is
     # restored.  The declarative gate is the presentation-side half of ADR 0016:
     # while OFF, no child (and therefore no TapHandler) is hit-testable.
-    qml = Path("src/aqeno/ui/qml/Main.qml").read_text()
-    assert 'visible: deviceUi.displayState !== "off"' in qml
-    assert 'visible: deviceUi.displayState === "interactive" && deviceUi.surface === "home"' in qml
+    main = _qml("Main.qml")
+    assert 'visible: deviceUi.displayState !== "off"' in main
+    assert 'visible: deviceUi.surface === "home"' in main
+    assert 'visible: deviceUi.surface === "browse"' in main
+    assert 'visible: deviceUi.surface === "now_playing"' in main
 
 
-def test_kids_early_qml_has_visible_home_empty_failure_and_playback_feedback() -> None:
-    qml = Path("src/aqeno/ui/qml/Main.qml").read_text()
+def test_no_surface_renders_a_virtual_transport_or_home_control() -> None:
+    """The five physical controls carry these actions, so the panel does not
+    (ADR 0026 § 2, brief § 10). A drawn Play button on a device whose display
+    may be off is an invitation to reach for the wrong thing."""
+    for name in ("Main.qml", "HomeScreen.qml", "BrowseScreen.qml", "NowPlayingScreen.qml"):
+        source = _qml(name)
+        assert "showHome()" not in source, f"{name} draws a Home control"
+        assert "togglePlayback" not in source, f"{name} draws a transport control"
 
-    assert "onTapped: deviceUi.showHome()" in qml
-    assert "visible: deviceUi.libraryEmpty" in qml
-    assert "deviceUi.hasPlaybackFailure" in qml
-    assert "deviceUi.playing" in qml
-    assert "deviceUi.nowPlayingContentId" in qml
+
+def test_device_surfaces_show_empty_failure_and_playback_state() -> None:
+    assert "visible: ui.libraryEmpty" in _qml("HomeScreen.qml")
+    now_playing = _qml("NowPlayingScreen.qml")
+    assert "ui.hasPlaybackFailure" in now_playing
+    assert "ui.playing" in now_playing
+    assert "ui.nowPlayingContentId" in _qml("BrowseScreen.qml"), "playing marker missing"
 
 
 def test_focus_is_rendered_so_navigation_is_operable_without_touch() -> None:
     """ADR 0024: an encoder-first surface must show what a press would activate."""
-    qml = Path("src/aqeno/ui/qml/Main.qml").read_text()
+    home = _qml("HomeScreen.qml")
+    browse = _qml("BrowseScreen.qml")
 
-    assert "deviceUi.focusedContentId" in qml
-    assert "visible: tile.focused" in qml
+    assert "ui.focusedSectionKey" in home
+    assert "visible: card.focused" in home
+    assert "ui.focusedContentId" in browse
+    assert "visible: parent.focused" in browse
+    # Focus is never carried by colour alone (ADR 0026 § 1): both surfaces also
+    # change size and opacity.
+    for source in (home, browse):
+        assert "scale: focused" in source
+        assert "opacity: focused" in source
 
 
 def test_model_exposes_the_focused_tile() -> None:

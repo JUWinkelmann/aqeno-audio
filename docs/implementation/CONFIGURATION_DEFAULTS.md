@@ -35,6 +35,11 @@ these timers — see `DISPLAY_STATE_MACHINE.md` note 6.
 | Standard `DIM` hold before `OFF` | **15 s** | 5–60 | Manager |
 | `SETUP` idle → `OFF` | **300 s** | 60–900 | Manager |
 | `SETUP` idle → `OFF` while `night_active` | **60 s** | 30–300 | Manager |
+| Transient overlay dwell (volume, notice) | **1800 ms** | — | **Presentation constant** |
+
+The overlay dwell is presentation timing rather than a product timeout: it lives in
+`ui/qml/Theme.qml` beside the animation durations, is not a Manager setting, and changes nothing
+about display state. It is recorded here so nobody invents a second value elsewhere.
 
 Kids Early uses `DIM` only while playback is active. Idle and Night/Bedtime go directly to `OFF`.
 The 30-second interactive timeout and 10-second hold are conservative Reference-prototype values to

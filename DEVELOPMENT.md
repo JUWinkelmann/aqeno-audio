@@ -226,6 +226,17 @@ Typical hardware iteration is: change → local tests → `make pi-dev` → phys
 `make pi-logs` → correct → `make pi-dev`. The SD card remains in RH1. `localhost` development and
 Vite hot reload remain separate and require no Avahi, port 80, sudo or host-name changes.
 
+## Looking at the Device UI
+
+```bash
+python scripts/device_ui_screenshots.py --out build/ui
+```
+
+Renders every implemented Device UI state offscreen at RH1's 800 × 480 and at a smaller
+480 × 320 panel of the class ADR 0025 § 1 prefers, using the real `Main.qml` over a fake library.
+QML that compiles is not a surface that reads well, so look at the output before claiming anything
+about it. `build/` is ignored by Git; the screenshots are review material, not artefacts.
+
 ## Testing
 
 ```bash

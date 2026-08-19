@@ -124,6 +124,10 @@ def test_local_tiles_and_simulated_nfc_launch_share_the_playback_path(tmp_path: 
     ui.refresh_library()
 
     assert ui.snapshot.surface is DeviceSurface.HOME
+    assert [section.key for section in ui.snapshot.sections] == ["audiobook"]
+    assert ui.snapshot.sections[0].count == 3
+
+    assert ui.open_section("audiobook")
     assert tuple(tile.content_id for tile in ui.snapshot.tiles) == (
         first.id,
         third.id,

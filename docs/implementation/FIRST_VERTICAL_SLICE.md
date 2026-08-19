@@ -5,10 +5,11 @@ Prove the end-to-end AQENO architecture with the smallest useful experience.
 
 ## User-visible behaviour
 1. AQENO starts on Linux.
-2. Kids Early Home shows three mock/local items as large image tiles.
-3. Selecting an item plays a local audio file.
-   Now Playing provides one clear, large return action to the Home library; no hidden gesture or
-   physical transport control doubles as navigation.
+2. Home shows the content areas the library actually holds, one dominant at a time; opening one
+   shows its items, one dominant at a time (ADR 0026, implemented 2026-08-19).
+3. Selecting an item plays a local audio file. The return to Home is the physical HOME control —
+   there is no on-screen return action and no hidden gesture, and no physical transport control
+   doubles as navigation.
 4. Playback position is persisted and resumes.
 5. Keyboard/simulator events emulate Volume, Play/Pause, Next and Previous.
 6. A simulated NFC UID can launch one item.

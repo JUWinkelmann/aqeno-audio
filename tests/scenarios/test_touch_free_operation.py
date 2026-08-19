@@ -130,9 +130,13 @@ def test_the_everyday_journey_needs_no_touch(tmp_path: Path) -> None:
     assert simulator.handle_key("d")
     assert display.snapshot.state is DisplayState.INTERACTIVE
     assert ui.snapshot.surface is DeviceSurface.HOME
+    assert ui.snapshot.sections, "Home offers at least one area"
+
+    # Open the focused area, then choose the second item inside it.
+    assert simulator.handle_key("s")
+    assert ui.snapshot.surface is DeviceSurface.BROWSE
     assert ui.snapshot.focused_content_id == ui.snapshot.tiles[0].content_id
 
-    # Choose the second item and start it.
     assert simulator.handle_key("d")
     chosen = ui.snapshot.focused_content_id
     assert chosen == ui.snapshot.tiles[1].content_id
@@ -162,6 +166,8 @@ def test_the_everyday_journey_needs_no_touch(tmp_path: Path) -> None:
     assert ui.snapshot.surface is DeviceSurface.HOME
     assert session.snapshot.transport is TransportState.PLAYING
 
+    assert simulator.handle_key("s")
+    assert ui.snapshot.surface is DeviceSurface.BROWSE
     assert simulator.handle_key("a")
     assert simulator.handle_key("s")
     assert ui.snapshot.surface is DeviceSurface.NOW_PLAYING
@@ -184,12 +190,14 @@ def test_the_navigation_that_wakes_starts_nothing(tmp_path: Path) -> None:
     assert display.snapshot.state is DisplayState.INTERACTIVE
     assert session.snapshot.content_id is None
     assert ui.snapshot.surface is DeviceSurface.HOME
+    assert ui.snapshot.open_section_key == "", "the waking press opened nothing"
 
 
 def test_navigation_keeps_the_dark_room_dark_for_transport(tmp_path: Path) -> None:
     """Group G exists; Group B is unchanged. Volume at 3 a.m. still wakes nothing."""
     simulator, _, session, display, _, _ = _core(tmp_path)
     simulator.handle_key("d")
+    simulator.handle_key("s")
     simulator.handle_key("s")
     display.set_night_active(True)
     assert display.snapshot.state is DisplayState.OFF
@@ -215,6 +223,7 @@ def test_home_wakes_and_acts_in_the_same_press(tmp_path: Path) -> None:
     simulator, ui, session, display, _, _ = _core(tmp_path)
     simulator.handle_key("d")
     simulator.handle_key("s")
+    simulator.handle_key("s")
     assert ui.snapshot.surface is DeviceSurface.NOW_PLAYING
     display.set_night_active(True)
     assert display.snapshot.state is DisplayState.OFF
@@ -224,3 +233,42 @@ def test_home_wakes_and_acts_in_the_same_press(tmp_path: Path) -> None:
     assert display.snapshot.state is DisplayState.INTERACTIVE
     assert ui.snapshot.surface is DeviceSurface.HOME
     assert session.snapshot.transport is TransportState.PLAYING
+
+
+def test_transport_and_volume_never_move_the_ui_focus(tmp_path: Path) -> None:
+    """ADR 0026 § 3: PREVIOUS and NEXT are content order, never navigation.
+
+    The structural guarantee is that neither they nor VOLUME reach the Device UI
+    at all — they are handled by playback. This proves the behaviour a person
+    would notice: the selection under their hand does not move.
+    """
+    simulator, ui, _, _, _, _ = _core(tmp_path)
+    simulator.handle_key("d")
+    simulator.handle_key("s")
+    assert ui.snapshot.surface is DeviceSurface.BROWSE
+    simulator.handle_key("d")
+    focused = ui.snapshot.focused_content_id
+    assert focused is not None
+
+    for key in ("right", "left", "up", "down", "space"):
+        assert simulator.handle_key(key)
+
+    assert ui.snapshot.focused_content_id == focused
+    assert ui.snapshot.surface is DeviceSurface.BROWSE
+
+
+def test_every_surface_reaches_home_with_one_press(tmp_path: Path) -> None:
+    """HOME is the way out from anywhere, so no surface can strand a person."""
+    simulator, ui, _, _, _, _ = _core(tmp_path)
+    simulator.handle_key("d")
+
+    simulator.handle_key("s")
+    assert ui.snapshot.surface is DeviceSurface.BROWSE
+    assert simulator.handle_key("h")
+    assert ui.snapshot.surface is DeviceSurface.HOME
+
+    simulator.handle_key("s")
+    simulator.handle_key("s")
+    assert ui.snapshot.surface is DeviceSurface.NOW_PLAYING
+    assert simulator.handle_key("h")
+    assert ui.snapshot.surface is DeviceSurface.HOME

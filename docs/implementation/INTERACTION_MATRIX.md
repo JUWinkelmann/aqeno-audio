@@ -26,6 +26,7 @@ applies unchanged.
 | D4 | **VOLUME rotate** changes volume by one step, in every state, bounded by the active ceiling. |
 | D5 | **VOLUME press** toggles play/pause of the active session. With nothing loaded it does nothing. |
 | D6 | **HOME** returns to Home. It never stops or pauses playback, and it always works. |
+| D6a | **A transport or volume press never changes the visible surface.** Only Now Playing may be left because playback ended; browsing is unaffected (implemented and tested 2026-08-19). |
 | D7 | **NFC presented** resolves a local assignment through the active profile's effective access. It never wakes the display. |
 | D8 | **Touch**, where present, reaches the same application actions and is required for none of them. |
 | D9 | **Display:** only SELECT and HOME wake a dark panel. SELECT's waking input is consumed; HOME's is executed (ADR 0026 § 4). PREVIOUS, NEXT, VOLUME and NFC never wake and never reset the visual timer. |
@@ -39,7 +40,7 @@ applies unchanged.
 | # | Situation | SELECT rotate | SELECT press | PREV / NEXT | VOL rotate | VOL press | HOME | Display |
 |---|---|---|---|---|---|---|---|---|
 | 1 | **Boot** | queued until `UI_READY` | queued | active as soon as `PLAYBACK_READY` | active from `PLAYBACK_READY` | active from `PLAYBACK_READY` | queued as one pending wake | stays `OFF` until `UI_READY` |
-| 2 | **Active / Home** | · | starts the focused item | · (nothing playing → nothing) | · | · | already home; no change | `INTERACTIVE` |
+| 2 | **Active / Home** | moves between areas | opens the focused area | · (nothing playing → nothing) | · | · | already home; no change | `INTERACTIVE` |
 | 3 | **Sleep** (display dark, device ready) | wakes, consumed | wakes, consumed | · acts silently | · acts silently | · acts silently | wakes **and** goes Home | `OFF` |
 | 4 | **Wake** | first input consumed, second acts | as left | never woke anything | never woke anything | never woke anything | wakes and acts | → `INTERACTIVE`, target per `DISPLAY_STATE_MACHINE.md` |
 | 5 | **Dark / Night** | wakes at night minimum brightness | as left | · fully operable in the dark | · | · | wakes, goes Home | `OFF`; LEDs per D10 |
@@ -50,7 +51,8 @@ applies unchanged.
 
 | # | Situation | SELECT rotate | SELECT press | PREV / NEXT | VOL rotate | VOL press | HOME |
 |---|---|---|---|---|---|---|---|
-| 6 | **Library** | moves focus between items | opens or starts the focused item | **nothing** — they are not navigation | · | · | · |
+| 2 | **Home** | moves between content areas, wrapping | opens the focused area — starts nothing | **nothing** | · | · | already home |
+| 6 | **Browse** | moves focus between items, wrapping | starts the focused item | **nothing** — they are not navigation | · | · | back to Home |
 | 7 | **Starting audio** | — | starts immediately; no confirmation step | — | · | · | returns Home; playback continues |
 | 8 | **Music** | no choice on Now Playing → nothing | nothing | previous / next track | · | · | · |
 | 9 | **Audio drama / audiobook** | nothing | nothing | previous / next chapter, else −30 s / +60 s | · | · | · |

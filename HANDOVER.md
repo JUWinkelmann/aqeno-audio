@@ -272,6 +272,35 @@ contracts they changed, not here; that gap is known rather than an indication th
   delivery (`RH1_VALIDATION_CHECKLIST.md`).
 - No code changed. Verification: 1125 passed, 1 deselected; Ruff, format and mypy green.
 
+### 2026-08-19 — the Device UI became a product surface
+
+- Rebuilt the Device UI around **THE DISPLAY SHOWS. THE HARDWARE OPERATES.** The information
+  architecture is now three surfaces — **Home → Browse → Now Playing** — with HOME returning from
+  any of them in one press, so no back stack exists.
+- **Home is no longer a tile grid.** One content area is dominant at a time, and areas come from the
+  content kinds ADR 0009 already defines. An area exists only while the library holds accessible
+  items of that kind, so an empty capability has no surface at all (P15). Browse is the one shallow
+  level the blueprint always allowed; ADR 0024 § A3 required it before navigation semantics could
+  settle.
+- **Removed the virtual controls**: the on-screen Home button and the playing/paused status pill are
+  gone. All five of those actions are physical, and drawing them invites reaching for a panel that
+  may be off. Paused now reads from the progress bar going quiet plus one small mark.
+- Added a small device design system (`ui/qml/Theme.qml`) and split the surfaces into their own QML
+  files. Geometry scales sub-linearly from one `unit`, so the hierarchy survives a ~4" panel instead
+  of becoming a shrunken 7" composition; secondary context drops out below a compact threshold.
+- **One real bug surfaced and was fixed**: a Play/Pause press while browsing reset the surface to
+  Home, because any playback snapshot without content forced it. A transport control was navigating
+  — exactly what ADR 0026 § 3 forbids. Only Now Playing may now be left because playback ended.
+- Unassigned tokens gained a calm sentence, and only while the panel is already lit. In the dark an
+  unassigned token still does exactly nothing (`DISPLAY_STATE_MACHINE.md` note 7).
+- `scripts/device_ui_screenshots.py` renders every state offscreen at 800 × 480 and 480 × 320. The
+  screens in this change were reviewed as images, not as QML source.
+- Verification: 1133 passed, 1 deselected; Ruff, format and mypy green.
+- **Deliberately not built:** the Clock/Ambient, Timer, Alarm and Message screens. Their visual
+  direction is recorded in ADR 0025 and ADR 0026, but none has domain behaviour, and giving an
+  unavailable capability a device surface is precisely what P15 forbids. They arrive with their
+  capabilities.
+
 ## Next action
 
 1. Wait for delivery, then run the **seven-phase hardware smoke test** in

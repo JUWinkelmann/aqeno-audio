@@ -93,6 +93,7 @@ class PlaybackSession:
         self._last_failure: AudioFailure | None = None
         self._token_capture_active = False
         self._listeners: list[PlaybackListener] = []
+        self._tag_unassigned_listeners: list[Callable[[], None]] = []
 
         audio.on_state(self._on_audio_state)
         audio.on_failure(self._on_audio_failure)
@@ -137,6 +138,17 @@ class PlaybackSession:
                 can_skip_forward=can_skip_forward,
                 can_skip_back=can_skip_back,
             )
+
+    def on_tag_unassigned(self, listener: Callable[[], None]) -> None:
+        """A presented token resolved to no content this profile may play.
+
+        Playback deliberately does nothing: `CONFIGURATION_DEFAULTS.md` § 6 says
+        a child presenting the wrong object should experience nothing happening,
+        not a failure. This exists so presentation may acknowledge it *while the
+        panel is already lit* — never by waking one.
+        """
+        with self._lock:
+            self._tag_unassigned_listeners.append(listener)
 
     def on_changed(self, listener: PlaybackListener) -> None:
         """Register for future snapshots; read `snapshot` once for initial state.
@@ -262,11 +274,21 @@ class PlaybackSession:
                 return
             profile = self._profile
             content_id = self._library.resolve_tag(tag_id)
-            if profile is None or content_id is None:
+            if profile is None:
                 return
-            item = self._library.get_content(content_id)
-            if item is not None and self._library.can_profile_access(content_id, profile.name):
+            item = None if content_id is None else self._library.get_content(content_id)
+            if (
+                content_id is not None
+                and item is not None
+                and self._library.can_profile_access(content_id, profile.name)
+            ):
                 self.start(item, profile)
+                return
+            unassigned = tuple(self._tag_unassigned_listeners)
+        # Outside the lock: nothing here changes playback, and a presentation
+        # listener must not be able to deadlock the session.
+        for listener in unassigned:
+            listener()
 
     def _on_audio_state(self, state: TransportState) -> None:
         with self._lock:

@@ -4,6 +4,7 @@
 **Date:** 2026-08-18
 **Amended:** 2026-08-18 by ADR 0024 — navigation is physical; touch is optional
 **Amended:** 2026-08-19 by ADR 0026 — five controls; HOME is the way out; PREVIOUS/NEXT never navigate
+**Implemented:** 2026-08-19 — Home areas, Browse and the reduced Now Playing exist in QML
 **Applies to:** AQENO Device UI, beginning with Kids Early on Reference Hardware 1
 
 ## Purpose and authority
@@ -87,17 +88,27 @@ No unavailable capability appears disabled, locked, premium, purchasable or teas
 The current Kids Early graph is deliberately tiny:
 
 ```text
-explicit wake, idle playback ──> Home ──activate focused tile───> Now Playing
-                                  ^        (SELECT press or tap)      |
-                                  └──────── HOME (or tap) ────────────┘
+explicit wake, idle ──> Home ──SELECT press──> Browse ──SELECT press──> Now Playing
+                         ^                       |                          |
+                         └────────── HOME ───────┴──────── HOME ────────────┘
 
-explicit wake during playback ──────────────────────────────> Now Playing
+explicit wake during playback ──────────────────────────────────────> Now Playing
 ```
+
+Three surfaces and no more. HOME returns from any of them in one press, which is
+what lets the graph stay a graph instead of a stack (ADR 0026 § 4).
+
+> **THE DISPLAY SHOWS. THE HARDWARE OPERATES.**
 
 - Startup renders nothing until `UI_READY`; it does not play a branded intro.
 - A wake during playback opens Now Playing. A wake while idle opens Home.
-- Home presents available content directly. It is not a launcher for source- or protocol-specific
-  applications.
+- **Home is not an app grid.** One content area is dominant at a time; its neighbours are visible
+  only as a hint that rotation has somewhere to go. Areas come from the content kinds ADR 0009
+  already defines — Hörspiele, Hörbücher, Musik, Podcasts, Radio, Persönliches — and an area exists
+  only while the library actually holds accessible items of that kind (P15). It is not a launcher
+  for source- or protocol-specific applications, and never a grid of small icons.
+- **Browse is one shallow level**: one dominant cover, its title, and a `3 / 18` position. A library,
+  never a file manager. Neighbours are hinted at reduced size and opacity.
 - Selecting artwork starts immediately and opens Now Playing. There is no confirmation.
 - Now Playing has one clear, large Home action. Returning Home does not stop playback.
 - Physical Previous, Play/Pause, Next and Volume do not navigate and do not wake the display. That
@@ -140,17 +151,23 @@ Encoder-first means the surface has a focus, not merely tappable areas.
 
 ### Current
 
-1. **Home** — a very small set of large artwork tiles; calm artwork fallback; current content may be
-   identified without relying only on colour.
-2. **Now Playing** — artwork, title, optional chapter/context, restrained progress, playback state
-   feedback and one Home action. No default touch transport row on RH1.
+1. **Home** — one dominant content area with its name and item count; neighbours hinted.
+2. **Browse** — one dominant item with title and position inside the area.
+3. **Now Playing** — artwork, title, optional chapter/context, restrained progress and times.
+   **No virtual transport row and no on-screen Home control**: all five of those actions are
+   physical, and drawing them would invite reaching for the panel on a device whose display may be
+   off. Paused is shown by the progress bar going quiet plus one small mark.
+4. **Volume overlay** — transient, triggered by a volume change while the panel is already lit, and
+   returning on its own. It never causes a wake.
+5. **Notice overlay** — one calm sentence where an action produced no inherent feedback. The only
+   case today is an unassigned token, and it appears only while the panel is already lit, because an
+   unassigned token must never wake a dark display (`DISPLAY_STATE_MACHINE.md` note 7).
 
 Empty library and playback failure are state treatments within those surfaces, not destinations or
 modal screens. They remain calm, contain no technical language and never wake an `OFF` display.
 
 ### Future only when supported by a current use case
 
-- **Content Browse / Collection** — one shallow level for a library that no longer fits Home.
 - **Favourites** — a direct content subset or assignment, not playlist administration; requires a
   domain decision before UI.
 - **SETUP** — bounded pairing/recovery and simple immediate choices, not routine settings.

@@ -43,11 +43,17 @@ def _profile() -> Profile:
     )
 
 
-def _item(title: str, *, available: bool = True, artwork: Path | None = None) -> ContentItem:
+def _item(
+    title: str,
+    *,
+    available: bool = True,
+    artwork: Path | None = None,
+    kind: ContentKind = ContentKind.AUDIOBOOK,
+) -> ContentItem:
     return ContentItem(
         id=ContentId(),
         title=title,
-        kind=ContentKind.AUDIOBOOK,
+        kind=kind,
         sources=(HttpSource(f"https://example.invalid/{title}", seekable=True),),
         duration=timedelta(minutes=5),
         artwork=artwork,
@@ -91,18 +97,40 @@ def _state() -> tuple[DeviceUiState, FakeLibrary, PlaybackSession, DisplayServic
     return state, library, playback, display
 
 
-def test_home_exposes_only_available_content_as_typed_tiles(tmp_path: Path) -> None:
+def test_home_exposes_only_areas_that_actually_hold_content(tmp_path: Path) -> None:
+    """P15: an area with nothing in it has no surface at all, not an empty one."""
+    state, library, _, _ = _state()
+    library.save_content(_item("Visible", artwork=tmp_path / "cover.jpg"))
+    library.save_content(_item("Missing", available=False))
+    library.save_content(_item("Station", kind=ContentKind.RADIO_STREAM))
+
+    state.refresh_library()
+
+    snapshot = state.snapshot
+    assert snapshot.surface is DeviceSurface.HOME
+    assert [section.key for section in snapshot.sections] == ["audiobook", "radio"]
+    assert [section.count for section in snapshot.sections] == [1, 1]
+    assert snapshot.focused_section_key == "audiobook"
+    # Home focuses an area, not an item: nothing is startable from here.
+    assert snapshot.focused_content_id is None
+
+
+def test_opening_an_area_exposes_only_its_available_items(tmp_path: Path) -> None:
     state, library, _, _ = _state()
     visible = _item("Visible", artwork=tmp_path / "cover.jpg")
     library.save_content(visible)
     library.save_content(_item("Missing", available=False))
-
+    library.save_content(_item("Station", kind=ContentKind.RADIO_STREAM))
     state.refresh_library()
 
-    assert state.snapshot.surface is DeviceSurface.HOME
-    assert len(state.snapshot.tiles) == 1
-    assert state.snapshot.tiles[0].content_id == visible.id
-    assert state.snapshot.tiles[0].artwork == tmp_path / "cover.jpg"
+    assert state.open_section("audiobook") is True
+
+    snapshot = state.snapshot
+    assert snapshot.surface is DeviceSurface.BROWSE
+    assert len(snapshot.tiles) == 1
+    assert snapshot.tiles[0].content_id == visible.id
+    assert snapshot.tiles[0].artwork == tmp_path / "cover.jpg"
+    assert snapshot.focused_content_id == visible.id
 
 
 def test_selecting_a_tile_starts_playback_and_switches_surface() -> None:
@@ -178,12 +206,39 @@ def test_display_and_playback_changes_publish_one_immutable_shape() -> None:
 class TestPhysicalNavigation:
     """ADR 0024: everything Home offers must be reachable without touch."""
 
+    def test_select_on_home_opens_the_focused_area(self) -> None:
+        state, library, _, _ = _state()
+        library.save_content(_item("First"))
+        state.refresh_library()
+
+        state.handle_navigation(Select())
+
+        assert state.snapshot.surface is DeviceSurface.BROWSE
+        assert state.snapshot.open_section_key == "audiobook"
+        assert state.snapshot.playback.content_id is None, "opening an area starts nothing"
+
+    def test_rotation_on_home_moves_between_areas_and_wraps(self) -> None:
+        state, library, _, _ = _state()
+        library.save_content(_item("Story"))
+        library.save_content(_item("Station", kind=ContentKind.RADIO_STREAM))
+        state.refresh_library()
+
+        state.handle_navigation(FocusNext())
+        assert state.snapshot.focused_section_key == "radio"
+
+        state.handle_navigation(FocusNext())
+        assert state.snapshot.focused_section_key == "audiobook"
+
+        state.handle_navigation(FocusPrevious())
+        assert state.snapshot.focused_section_key == "radio"
+
     def test_focus_starts_on_the_first_tile(self) -> None:
         state, library, _, _ = _state()
         first = _item("First")
         library.save_content(first)
         library.save_content(_item("Second"))
         state.refresh_library()
+        state.open_section("audiobook")
 
         assert state.snapshot.focused_content_id == state.snapshot.tiles[0].content_id
 
@@ -192,6 +247,7 @@ class TestPhysicalNavigation:
         for title in ("One", "Two", "Three"):
             library.save_content(_item(title))
         state.refresh_library()
+        state.open_section("audiobook")
         tiles = state.snapshot.tiles
 
         state.handle_navigation(FocusNext())
@@ -209,6 +265,7 @@ class TestPhysicalNavigation:
         for title in ("One", "Two"):
             library.save_content(_item(title))
         state.refresh_library()
+        state.open_section("audiobook")
         second = state.snapshot.tiles[1].content_id
 
         state.handle_navigation(FocusNext())
@@ -218,25 +275,44 @@ class TestPhysicalNavigation:
         assert state.snapshot.playback.content_id == second
         assert state.snapshot.playback.transport is TransportState.PLAYING
 
-    def test_back_returns_home_without_stopping_audio(self) -> None:
+    def test_home_returns_from_anywhere_without_stopping_audio(self) -> None:
         state, library, _, _ = _state()
         library.save_content(_item("Story"))
         state.refresh_library()
-        state.handle_navigation(Select())
+        state.handle_navigation(Select())  # open the area
+        state.handle_navigation(Select())  # start the focused item
 
         state.handle_navigation(Home())
 
         assert state.snapshot.surface is DeviceSurface.HOME
+        assert state.snapshot.open_section_key == ""
         assert state.snapshot.playback.transport is TransportState.PLAYING
+
+    def test_returning_to_an_area_restores_where_the_person_was(self) -> None:
+        """§ State preservation: not the top of a list already scrolled past."""
+        state, library, _, _ = _state()
+        for title in ("One", "Two", "Three"):
+            library.save_content(_item(title))
+        state.refresh_library()
+        state.open_section("audiobook")
+        state.handle_navigation(FocusNext())
+        remembered = state.snapshot.focused_content_id
+
+        state.show_home()
+        state.open_section("audiobook")
+
+        assert state.snapshot.focused_content_id == remembered
 
     def test_now_playing_offers_no_focus(self) -> None:
         state, library, _, _ = _state()
         library.save_content(_item("Story"))
         state.refresh_library()
         state.handle_navigation(Select())
+        state.handle_navigation(Select())
 
         state.handle_navigation(FocusNext())
 
+        assert state.snapshot.surface is DeviceSurface.NOW_PLAYING
         assert state.snapshot.focused_content_id is None
         assert state.snapshot.surface is DeviceSurface.NOW_PLAYING
 
@@ -256,6 +332,7 @@ class TestPhysicalNavigation:
         for title in ("One", "Two"):
             library.save_content(_item(title))
         state.refresh_library()
+        state.open_section("audiobook")
         chosen = state.snapshot.tiles[1].content_id
         state.handle_navigation(FocusNext())
 

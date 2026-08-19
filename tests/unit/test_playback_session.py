@@ -463,3 +463,30 @@ def test_music_does_not_advertise_unimplemented_collection_navigation() -> None:
 
     assert not rig.session.snapshot.can_skip_forward
     assert not rig.session.snapshot.can_skip_back
+
+
+def test_an_unassigned_token_changes_nothing_and_is_announced_once() -> None:
+    """CONFIGURATION_DEFAULTS.md § 6: presenting the wrong object does nothing.
+
+    The listener exists so a *lit* panel may say so calmly; playback itself
+    stays exactly as it was, and nothing wakes.
+    """
+    library = FakeLibrary()
+    audio = FakeAudioEngine()
+    inputs = FakeInputBus()
+    session = PlaybackSession(
+        audio=audio,
+        library=library,
+        clock=FakeClock(),
+        settings=default_settings(),
+        inputs=inputs,
+    )
+    session.use_profile(_profile())
+    seen: list[int] = []
+    session.on_tag_unassigned(lambda: seen.append(1))
+
+    inputs.emit(NfcPresented("AQENO-TEST-UNKNOWN"))
+
+    assert seen == [1]
+    assert session.snapshot.content_id is None
+    assert audio.state is TransportState.IDLE

@@ -13,17 +13,36 @@ from __future__ import annotations
 import threading
 import uuid
 from collections.abc import Sequence
+from datetime import timedelta
+from pathlib import Path
 
 from PySide6.QtCore import Property, QAbstractListModel, QModelIndex, QObject, Qt, Signal, Slot
 
-from aqeno.application.device_ui import DeviceUiSnapshot, DeviceUiState, LibraryTile
+from aqeno.application.device_ui import (
+    DeviceUiSnapshot,
+    DeviceUiState,
+    LibrarySection,
+    LibraryTile,
+)
 from aqeno.domain.content import ContentId
 
 
-def _artwork_url(tile: LibraryTile | None) -> str:
-    if tile is None or tile.artwork is None:
+def _artwork_url(artwork: Path | None) -> str:
+    if artwork is None:
         return ""
-    return tile.artwork.resolve().as_uri()
+    return artwork.resolve().as_uri()
+
+
+def _clock_text(value: timedelta | None) -> str:
+    """`m:ss`, or `h:mm:ss` for a long work. Never a bare second count."""
+    if value is None:
+        return ""
+    total = max(0, int(value.total_seconds()))
+    hours, remainder = divmod(total, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes}:{seconds:02d}"
 
 
 class TileModel(QAbstractListModel):
@@ -51,7 +70,7 @@ class TileModel(QAbstractListModel):
         if role == self.TitleRole:
             return tile.title
         if role == self.ArtworkRole:
-            return _artwork_url(tile)
+            return _artwork_url(tile.artwork)
         return None
 
     def roleNames(self) -> dict[int, bytes]:
@@ -70,28 +89,162 @@ class TileModel(QAbstractListModel):
         self.endResetModel()
 
 
+class SectionModel(QAbstractListModel):
+    """Home's areas. The label is chosen by the presentation from the stable key,
+    so a translation never reaches into application state."""
+
+    KeyRole = Qt.ItemDataRole.UserRole + 1
+    CountRole = Qt.ItemDataRole.UserRole + 2
+    ArtworkRole = Qt.ItemDataRole.UserRole + 3
+
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._sections: tuple[LibrarySection, ...] = ()
+
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
+        if parent.isValid():
+            return 0
+        return len(self._sections)
+
+    def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> object:
+        if not index.isValid() or not 0 <= index.row() < len(self._sections):
+            return None
+        section = self._sections[index.row()]
+        if role == self.KeyRole:
+            return section.key
+        if role == self.CountRole:
+            return section.count
+        if role == self.ArtworkRole:
+            return _artwork_url(section.artwork)
+        return None
+
+    def roleNames(self) -> dict[int, bytes]:
+        return {
+            self.KeyRole: b"sectionKey",
+            self.CountRole: b"itemCount",
+            self.ArtworkRole: b"artworkUrl",
+        }
+
+    def replace(self, sections: Sequence[LibrarySection]) -> None:
+        replacement = tuple(sections)
+        if replacement == self._sections:
+            return
+        self.beginResetModel()
+        self._sections = replacement
+        self.endResetModel()
+
+
 class DeviceUiModel(QObject):
     """Presentation-only Qt boundary over :class:`DeviceUiState`."""
 
     stateChanged = Signal()
+    unassignedTag = Signal()
+    """A presented token resolved to nothing. Transient by nature, so it is a
+    signal rather than snapshot state — and the presentation may only
+    acknowledge it while the panel is already lit."""
     _snapshotReady = Signal()
+    _unassignedTagReady = Signal()
 
     def __init__(self, state: DeviceUiState, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._state = state
         self._tiles = TileModel(self)
+        self._sections = SectionModel(self)
         self._snapshot = state.snapshot
         self._pending_snapshot: DeviceUiSnapshot | None = None
         self._snapshot_lock = threading.Lock()
         self._snapshotReady.connect(
             self._apply_pending_snapshot, Qt.ConnectionType.QueuedConnection
         )
+        self._unassignedTagReady.connect(self.unassignedTag, Qt.ConnectionType.QueuedConnection)
         state.on_changed(self._snapshot_changed)
+        state.on_unassigned_tag(self._unassignedTagReady.emit)
         self._tiles.replace(self._snapshot.tiles)
+        self._sections.replace(self._snapshot.sections)
 
     @Property(QObject, constant=True)
     def tiles(self) -> TileModel:
         return self._tiles
+
+    @Property(QObject, constant=True)
+    def sections(self) -> SectionModel:
+        return self._sections
+
+    @Property(str, notify=stateChanged)
+    def focusedSectionKey(self) -> str:
+        return self._snapshot.focused_section_key
+
+    @Property(str, notify=stateChanged)
+    def openSectionKey(self) -> str:
+        return self._snapshot.open_section_key
+
+    @Property(int, notify=stateChanged)
+    def focusedSectionIndex(self) -> int:
+        return next(
+            (
+                index
+                for index, section in enumerate(self._snapshot.sections)
+                if section.key == self._snapshot.focused_section_key
+            ),
+            0,
+        )
+
+    @Property(int, notify=stateChanged)
+    def focusedSectionCount(self) -> int:
+        return next(
+            (
+                section.count
+                for section in self._snapshot.sections
+                if section.key == self._snapshot.focused_section_key
+            ),
+            0,
+        )
+
+    @Property(int, notify=stateChanged)
+    def itemCount(self) -> int:
+        return len(self._snapshot.tiles)
+
+    @Property(int, notify=stateChanged)
+    def focusedIndex(self) -> int:
+        """1-based position of the focused item, for a `3 / 18` style hint."""
+        focused = self._snapshot.focused_content_id
+        if focused is None:
+            return 0
+        return next(
+            (
+                index + 1
+                for index, tile in enumerate(self._snapshot.tiles)
+                if tile.content_id == focused
+            ),
+            0,
+        )
+
+    @Property(str, notify=stateChanged)
+    def focusedTitle(self) -> str:
+        focused = self._snapshot.focused_content_id
+        return next(
+            (tile.title for tile in self._snapshot.tiles if tile.content_id == focused),
+            "",
+        )
+
+    @Property(int, notify=stateChanged)
+    def volume(self) -> int:
+        return self._snapshot.playback.volume
+
+    @Property(str, notify=stateChanged)
+    def positionText(self) -> str:
+        return _clock_text(self._snapshot.playback.position)
+
+    @Property(str, notify=stateChanged)
+    def durationText(self) -> str:
+        return _clock_text(self._snapshot.playback.duration)
+
+    @Property(str, notify=stateChanged)
+    def failureCode(self) -> str:
+        """A stable code, never a message: the presentation owns the words
+        (`FAILURE_STATES.md`)."""
+        code = self._snapshot.playback.failure_code
+        return code.value if code is not None else ""
 
     @Property(str, notify=stateChanged)
     def surface(self) -> str:
@@ -111,12 +264,7 @@ class DeviceUiModel(QObject):
 
     @Property(str, notify=stateChanged)
     def nowPlayingArtworkUrl(self) -> str:
-        content_id = self._snapshot.playback.content_id
-        tile = next(
-            (candidate for candidate in self._snapshot.tiles if candidate.content_id == content_id),
-            None,
-        )
-        return _artwork_url(tile)
+        return _artwork_url(self._snapshot.now_playing_artwork)
 
     @Property(str, notify=stateChanged)
     def focusedContentId(self) -> str:
@@ -143,7 +291,7 @@ class DeviceUiModel(QObject):
 
     @Property(bool, notify=stateChanged)
     def libraryEmpty(self) -> bool:
-        return not self._snapshot.tiles
+        return not self._snapshot.sections
 
     @Property(bool, notify=stateChanged)
     def playing(self) -> bool:
@@ -156,6 +304,10 @@ class DeviceUiModel(QObject):
         except (ValueError, AttributeError):
             return
         self._state.select_content(parsed)
+
+    @Slot(str)
+    def openSection(self, key: str) -> None:
+        self._state.open_section(key)
 
     @Slot()
     def showHome(self) -> None:
@@ -177,4 +329,5 @@ class DeviceUiModel(QObject):
             return
         self._snapshot = snapshot
         self._tiles.replace(snapshot.tiles)
+        self._sections.replace(snapshot.sections)
         self.stateChanged.emit()
