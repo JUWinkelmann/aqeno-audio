@@ -15,32 +15,31 @@ implementation specifications. Documentation is English; the maintainer communic
 
 ## Live state
 
-Steps 7 and 9 are complete. Step 10 has the desktop-tested RH1 controls implementation in `851898c`.
-Remaining Step 10 work requires physical RH1 evidence or unselected hardware and is recorded below
-rather than guessed.
+**Verification, 2026-08-19:** `1141 passed, 1 hardware test deselected`; Ruff, format, canonical
+mypy, Admin check/build and all five browser E2E tests green. Nothing is pushed beyond `main`.
 
-The current software slice adds configurable logical physical controls, bounded RH1 remote deployment,
-the HiFiBerry MiniAmp platform path, a fail-closed Plymouth handover and — since 2026-08-18 — the
-physical navigation vocabulary that makes the everyday journey operable without touch. Verification is
-green: **1122 passed, 1 hardware test deselected**; canonical mypy, Ruff, Admin check/build and all
-five browser E2E tests pass. The physical RH1 acceptance boundary below remains open.
+The First Vertical Slice is implemented and desktop-tested. Since then the interaction contract, the
+hardware inventory, the Device UI and the audio/attention contracts were consolidated:
 
-The step log below stops at Step 10 / `851898c`. The management API, Admin foundation and RH1
-platform integration that followed (`5c3108f` … `fc41de0`) are recorded in git history and in the
-contracts they changed, not here; that gap is known rather than an indication they are missing.
-
-| Slice step | State |
+| Area | State |
 |---|---|
-| 1 — domain model + state machines | done |
-| 2 — persistence | done |
-| 3 — audio adapter | done |
-| 4 — semantic input bus + simulator | done |
-| 5 — application services + ingestion | done |
-| 6 — typed Device UI state channel | done (`1fcedfd`) |
-| 7 — Kids Early Device UI | done (`6e295a0`) |
-| 8 — display policy | done (`f88365f`, `cc493c7`) |
-| 9 — end-to-end tests | done (`707de90`) |
-| 10 — Reference Hardware adapters | configurable controls/LED software done; physical/display evidence externally gated |
+| First Vertical Slice, steps 1–9 | done |
+| Step 10 — RH1 adapters | controls/LED software done; physical evidence gated on delivery |
+| Interaction contract | **ADR 0026** — five permanent controls, SELECT · PREVIOUS · NEXT · VOLUME · HOME |
+| Audio, attention, Send to AQENO | **ADR 0027** — four sound classes, night ≠ mute, cloud is courier |
+| Hardware inventory | `INVENTORY.md` is canonical; **procurement freeze active, BUY NOW = nothing** |
+| Device UI | Home → Browse → Now Playing implemented, physical-first, presentation levels |
+| Design targets | clock, timer, alarm, message, context actions drawn in `scripts/ui_preview/`, **not routed** |
+
+**What is real and what is only drawn.** The device plays local content, browses it by content area,
+and is fully operable with the five controls. Clock, timer, alarm and messages have **no domain
+behaviour at all** — their screens exist only as design targets outside `src/`, and routing one into
+`Main.qml` before its capability exists would violate P15. Proximity does not exist either; the
+VCNL4040 is accepted but deliberately unordered, and the VEML7700 is RH1's working ambient sensor.
+
+**The single blocking dependency is hardware delivery.** The Qwiic Twist, three Qwiic cables and two
+Elecrow knobs are ordered; everything else in the control set is on hand. Nothing further is bought
+until the parts arrive and the smoke test has run.
 
 ## Step log
 
@@ -372,20 +371,33 @@ contracts they changed, not here; that gap is known rather than an indication th
 
 ## Next action
 
-1. Wait for delivery, then run the **seven-phase hardware smoke test** in
+Each item is labelled **[hardware]** (needs the assembled box), **[architect]** (needs a product or
+architecture decision) or **[delegable]** (bounded implementation; what it needs specified up front
+is stated with it).
+
+1. **[hardware]** Wait for delivery, then run the **seven-phase hardware smoke test** in
    `RH1_VALIDATION_CHECKLIST.md` before any further implementation: I²C → controls → blind operation
    → mechanics → knobs → light → tag-reader identification. Then the documented
    stereo/control/offline acceptance sequence, with measured evidence.
-2. Supply the canonical AQENO SVG and resolve G24's real DSI adapter before enabling the Plymouth
-   presentation and measuring splash-to-first-frame handover.
-3. Fit three Cherry MX switches as PREVIOUS, NEXT and HOME on NeoKey sockets 0, 1 and 3, leaving
-   socket 2 empty, and verify the layout and blind findability. Write the Qwiic Twist input adapter
-   only once the board is physically present and Phase 1 passes.
-4. Open UX questions that only real use can answer: whether HOME removes the need for a BACK control
+2. **[hardware]** Supply the canonical AQENO SVG and resolve G24's real DSI adapter before enabling
+   the Plymouth presentation and measuring splash-to-first-frame handover.
+3. **[hardware]** Fit three Cherry MX switches as PREVIOUS, NEXT and HOME on NeoKey sockets 0, 1 and
+   3, leaving socket 2 empty, and verify the layout and blind findability.
+4. **[delegable, after Phase 1 passes]** Write the **Qwiic Twist input adapter** for SELECT. It is
+   the one clearly bounded implementation task waiting. Specify up front: it implements
+   `PhysicalInputSource` exactly as `adapters/input/i2c_seesaw.py` does, reports
+   `LogicalControl.SELECT_ENCODER` with rotate-left/right plus short and long press, imports its
+   driver lazily inside an `open_*` function so the headless Core never sees it, uses I²C address
+   `0x3F`, normalises direction so clockwise is forward before anything above the adapter sees it,
+   reuses `PressGestureRecognizer` for the 800 ms threshold, and gets deterministic tests with an
+   injected fake device — no sleeps, no hardware in unit tests. Out of scope: the RGB LED, any
+   change to `MappedInputBus`, and any new port. Do not write it before the board is physically
+   present and its address is confirmed on the assembled bus.
+5. **[architect]** Open UX questions that only real use can answer: whether HOME removes the need for a BACK control
    once browsing is deeper than one level (ADR 0026 § 4), what counts as a "section" per content
    kind, whether focus wrapping reads as helpful or confusing to a three-year-old, and the design
    conflicts C1–C5 in `INTERACTION_MATRIX.md` § 9.
-5. Documentation consolidation, when there is a natural occasion: `docs/DOCUMENTATION_GAPS.md` is
+6. **[delegable, with review]** Documentation consolidation, when there is a natural occasion: `docs/DOCUMENTATION_GAPS.md` is
    now mostly historical — 11 of 24 gaps are marked closed, 2 deferred by intent, and several open
    ones (G08 failure taxonomy, G16 roadmap contradiction, G20 language convention) were overtaken by
    documents that now exist. The proposal is to move the genuinely live items to their owning
@@ -393,6 +405,37 @@ contracts they changed, not here; that gap is known rather than an indication th
    `DEVICE_UI_PRINCIPLES.md`, G10 to `FAILURE_STATES.md` — and reduce the file to a short historical
    note. G17 (duplicate `## 12.` in `PRODUCT_FOUNDATION.md`) needs one deliberate renumbering pass
    because other documents cite those section numbers; it should not be half-fixed in passing.
+
+## Handover to another agent
+
+Read in this order: `ONBOARDING.md` → `AGENTS.md` → this file. `AGENTS.md` is the operating
+contract and its authority order settles conflicts.
+
+Three things that are easy to get wrong here, in the order they usually go wrong:
+
+1. **A drawn screen is not a capability.** `scripts/ui_preview/` holds design targets for the clock,
+   timer, alarm, messages and context actions. They are outside `src/`, unreachable from `Main.qml`,
+   and tested to stay that way. Do not route them, do not add them to Home, do not build domain
+   behaviour because a picture exists.
+2. **Do not decide by committing code.** Technology, domain boundaries, platform contracts and
+   product rules need an ADR first. Open questions — C1 snooze, C2 blind timer cancel, C3–C6,
+   retention default, message deletion interaction, device context actions — are open on purpose and
+   listed in `INTERACTION_MATRIX.md` § 9. Report a conflict instead of resolving it quietly.
+3. **The procurement freeze is real.** `BUY NOW = nothing` until the ordered parts arrive and the
+   smoke test has run. `INVENTORY.md` is the only place that records what exists.
+
+Verification before reporting done, run bare and never through a pipe (`MISTAKES.md` M-004):
+
+```bash
+ruff check . && ruff format --check . && mypy src/aqeno/domain src/aqeno/application src/aqeno/ports && pytest
+```
+
+Device UI work additionally needs a look at the rendered output, not only at QML source:
+
+```bash
+python scripts/device_ui_screenshots.py --out build/ui        # the real surface
+python scripts/device_ui_preview.py --out build/ui-preview    # the design targets
+```
 
 ## Standing reminders
 
