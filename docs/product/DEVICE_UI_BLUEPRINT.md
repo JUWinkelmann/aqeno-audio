@@ -3,6 +3,7 @@
 **Status:** Product/UX contract
 **Date:** 2026-08-18
 **Amended:** 2026-08-18 by ADR 0024 — navigation is physical; touch is optional
+**Amended:** 2026-08-19 by ADR 0026 — five controls; HOME is the way out; PREVIOUS/NEXT never navigate
 **Applies to:** AQENO Device UI, beginning with Kids Early on Reference Hardware 1
 
 ## Purpose and authority
@@ -86,9 +87,9 @@ No unavailable capability appears disabled, locked, premium, purchasable or teas
 The current Kids Early graph is deliberately tiny:
 
 ```text
-explicit wake, idle playback ──> Home ──activate focused tile──> Now Playing
-                                  ^          (NAV press or tap)      |
-                                  └──── back to Home (NAV or tap) ───┘
+explicit wake, idle playback ──> Home ──activate focused tile───> Now Playing
+                                  ^        (SELECT press or tap)      |
+                                  └──────── HOME (or tap) ────────────┘
 
 explicit wake during playback ──────────────────────────────> Now Playing
 ```
@@ -100,11 +101,14 @@ explicit wake during playback ────────────────�
 - Selecting artwork starts immediately and opens Now Playing. There is no confirmation.
 - Now Playing has one clear, large Home action. Returning Home does not stop playback.
 - Physical Previous, Play/Pause, Next and Volume do not navigate and do not wake the display. That
-  rule is unchanged and is what keeps the dark room dark.
-- **Navigation itself is physical** (ADR 0024). A NAV control moves focus, its press activates the
-  focused item, and going back reaches Home. Touch does the same things and is never required for
-  any of them.
-- There is no Back stack, drawer, tab bar, modal flow or hidden swipe in Kids Early.
+  rule is unchanged and is what keeps the dark room dark. Since ADR 0026 PREVIOUS and NEXT are
+  content order in every context, so they never move focus on any surface, including a menu.
+- **Navigation itself is physical** (ADR 0024, ADR 0026). SELECT moves focus, its press activates the
+  focused item, and **HOME returns to Home from anywhere, at any time, without stopping playback**.
+  Touch does the same things and is never required for any of them.
+- There is no Back stack, drawer, tab bar, modal flow or hidden swipe in Kids Early. Whether a
+  separate BACK control is ever needed is an open question that only a deeper browsing level can
+  answer (ADR 0026 § 4); nothing is added in anticipation.
 
 When a real library requires more than the bounded Home surface, one shallow content-browsing level
 may be added over existing content/collection concepts. Its entry is content language (“Stories”),
@@ -127,7 +131,9 @@ Encoder-first means the surface has a focus, not merely tappable areas.
 - **The navigation input that wakes the display is consumed** and activates nothing, for the same
   reason a waking touch is consumed: nobody may trigger something they cannot see. Volume and
   Play/Pause are deliberately exempt — they are the blind-operable functions, and a swallowed first
-  volume step in a dark room would break the very requirement the rule protects.
+  volume step in a dark room would break the very requirement the rule protects. **HOME is the other
+  exception**: it wakes and acts in one press, because its outcome is the same in every context and
+  a person in the dark should reach the way out once (ADR 0026 § 4).
 - No everyday interaction uses a long press or a double press (ADR 0024 § A2).
 
 ## Actual UI surfaces
@@ -209,26 +215,28 @@ items, larger focus treatment, no reliance on a 7-inch reading distance.
 
 ## Physical controls and light
 
-The intended control set is LEFT · NAV · RIGHT · VOL (ADR 0024 § A1). RH1 currently has three of the
-four: the two Cherry MX switches and one encoder acting as VOL.
+The control set is SELECT · PREVIOUS · NEXT · VOLUME · HOME (ADR 0026 § 2). RH1 can carry four of
+the five with hardware on hand: three Cherry MX switches on the NeoKey and one encoder as VOLUME.
 
 | Control | Action | Screen relationship |
 |---|---|---|
-| LEFT MX key | back — in the current slice: previous section | acts as transport here, so it never wakes the display |
-| RIGHT MX key | forward — in the current slice: next section | same |
-| VOL rotation | relative volume | never wakes the display; a first step is never swallowed to light the screen |
-| VOL press | Play/Pause | never wakes the display; the UI reflects it only when already visible |
-| NAV rotation *(hardware pending)* | move focus | wakes from `OFF`/`DIM`; the waking input is consumed |
-| NAV press *(hardware pending)* | activate the focused item | wakes from `OFF`/`DIM`; the waking input is consumed |
+| SELECT rotation *(hardware pending)* | move focus | wakes from `OFF`/`DIM`/`AMBIENT`; the waking input is consumed |
+| SELECT press *(hardware pending)* | activate the focused item | wakes; the waking input is consumed |
+| PREVIOUS MX key | previous item in content order (ADR 0009 § 2) | never wakes the display |
+| NEXT MX key | next item in content order | never wakes the display |
+| VOLUME rotation | relative volume | never wakes; a first step is never swallowed to light the screen |
+| VOLUME press | Play/Pause | never wakes; the UI reflects it only when already visible |
+| HOME MX key | return to Home; never stops playback | wakes, and **acts on the same press** |
 
-Waking is a property of the resolved action, not of the button (ADR 0024 § A4). When LEFT later
-resolves to navigation in a browsing context, it wakes and is consumed there; while it resolves to
-transport it does neither.
+Waking is a property of the control (ADR 0026 § 5): only SELECT and HOME can light the panel.
+PREVIOUS and NEXT no longer change role by context, so nothing has to be resolved before the display
+service can classify it.
 
-RH1 has no NAV control yet. Its navigation actions exist in the mapping registry, report as
-unavailable and can be bound to any control a future adapter reports. Until then the touch-free
-journey is exercised through the desktop simulator (`DEVELOPMENT.md`), not claimed for the assembled
-box — and the physical path from Now Playing back to Home is the one gap that leaves (ADR 0024 § A3).
+RH1 has no SELECT control yet. Its bindings exist in the mapping registry, report as unavailable and
+can be bound to any control a future adapter reports. Until then the complete touch-free journey is
+exercised through the desktop simulator (`DEVELOPMENT.md`) rather than claimed for the assembled box
+— but the physical path from Now Playing back to Home is no longer part of that gap: HOME closes it
+on hardware already present.
 
 These are safe device-wide defaults, not properties of the boards. The controlled mapping contract
 in `PLATFORM_CONTRACTS.md` may assign another available AQENO action; hardware drivers still emit

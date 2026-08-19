@@ -185,6 +185,31 @@ before the screen says so. Do not emit a sound for every physical action by defa
 result of an action is itself unambiguous — the volume changes, audio starts, the focus ring moves —
 that result is the feedback, and adding a second layer on top makes the device noisier, not clearer.
 
+### P21 — Everything essential works without looking
+**ADR 0026.** Every essential everyday action is performable blind. A control that can only be used
+by reading a label, seeing a screen or watching an indicator fails this principle, whatever else it
+does well. This is the principle the dark-room requirement, the permanent control meanings and the
+illumination rules all serve.
+
+### P22 — Controls are identified by hand
+**ADR 0026.** Controls with different semantic roles are distinguishable by touch — through position,
+geometry or texture — without light and without labels, and their spatial relationship is preserved
+across AQENO hardware variants. Muscle memory built on one AQENO transfers to the next.
+
+### P23 — Accessibility without looking accessible
+**ADR 0026.** AQENO is meant to be used intuitively by children, adults, older people and people with
+motor or visual limitations — and must not look like a children's toy, a senior device or a medical
+aid. Accessibility is part of ordinary good industrial design, not a special edition. There is one
+AQENO interaction model; there is no separate Kids, Adult, Senior or Accessible operating logic.
+Mechanical adaptation such as larger or grippier caps is welcome and changes neither electronics nor
+interaction logic.
+
+### P24 — Light assists, it never defines
+**ADR 0026.** Illumination supports operation and never constitutes it: every control must be
+findable and operable with all light off. Control light is contextual guidance, not permanent status
+display. **DARK means zero visible light** — no display, no control LED, no status LED, no glowing
+key, no unavoidable operating indicator. No hardware may force visible residual light.
+
 ## 4. Adaptive experience
 
 AQENO should use a shared capability model rather than separate rigid products for each age,
@@ -209,45 +234,79 @@ audio feedback, volume boundaries or alternative input. Do not introduce a gener
 
 > **Frequent actions are physical. Contextual actions are visual.**
 
-> **Physical-first, display-assisted, touch-optional** (ADR 0024).
+> **tactile first · illumination assisted · display enhanced · touch optional** (ADR 0026).
 
-Target control set — four controls, each with one permanent role (ADR 0024 § A1):
+Control set — five controls, each with one permanent role (ADR 0026 § 2):
 
 | Control | Rotation | Short press | Reason |
 |---|---|---|---|
-| **NAV** rotary encoder | move focus | activate / confirm | eyes-free selection without a panel |
-| **VOL** rotary encoder | volume down / up | play / pause | the two most frequent actions, always in the same place |
-| **LEFT** | — | back | one direction, one meaning |
-| **RIGHT** | — | forward | one direction, one meaning |
+| **SELECT** rotary encoder | move focus / change a value | activate, confirm | eyes-free selection without a panel |
+| **PREVIOUS** | — | previous item in content order | one direction, one meaning |
+| **NEXT** | — | next item in content order | one direction, one meaning |
+| **VOLUME** rotary encoder | volume down / up | play / pause | the two most frequent actions, always in the same place |
+| **HOME** | — | back to the familiar starting point | one reliable way out, from anywhere |
 | Touchscreen | — | optional convenience for the same actions | never the only path |
 | NFC | — | content/action shortcut | physical, intuitive, optional |
 
 > **Volume stays volume. Play/Pause stays Play/Pause.**
 >
-> **LEFT is back. RIGHT is forward.**
+> **PREVIOUS and NEXT are content order. HOME is the way out.**
 
-A VOL control never becomes contextual navigation. Eyes-free operation depends on a control meaning
-the same thing in every state.
+Five tactilely findable positions whose spatial relationship is invariant across AQENO hardware:
 
-LEFT/RIGHT are back and forward rather than "previous track / next track". Their effect follows the
-functional context: in navigation they change level, in linear playback they move between meaningful
-sections of the current work. Hold-to-seek and every other timed or repeated gesture are excluded.
+```text
+    SELECT      PREV   NEXT      VOLUME
+      ( )         <      >         ( )
+
+                  HOME
+```
+
+**Every control means one thing in every state.** Eyes-free operation depends on it, which is why
+ADR 0026 withdrew ADR 0024's context-resolved LEFT/RIGHT: a person who cannot see the screen cannot
+know which context they are in, so they cannot know what a context-dependent control will do.
+
+PREVIOUS and NEXT move within the current content's order — track, chapter, section, image — as
+ADR 0009 § 2 defines per kind. They are never UI navigation and never move focus, not even in a
+menu. Hold-to-seek and every other timed or repeated gesture are excluded.
+
+HOME always leads to the familiar AQENO starting point, never stops playback, and resolves an
+interruptive state. It is not a configurable everyday key and carries no second function. Whether
+AQENO also needs a separate BACK control is deliberately open: the current hypothesis is that a
+shallow information architecture makes one unnecessary, and that must be proved in real use rather
+than assumed.
 
 > **Normal everyday AQENO operation must not require long-press or double-press gestures.**
 
 Long press stays technically available for setup, service and hardware cases. It is not part of any
-everyday path, and no default binds it. There is no separate OK button. Do not add dedicated Home,
-Back, Favourite or Menu buttons unless testing proves them necessary.
+everyday path, and no default binds it. There is no separate OK button, and no dedicated Favourite
+or Menu button is added unless testing proves one necessary.
 
-On RH1, LEFT and RIGHT are the two existing Cherry MX switches; the target device may replace them
-with one quality momentary centre-off rocker.
+On RH1, PREVIOUS, NEXT and HOME are existing Cherry MX switches; the target device may replace
+PREVIOUS and NEXT with one quality momentary centre-off rocker. That is a construction change, not a
+semantic one.
 
-Controls belong on the top or an angled upper surface rather than on a vertical front face that
-pushes the device backwards when pressed; pressure should act towards the standing surface. The
-front stays visually calm and belongs to the display. Enclosure design itself is out of scope.
+**An ordinary one-handed press must not appreciably move AQENO on a normal surface.** How that is
+achieved — rubber feet, mass, centre of gravity, enclosure geometry, actuation force — is a
+mechanical decision, so controls may also sit on a well-reachable inclined front face. This replaces
+the earlier rule that controls had to be on the top or an upper surface. Enclosure design itself
+remains out of scope.
 
 RH1's assembled Cherry MX and Qwiic controls are prototype input hardware. They exercise the same
 semantic boundary and define nothing about the target layout (ADR 0024 § 4).
+
+What each control does in each situation is normative in
+`docs/implementation/INTERACTION_MATRIX.md`.
+
+### Rotary controls
+
+Rotary controls are specified abstractly (ADR 0026 § 7): incremental encoder, integrated push,
+clearly felt detents, consistent direction, and a rotational and push force usable by a child and by
+a person with reduced hand strength. A standardised shaft — 6 mm is the current preference — keeps
+caps exchangeable, so the same electronics can carry compact, standard or easy-grip ergonomics.
+SELECT and VOLUME should be the same part with different caps, distinguishable by hand through rim
+structure, profile or knurling, without either looking like a special aid.
+
+Maker breakout boards are one implementation of that contract and never its definition.
 
 Core actions must not depend on precise dragging, swiping, double taps, long presses, tightly packed
 controls or short response windows — not even with an alternative path available. A touchscreen can extend AQENO, but physical controls
@@ -262,7 +321,8 @@ This is a core product requirement, not an energy-saving feature.
 During bedtime playback AQENO must be able to:
 
 - turn the display fully off while audio continues;
-- turn off decorative and status LEDs;
+- turn off decorative and status LEDs — **DARK means zero visible light**, including a glowing
+  control or key and any unavoidable operating indicator (P24);
 - suppress system sounds and visual flashes;
 - keep volume and play/pause physically operable;
 - apply a configurable night-time volume ceiling;
@@ -303,6 +363,12 @@ an open shortcut layer, not the content store or a toy-only interaction model.
 - AQENO treats compatible tags by identifier, not by the object's brand or original product type.
 - A tag launches only an AQENO-local assignment to content or an Action already available to AQENO.
   Recognition never authorises acquisition, extraction or decryption from another content system.
+- **Place, do not aim.** The device offers a generous, flat object area rather than a target to hit.
+  It has **no recess and no well** (ADR 0026 § 11): standing figures must work, simple 3D-printed
+  objects must need no AQENO-specific under-geometry, and flat cards must work equally. The
+  enclosure reserves that area from the start; the antenna solution is a later measurement.
+  Magnetic positioning may be added later as an option — NFC identifies, magnetism may position —
+  but never as a precondition, and never as mandatory proprietary geometry.
 - AQENO can publish reference dimensions and printable holders for commodity NFC tags.
 - The same object may evolve with the user: one story at age three, a collection/category later.
 - NFC remains optional; the library never depends on owning physical tokens.
@@ -404,8 +470,15 @@ which controls, buses, board or display every AQENO device must have.
 - ordinary external power bank is a valid mobile-power option;
 - no proprietary battery requirement;
 - initial reference display: approximately 5–7 inch touch;
-- rotary encoder + minimal playback buttons;
+- two rotary encoders (SELECT, VOLUME) plus PREVIOUS, NEXT and HOME;
+- no everyday power button on the primary control surface: AQENO distinguishes `ACTIVE`, `SLEEP`
+  (display dark, instantly usable) and a deliberate `OFF`, and any ordinary interaction leaves
+  `SLEEP`. A genuine shutdown control belongs away from the primary surface or in local
+  administration; cutting board power is not a product definition of `OFF` (ADR 0026 § 8);
 - optional NFC;
+- optional ambient-light and near-hand proximity sensing, used for adaptive brightness and for
+  temporary orientation in a dark room — never for gesture control, and never required for
+  operation (ADR 0026 § 10);
 - standard/replaceable audio components where practical;
 - simple printable enclosure designs.
 

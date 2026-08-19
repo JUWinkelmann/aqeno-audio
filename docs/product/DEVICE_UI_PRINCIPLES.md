@@ -36,14 +36,17 @@ harder.
 4. **One clear primary action.** A state should present the action relevant to its context rather
    than a matrix of equally weighted controls.
 5. **Physical first, touch optional.** Volume, play/pause, transport and physical-media launch use
-   the physical controls where available, and since ADR 0024 so does navigation: focus movement and
-   selection have their own physical vocabulary. No function and no path to a function may require
-   touching the panel. Touch complements those paths; it does not duplicate every one of them and it
-   is never the only way in.
+   the physical controls where available, and since ADR 0024 so does navigation: focus movement,
+   selection and the return to Home have their own physical vocabulary. No function and no path to a
+   function may require touching the panel. Touch complements those paths; it does not duplicate
+   every one of them and it is never the only way in. Every essential everyday action must also be
+   performable **without looking** (ADR 0026 § 1).
 6. **Encoder-first information architecture.** Design for a rotating, pressing control first and let
    touch ride along — never the reverse. Every state answers four questions without instruction:
    where am I, what is selected, what will rotation do, what will a press do. Focus must be
-   unmistakable from normal viewing distance, and never carried by colour alone.
+   unmistakable from normal viewing distance, and never carried by colour alone. What each control
+   does in each state is normative in `docs/implementation/INTERACTION_MATRIX.md`; a surface that
+   needs a control to mean something new is a design conflict to report, not to implement.
 7. **Display is not a tablet.** Available area need not be filled. Whitespace, artwork, a title,
    optional chapter/track and restrained progress may be the complete playback surface. The display
    may then become quiet or turn off.
@@ -68,8 +71,16 @@ Appliance simplicity is not confined to Kids UI. Large physical controls and tou
 required text, clear hierarchy, audio feedback and shallow navigation benefit many people. Core
 actions must not rely exclusively on fine motor control, dragging, swiping, double taps, long
 presses, hidden gestures or fast reactions. ADR 0024 § A2 turns that into a flat product rule:
-**normal everyday operation must not require long-press or double-press gestures.** Back is the LEFT
-control, not a timed gesture. Long press survives only for setup, service and hardware cases.
+**normal everyday operation must not require long-press or double-press gestures.** The way out is
+the HOME control, not a timed gesture (ADR 0026 § 4). Long press survives only for setup, service
+and hardware cases.
+
+Accessibility here is not a variant. AQENO must be usable by children, adults, older people and
+people with motor or visual limitations **without looking like an assistive device** — one
+interaction model, no separate Kids, Senior or Accessible operating logic, and mechanical adaptation
+(larger, grippier caps) that changes ergonomics without changing electronics or logic
+(ADR 0026 § 1). Optional spoken UI feedback is a recorded accessibility direction, not an
+implemented capability, and needs no microphone.
 
 This does not claim compliance with every accessibility need. It means concrete needs should improve
 the shared interaction language rather than automatically creating a labelled “senior”, “disabled”

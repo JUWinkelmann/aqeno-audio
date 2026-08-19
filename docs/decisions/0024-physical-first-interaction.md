@@ -1,8 +1,14 @@
 # ADR 0024 — Physical-first interaction: touch is a capability, not a requirement
 
-**Status:** Accepted
+**Status:** Accepted; § A1, § A3 and § A4 superseded by ADR 0026
 **Date:** 2026-08-18
 **Amended:** 2026-08-18 — the open back-navigation question is closed; see § Amendment below.
+**Superseded in part:** 2026-08-19 by ADR 0026. The control set is five, not four; LEFT/RIGHT became
+PREVIOUS/NEXT with no contextual resolution, and HOME carries the way out. § 1 (the interaction
+contract), § 2's rule that a control means one thing in every state, § 3 (navigation may wake), § 5
+(capabilities are reported, not framed), § 6 (touch-free acceptance) and § A2 (everyday operation is
+untimed) all remain in force — ADR 0026 exists because § A3's open cell showed that context-resolved
+controls contradict § 2, not because § 2 was wrong.
 **Amends:** `docs/product/DEVICE_UI_BLUEPRINT.md` § Navigation model and § Physical controls and
 light; `docs/implementation/PLATFORM_CONTRACTS.md` § Physical controls; `DISPLAY_STATE_MACHINE.md`
 

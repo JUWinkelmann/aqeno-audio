@@ -41,7 +41,10 @@ but unchecked historic spike items do not mean the implemented slice is absent.
 - [ ] Validate the accepted GStreamer audio path on assembled RH1.
 - [ ] UI stack validation on Raspberry Pi 4 reference prototype.
 - [ ] Display sleep/wake + dark-room spike.
-- [ ] Validate the implemented rotary encoder/NeoKey adapter on assembled RH1.
+- [ ] Validate the implemented rotary encoder/NeoKey adapter on assembled RH1, including the
+      PREVIOUS/NEXT/HOME socket layout and blind findability (ADR 0026).
+- [ ] Ambient-light baseline with the ordered VEML7700, then the VCNL4040 comparison and a proximity
+      range/false-positive measurement behind real front material. No sensor purchase before it.
 - [ ] NFC spike.
 - [ ] Podcast/RSS + local file content spike.
 - [ ] Power-bank compatibility constraints.
@@ -49,6 +52,8 @@ but unchecked historic spike items do not mean the implemented slice is absent.
       of PySide6/QML on a Zero-2-W-class board. Compatibility and performance there are not assumed,
       and nothing is rearchitected before that measurement exists (risk to ADR 0002).
 - [ ] Compact high-contrast panel spike: 4–5", AMOLED/OLED preferred, no touch required (ADR 0025).
+- [ ] Encoder haptics and cap ergonomics against the AQENO Rotary Control Contract (ADR 0026 § 7):
+      detent feel, push force, 6 mm shaft, and whether SELECT and VOLUME are told apart by hand.
 - [ ] Licensing/commercial-distribution review of candidate dependencies.
 
 ## P3 — MVP definition
@@ -81,8 +86,9 @@ Expected MVP themes:
 - [x] Playback application layer.
 - [x] Bounded Kids Early Device UI over adaptive architecture.
 - [x] Physical navigation vocabulary and encoder-first focus model; automated touch-free journey.
-- [ ] Physical touch-free journey on RH1 — blocked until a NAV control exists on the box
-      (control plan: LEFT · NAV · RIGHT · VOL).
+- [ ] Physical touch-free journey on RH1 — partly unblocked by ADR 0026. HOME, PREVIOUS and NEXT
+      run on hardware already present; focus movement and activation still need a SELECT encoder
+      (control plan: SELECT · PREVIOUS · NEXT · VOLUME · HOME).
 - [ ] Visual timer, end to end — the first time capability, after RH1 validation (ADR 0025
       amendment). Clock, alarm and sunrise wait for its UX and hardware validation.
 - [x] Versioned local Management API and OpenAPI handover.

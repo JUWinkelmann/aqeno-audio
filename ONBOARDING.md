@@ -46,6 +46,9 @@ briefly justified by liability reasoning; the better reason stands on its own.
 - **Technology basis, all Accepted:** ADR 0001 Python 3.11+ · 0002 PySide6/QML in-process ·
   0003 GStreamer · 0005 DE/EN i18n · 0007 SQLite WAL + TOML settings · 0008 test strategy ·
   0009 content kinds.
+- **Interaction basis:** ADR 0026 fixes five controls — SELECT · PREVIOUS · NEXT · VOLUME · HOME —
+  each with one permanent meaning, and supersedes ADR 0024's four-control set. Hardware follows the
+  interaction contract, never the other way round.
 - **How to set up, run and test:** `DEVELOPMENT.md`.
 - **Closed implementation contracts:** input delivery, failure states, resume, readiness and content
   ingestion are specified and implemented.
@@ -77,6 +80,7 @@ Do not skim these. They are contracts, not background.
 | 13 | `docs/implementation/CONTENT_INGESTION.md` | Library discovery, identity and metadata contract |
 | 14 | `docs/implementation/READINESS_STATES.md` | Staged startup guarantees and degradation |
 | 15 | `docs/implementation/FIRST_VERTICAL_SLICE.md` | Implemented slice contract and remaining RH1 boundary |
+| 15a | `docs/implementation/INTERACTION_MATRIX.md` | **Normative** control meaning per situation; the design conflicts it found |
 | 16 | `DEVELOPMENT.md` | Toolchain, layout, how to run and test |
 | 17 | `docs/hardware/HARDWARE_REFERENCE.md` | Acquired prototype, topology and verification boundary |
 | 18 | `HANDOVER.md` | Current live state and exact next action |
@@ -135,9 +139,13 @@ an assistant most often breaks by accident:
 8. **Roles are User / Manager / Owner** in domain code, never Parent / Child.
 9. **One adaptive core, not a Kids app and an Easy app.** Variation is capability configuration.
 10. **No engagement mechanics.** No streaks, badges, autoplay-forever, notifications, ads.
-11. **Nothing may require touch.** No function, no navigation path, no hidden gesture. Touch is an
-    optional capability, never the only way in (ADR 0024).
-12. **Volume stays volume.** A volume control never becomes contextual navigation.
+11. **Nothing may require touch, and nothing essential may require looking.** No function, no
+    navigation path, no hidden gesture. Touch is an optional capability, never the only way in
+    (ADR 0024), and every essential everyday action is performable blind (ADR 0026, P21).
+12. **Every control means one thing in every state.** Volume stays volume; PREVIOUS and NEXT are
+    content order and never navigate; HOME is the one always-available way out (ADR 0026 § 2).
+    `docs/implementation/INTERACTION_MATRIX.md` is normative — a design that needs a new control
+    meaning is a conflict to report, not to implement.
 13. **Time and personal connection are identity, not schedule.** Clock, alarm, timer and Send to
     AQENO are decided as direction (ADR 0023, ADR 0025) and have no surface on the device today.
 

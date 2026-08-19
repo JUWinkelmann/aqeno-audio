@@ -123,7 +123,9 @@ See `docs/decisions/`. Accepted ADRs override this document.
 - display as an optional capability without a capability framework (ADR 0017);
 - product identity, three pillars and the attention principle (ADR 0023);
 - physical-first interaction with touch as an optional capability (ADR 0024);
-- device output direction and the time pillar (ADR 0025).
+- device output direction and the time pillar (ADR 0025);
+- the AQENO Hardware Interaction Contract — five permanent controls, universal design, device power
+  states, night illumination and the NFC object area (ADR 0026).
 - replaceable SYSTEM, classified Data and portable backup (ADR 0020);
 - capability-oriented platform, Reference Platform 1 and installer/image boundary (ADR 0021).
 
@@ -133,7 +135,12 @@ Do not lock these prematurely:
 
 - production hardware beyond the acquired RH1 prototype, including the target SBC class and the
   target display; ADR 0025 records a preference, not a dependency;
-- back-navigation semantics and the transport rocker's contextual meaning (ADR 0024 § 2);
+- whether AQENO ever needs a separate BACK control in addition to HOME (ADR 0026 § 4) — answerable
+  only against a browsing level deeper than one;
+- the device `OFF` path: a shutdown control away from the primary surface, local administration, or
+  both (ADR 0026 § 8);
+- ambient-light and proximity sensing beyond the ordered VEML7700 — the VCNL4040 comparison is an
+  RH1 measurement, and no proximity port or illumination policy exists;
 - final Reference Platform package manifest and display server — `eglfs` vs Wayland gates the
   display-power story (gap G24); packaging/install boundaries are decided by ADR 0021;
 - remote/cloud architecture;

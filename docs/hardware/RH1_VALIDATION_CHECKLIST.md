@@ -24,10 +24,12 @@ from desktop simulation alone.
 
 ## Controls and light
 
-- verify the LEFT/RIGHT MX defaults (back/forward, currently resolved as Previous/Next), change one
-  allowed mapping, reboot, then restore defaults;
+- verify the PREVIOUS / NEXT / HOME MX defaults on NeoKey sockets 0, 1 and 3; confirm socket 2 stays
+  silent; change one allowed mapping, reboot, then restore defaults;
 - encoder rotation changes volume, short press toggles Play/Pause, and long press never also emits
   short press;
+- **HOME reaches Home from every surface, never stops playback, and wakes *and* acts on one press**
+  (ADR 0026 § 4);
 - bounce, rapid input and simultaneous presses are harmless;
 - encoder/NeoKey feedback is restrained, semantic and completely off in Bedtime;
 - controls retain meaning while the display is OFF and do not wake it routinely.
@@ -44,9 +46,52 @@ this test.
 - verify no step required a touch, and that the input which woke the display did not also select
   anything;
 - verify that no step needed a long press or a double press (ADR 0024 § A2);
-- **currently blocked physically:** the RH1 control plan is LEFT · NAV · RIGHT · VOL, and no NAV
-  encoder exists yet. Until it does, this test runs on the desktop simulator only, and returning
-  from Now Playing to Home on the box still needs touch. Recorded rather than worked around.
+- **partly blocked physically:** the RH1 control plan is SELECT · PREVIOUS · NEXT · VOLUME · HOME,
+  and no SELECT encoder exists yet. Focus movement and activation therefore still run on the desktop
+  simulator only. Returning from Now Playing to Home is **no longer blocked** — HOME runs on
+  hardware already present. Recorded rather than worked around.
+
+## Blind operation and tactile identity (ADR 0026 § 1)
+
+Run each item with the eyes closed or the device out of sight, in a fully dark room.
+
+- every control is found by hand without light and without labels;
+- SELECT and VOLUME are told apart by hand alone, with the chosen caps;
+- HOME's position and shape are found blind and are **not** pressed by accident;
+- PREVIOUS and NEXT read as one adjacent pair, distinct from HOME;
+- rotation direction, detent feel and push force are usable by the actual child and by an adult with
+  reduced hand strength;
+- an ordinary one-handed press does not appreciably move the device on a normal surface
+  (ADR 0026 § 6) — test with and without feet, and with the controls on an inclined face if used.
+
+## Night, darkness and illumination (ADR 0026 § 9)
+
+- **DARK reaches zero visible light:** display, control LEDs, status LEDs, HOME key and every
+  unavoidable operating indicator. Verify in a fully dark room after the eyes have adapted, not by
+  glancing at it in a lit room;
+- determine the **minimum illumination level that is still not disturbing** in that room, and
+  whether any level is useful at all;
+- confirm the `off` night preference behaves exactly as the previous unconditional rule did.
+
+## Sensing (ADR 0026 § 10)
+
+- record VEML7700 lux behaviour at very low room brightness, away from panel spill;
+- **only after that:** compare a VCNL4040's ambient-light readings against it before any claim that
+  one sensor suffices;
+- measure proximity detection range, and the false-positive rate when someone walks past or turns
+  over in bed;
+- validate any sensor behind the real front material: IR transmission, internal reflection and
+  crosstalk;
+- verify that removing the sensor leaves every control fully usable with no error surface.
+
+## NFC object area (ADR 0026 § 11)
+
+- the object area is flat with **no recess**, and works with standing figures, simple 3D-printed
+  objects and flat cards alike;
+- read reliability across the whole area, not only at its centre — "place, do not aim";
+- whether the area is findable by touch without intrusive geometry;
+- any magnet experiment is measured against the antenna, speakers, display and remaining
+  electronics before it is called an option.
 
 ## Display and touch
 

@@ -61,6 +61,12 @@ This is not a generic adaptive-brightness engine. The policy exists only to prev
 brightness oscillation on Reference hardware and remains bounded by the active profile's configured
 brightness. Night/Bedtime and `OFF` retain authority regardless of a sensor reading.
 
+*Amended 2026-08-19 by ADR 0026 § 10:* near-hand **proximity** is a candidate second input of the
+same class — a sensor reading that informs illumination policy, never domain state and never a
+gesture. It has no port, adapter or policy, because no AQENO hardware reports it. The sensor
+comparison it depends on (VCNL4040 against the existing VEML7700) is an RH1 measurement, and § 1's
+refusal of a capability framework covers it unchanged.
+
 For the first feasibility implementation, only `DIM` reacts: readings use an exponential smoothing
 factor of 0.25, enter the dark band at 10 lux, leave it at 15 lux, and cap output there at half the
 configured `DIM` brightness (minimum 1). These are fixed experiment mechanics, not Manager settings;

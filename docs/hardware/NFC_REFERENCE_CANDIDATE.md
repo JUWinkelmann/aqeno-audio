@@ -26,3 +26,25 @@ and clean failure when disconnected.
 Not required for the spike: proprietary tag content extraction, MIFARE key handling, payment/card
 emulation, writing tags or treating a third-party object as permission. AQENO stores only the local
 assignment from observed UID to AQENO target.
+
+
+## Object area requirement (ADR 0026 § 11)
+
+Decided before any reader is chosen, because it constrains both the antenna and the enclosure:
+
+> **Place, do not aim.**
+
+- a **generous, flat object area** — **no recess, no well**. Standing figures work, simple
+  3D-printed objects need no AQENO-specific under-geometry, and flat cards work equally;
+- error-tolerant across the whole area rather than at one sweet spot;
+- findable by touch where that is possible without intrusive geometry — a slight material or texture
+  difference, or a constructional seam, may be evaluated;
+- the enclosure reserves adequate area from the start; the antenna solution remains a measurement
+  and is not implied by this requirement;
+- **magnetic positioning** may be added later as an option. NFC identifies; magnetism may position
+  and hold. Never a precondition, never mandatory proprietary geometry, ordinary cards and tags must
+  keep working, and interaction with the antenna, speakers, display and remaining electronics must
+  be measured. No magnet arrangement is specified.
+
+Read range must therefore be validated over the intended area with a card and with a standing
+object, not only at the antenna centre.

@@ -129,7 +129,11 @@ If a requested implementation conflicts with levels 2–4, flag the conflict bef
 - **No function and no navigation path may require touch** (ADR 0024). Touch is an optional
   capability; `touch = true` never means "use touch as the primary UI".
 - Volume stays volume and Play/Pause stays Play/Pause: a volume control must never become
-  contextual navigation. LEFT means back and RIGHT means forward, resolved by content context.
+  contextual navigation. **Every control means one thing in every state** (ADR 0026 § 2). PREVIOUS
+  and NEXT are content order and never navigate; HOME is the one always-available way out.
+- **Everything essential works without looking** (P21), controls are told apart by hand (P22),
+  accessibility comes from ordinary design rather than a special edition (P23), and light assists
+  operation without ever defining it (P24). **DARK means zero visible light.**
 - **Normal everyday operation must not require long-press or double-press gestures** (ADR 0024 § A2).
   Long press stays available for setup, service and hardware cases only, and no default binds it.
 - Prefer inherent physical feedback over invented feedback (`PRODUCT_FOUNDATION.md` P20). Do not add
@@ -192,6 +196,9 @@ Record consequential dependency choices in an ADR.
   interaction, shallow navigation, one contextual primary action and removal of unnecessary UI.
 - Design encoder-first, never touch-first with encoder support bolted on. Every state must make
   visible where focus is, what rotation does and what a press does, at normal viewing distance.
+- `docs/implementation/INTERACTION_MATRIX.md` is normative for what each control does in each
+  situation. A surface that would need a control to mean something new, a sixth control, a long
+  press, a double press or touch is a **design conflict to report**, not to implement.
 
 ## Testing expectations
 
@@ -249,6 +256,7 @@ Before implementation, read:
 - `docs/implementation/CONTENT_INGESTION.md`
 - `docs/implementation/READINESS_STATES.md`
 - `docs/implementation/FIRST_VERTICAL_SLICE.md`
+- `docs/implementation/INTERACTION_MATRIX.md`
 - `docs/hardware/HARDWARE_REFERENCE.md`
 - `docs/management/LOCAL_MANAGEMENT_API.md` when changing management/application boundaries
 

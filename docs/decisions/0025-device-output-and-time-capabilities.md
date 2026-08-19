@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-08-18
-**Relates to:** ADR 0016, ADR 0017, ADR 0023, ADR 0024
+**Relates to:** ADR 0016, ADR 0017, ADR 0023, ADR 0024, ADR 0026
 
 ## Context
 
@@ -121,3 +121,16 @@ to end first:
 The product vision in § 3 and § 4 is unchanged; only the order is constrained. The reason is
 capacity, not doubt — a half-built clock plus a half-built timer is worth less than one finished
 timer, and the timer is the capability whose interaction model the other three will reuse.
+
+## Amendment — 2026-08-19: the control vocabulary these capabilities inherit
+
+ADR 0026 fixes five permanent controls, so the time capabilities now have a physical vocabulary
+before they are built. `docs/implementation/INTERACTION_MATRIX.md` § 5 records it: a timer or alarm
+value is changed with SELECT and confirmed with its press, and HOME leaves or ends the state.
+
+One tension is recorded rather than decided: the ringing-alarm hypothesis binds snooze to the VOLUME
+press, which is play/pause in every other state. That is the only place in AQENO where a control's
+permanent meaning is under real pressure, and it is marked open (`INTERACTION_MATRIX.md` § 9, C1)
+until it can be tested with people who are actually half asleep. No long press or double press may
+be used to resolve it. § 2 of this ADR is unaffected: the display still carries status, and no
+status LED returns.

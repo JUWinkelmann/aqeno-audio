@@ -176,8 +176,8 @@ complexity principles; it does not establish a platform direction.
 ## F18 — Visual timer and timer presets
 
 A timer is a natural AQENO time function and is configurable locally as well as through
-administration. Local interaction may be as small as: choose timer, rotate NAV to set the duration,
-press NAV to start. Remaining time is shown graphically — a total area or circle whose visible share
+administration. Local interaction may be as small as: choose timer, rotate SELECT to set the duration,
+press SELECT to start (`INTERACTION_MATRIX.md` § 5). Remaining time is shown graphically — a total area or circle whose visible share
 decreases — so a person who cannot read a numeric time still understands it. The general principle
 is used; no protected product design is copied.
 

@@ -5,7 +5,7 @@
 **Status:** Prototype platform; controls adapter implemented, pending on-device validation; MiniAmp
 selected as RH1 audio, physical receipt/integration evidence still to record
 
-**Date:** 2026-08-18
+**Date:** 2026-08-19
 
 ## Role
 
@@ -18,8 +18,15 @@ mapping permanent Core requirements.
 
 Since ADR 0024 that statement is binding for the controls as well: the Cherry MX keys, the single
 Qwiic encoder and the touch panel are **prototype input hardware**. They do not describe the target
-product layout, and the software is developed against the target vocabulary (NAV, VOL, transport
-rocker) rather than against what happens to be plugged in.
+product layout, and the software is developed against the AQENO control contract (SELECT, PREVIOUS,
+NEXT, VOLUME, HOME — ADR 0026 § 2) rather than against what happens to be plugged in.
+
+ADR 0026 fixes the order of work, and it is the reason this document is a record rather than a plan:
+
+```text
+product interaction → hardware interaction contract → mechanical/electrical requirements
+   → RH1 test → component decision
+```
 
 Future hardware may omit the screen, use different controls or provide a more display-oriented
 experience. Domain and application code consume user intentions and product state; adapters own
@@ -42,6 +49,7 @@ is implied.
 | Stereo I2S amplifier | 1 | HiFiBerry MiniAmp | 2 x 3 W RH1 audio output; preassembled 40-pin module |
 | Mini speaker, 3 W / 4 ohm | 2 | QUARKZMAN, 44 x 31 x 15 mm | Left/right prototype speakers |
 | Speaker lead and connector | 2 | JST-PH 2.0, 100 mm; supplied with speakers | Removable speaker connection |
+| Ambient-light sensor | 1 | Adafruit VEML7700, PID 4162, STEMMA QT/Qwiic | Ambient light; RH1 reference for the sensor comparison in § Sensing. Ordered; receipt and revision to record from the unit. |
 
 The display's exact SKU/revision and the Raspberry Pi's RAM variant should be added when confirmed
 from the physical units. Its reported 800 x 480 resolution, 60 Hz refresh, capacitive 5-point touch
@@ -79,10 +87,10 @@ Raspberry Pi 4B
         │   └── RGB    → restrained contextual feedback
         │
         ├── Adafruit NeoKey 1x4 4980
-        │   ├── key 1 → Previous
-        │   ├── key 2 → unassigned reserve
-        │   ├── key 3 → Next
-        │   └── key 4 → unassigned reserve
+        │   ├── socket 0 → PREVIOUS
+        │   ├── socket 1 → NEXT
+        │   ├── socket 2 → deliberately empty; tactile gap before HOME
+        │   └── socket 3 → HOME
         │
         ├── free branch → unused; PN532 candidate is SPI, not I2C
         └── free branch → future hardware if a real use case requires it
@@ -147,11 +155,12 @@ remain unused until a tested interaction needs them.
 
 | Physical event | Adapter output | RH1 default action |
 |---|---|---|
-| Encoder counter-clockwise/clockwise | `primary_encoder.rotate_left` / `.rotate_right` | Volume down/up |
-| Encoder short press | `primary_encoder.short_press` | Play/Pause |
-| Encoder long press (≥800 ms) | `primary_encoder.long_press` | unassigned; long press is setup/service only (ADR 0024 § A2) |
-| NeoKey LEFT short press | `primary_left.short_press` | back — currently resolved as Previous |
-| NeoKey RIGHT short press | `primary_right.short_press` | forward — currently resolved as Next |
+| Encoder counter-clockwise/clockwise | `volume_encoder.rotate_left` / `.rotate_right` | Volume down/up |
+| Encoder short press | `volume_encoder.short_press` | Play/Pause |
+| Encoder long press (≥800 ms) | `volume_encoder.long_press` | unassigned; long press is setup/service only (ADR 0024 § A2) |
+| NeoKey socket 0 short press | `previous.short_press` | previous item in content order |
+| NeoKey socket 1 short press | `next.short_press` | next item in content order |
+| NeoKey socket 3 short press | `home.short_press` | return to Home |
 | Touch | presentation intention / `WakeRequest` as applicable | Contextual Device UI interaction |
 | Future NFC reader presents/removes UID | `NfcPresented` / `NfcRemoved` | Resolve an AQENO-local token assignment |
 
@@ -171,13 +180,16 @@ component decision.**
 
 | Control | Role | Semantics |
 |---|---|---|
-| NAV rotary encoder with press | navigation | rotate: move focus; short press: activate / confirm |
-| VOL rotary encoder with press | volume and playback | rotate: volume; short press: play/pause — permanently, never contextual |
-| LEFT | back | context-resolved: previous level, or previous section during linear playback |
-| RIGHT | forward | context-resolved: forward level where meaningful, or next section |
+| SELECT rotary encoder with press | navigation and value entry | rotate: move focus or change a value; short press: activate / confirm |
+| PREVIOUS | content order | previous track, chapter, section or image (ADR 0009 § 2) |
+| NEXT | content order | next track, chapter, section or image |
+| VOLUME rotary encoder with press | volume and playback | rotate: volume; short press: play/pause — permanently, never contextual |
+| HOME | the way out | return to the familiar starting point; never stops playback; resolves an interruptive state |
 
-No separate OK button. No long press or double press in everyday operation (ADR 0024 § A2). LEFT and
-RIGHT may become one quality momentary centre-off rocker on the target device; that is a
+Each control means one thing in every state (ADR 0026 § 2), and their spatial relationship is
+invariant across AQENO hardware, so muscle memory transfers between devices. No separate OK button,
+no BACK control today, no long press or double press in everyday operation (ADR 0024 § A2).
+PREVIOUS and NEXT may become one quality momentary centre-off rocker on the target device; that is a
 construction change, not a semantic one.
 
 Controls must also feel right, not only work: an encoder with clearly felt detents, a switch or
@@ -186,32 +198,51 @@ rocker with a defined actuation point. Inherent physical feedback is preferred o
 
 Quality expectations, without fixing parts: the target device does not use controls that feel like
 maker components. High-grade encoders of the Bourns PEC11R or Alps Alpine EC11 class are plausible
-candidates, and NAV and VOL should ideally be the **same** electrical and mechanical encoder type,
-with different knobs supplying different haptics — fewer spare-part variants, simpler procurement,
-simpler carrier PCB, easier repair. The rocker must be a quality momentary centre-off part, never a
-latching mains-style switch.
+candidates, and SELECT and VOLUME should ideally be the **same** electrical and mechanical encoder
+type, with different knobs supplying different haptics — fewer spare-part variants, simpler
+procurement, simpler carrier PCB, easier repair. The rocker must be a quality momentary centre-off
+part, never a latching mains-style switch.
 
-Ergonomics: controls belong on the top surface or an angled upper face, not on a vertical front that
-pushes the device backwards when pressed. Pressure should act towards the standing surface. The
-front stays visually calm and belongs to the display. Enclosure design is explicitly out of scope
-here; only the requirement is recorded.
+The abstract requirements are the AQENO Rotary Control Contract (ADR 0026 § 7): incremental encoder,
+integrated push, clearly felt detents, consistent direction, and a force usable by a child and by a
+person with reduced hand strength. A standardised shaft — **6 mm preferred**, because the widest
+range of standard caps fits it — keeps caps exchangeable, so one electronics design carries compact
+(≈ 24–26 mm), standard (≈ 30–32 mm) and easy-grip (≈ 36–40 mm) ergonomics. These are evaluation
+classes, not a dimensional standard. SELECT and VOLUME must be distinguishable by hand through rim
+structure, profile or knurling, without either looking like a special aid (P22, P23).
+
+Ergonomics: the binding requirement is that **an ordinary one-handed press must not appreciably move
+AQENO on a normal surface** (ADR 0026 § 6). How that is achieved — rubber feet, mass, centre of
+gravity, enclosure geometry, actuation force — is mechanical, so controls may also sit on a
+well-reachable inclined front face. This replaces the earlier top-surface-only rule. Enclosure design
+is explicitly out of scope here; only the requirement is recorded.
 
 ### RH1 control plan
 
 The product-shaped RH1 test layout is:
 
 ```text
-[ Cherry MX LEFT ]   [ NAV encoder ]   [ Cherry MX RIGHT ]   [ VOL encoder ]
+[ SELECT encoder ]   [ MX PREVIOUS ] [ MX NEXT ]   [ MX HOME ]   [ VOL encoder ]
+      (missing)         socket 0       socket 1     socket 3      Adafruit 5880
 ```
 
-No middle OK switch is required. The acquired Adafruit 5880 takes the VOL/Play role; NAV needs a
-second suitable encoder, which is simulated until that hardware exists. **No purchase and no
-component decision follows from this plan** — the address-jumper question on a second 5880 must be
-checked against Adafruit's documentation first, because bridging solder jumpers would collide with
-the no-solder acceptance gate below.
+**RH1 can carry four of the five controls with hardware already on hand.** The acquired Adafruit 5880
+takes VOLUME/Play. PREVIOUS, NEXT and HOME are three Cherry MX switches in the NeoKey's hot-swap
+sockets, of which the maintainer has several — no purchase, no soldering. PREVIOUS and NEXT sit
+adjacent so the transport pair reads as one pair by hand; socket 2 is deliberately left empty so HOME
+is physically separated from them (P22 Tactile identity). That layout is **provisional until the
+assembled unit is felt in the dark**, and the socket assignment lives in
+`adapters/input/i2c_seesaw.py` where the mapping is.
 
-Until NAV exists on the box, RH1 cannot demonstrate the touch-free journey physically, and the
-physical path from Now Playing back to Home stays touch-only (ADR 0024 § A3).
+Only SELECT still has no hardware. It is simulated until a suitable encoder exists. **No purchase and
+no component decision follows from this plan** — the address-jumper question on a second 5880 must be
+checked against Adafruit's documentation first, because bridging solder jumpers would collide with
+the no-solder acceptance gate below, and ADR 0026 § 7 wants an encoder chosen against the rotary
+contract rather than because it is the board already in the drawer.
+
+Until SELECT exists on the box, RH1 cannot demonstrate the complete touch-free journey physically.
+The physical path from Now Playing back to Home is no longer part of that gap: HOME closes it on
+hardware already present.
 
 ## Target display and light direction
 
@@ -252,7 +283,9 @@ large button, an LED symbol or audio. The underlying application capability need
 Not yet selected or acquired:
 
 - NFC reader and tags;
-- VEML7700 ambient-light sensor; candidate for measuring lux during glanceable-display experiments;
+- a second rotary encoder for SELECT, chosen against the AQENO Rotary Control Contract;
+- VCNL4040 ambient-light + proximity breakout; target sensor candidate, **not to be bought before
+  the bus/mounting contract is settled** (§ Sensing below);
 - final mains/mobile power arrangement;
 - final enclosure and mechanical fixtures;
 - any additional sensor or actuator justified by later product work.
@@ -261,10 +294,71 @@ NFC remains simulated until the current Vertical Slice works. PN532 is still a c
 family, but a specific board requires a feasibility check for Linux support, I2C compatibility,
 read range, mounting behind the enclosure and genuinely solderless installation.
 
-The VEML7700 is an RH1 candidate, not yet selected hardware. A feasibility check must confirm its
-Linux/I²C path, address coexistence on the shared bus, useful placement away from panel spill and
-whether its readings produce calmer behaviour in real use. Raw lux belongs to the sensor adapter;
-display policy interprets it. No generic adaptive-brightness engine is implied.
+### Sensing: ambient light and proximity
+
+The **Adafruit VEML7700 (PID 4162, STEMMA QT/Qwiic) has been ordered** for RH1. It measures ambient
+light only. A feasibility check must still confirm its Linux/I²C path, address coexistence on the
+shared bus, useful placement away from panel spill and whether its readings produce calmer behaviour
+in real use. Raw lux belongs to the sensor adapter; display policy interprets it. No generic
+adaptive-brightness engine is implied.
+
+The **VCNL4040** (ambient light *and* IR proximity, I²C, available as a STEMMA QT/Qwiic breakout) is
+the current **target candidate**, because ADR 0026 § 10 wants near-hand proximity for one purpose:
+temporarily illuminating the relevant controls in a dark room. It would functionally replace the
+VEML7700, and a later AQENO reference device most likely needs one sensor rather than both.
+
+"Most likely" is not evidence, and the following is deliberate:
+
+- RH1 **keeps** its VEML7700 as the reference against which a VCNL4040's ambient-light quality is
+  measured — especially at very low room brightness, where the dimming and illumination decisions
+  actually matter.
+- **No claim that the VCNL4040 suffices may be made before that comparison exists.** The VEML7700
+  must equally not be carried forward as a mandatory second production component by default.
+- Mounting behind real front material must be validated physically: IR transmission, internal
+  reflection, crosstalk and real detection range are not assumed from a datasheet.
+- Proximity is presence awareness and illumination assistance only — never gesture control. Sensor
+  failure must leave every control fully usable and must produce no error surface.
+- A product may use the bare sensor or another compatible solution on its own carrier. Neither part
+  is a mandatory production component, and **neither is bought now**.
+
+No `Proximity` port, adapter or illumination policy exists, because no AQENO hardware reports
+proximity.
+
+### NFC object area
+
+The reader is unselected, but the physical requirement is decided (ADR 0026 § 11):
+
+> **Place, do not aim.**
+
+- a **generous, flat object area** with **no recess and no well** — standing figures work, simple
+  3D-printed objects need no AQENO-specific under-geometry, flat cards work equally;
+- error-tolerant, and findable by touch where that is possible without intrusive geometry: a slight
+  material or texture difference, or a constructional seam, may be evaluated;
+- the enclosure reserves adequate area from the start; the antenna solution is a later measurement
+  and is not implied here;
+- **magnetic positioning** may be added later as an option — NFC identifies, magnetism may position
+  and hold. Never a precondition for NFC, never mandatory proprietary geometry, ordinary cards and
+  tags must keep working, and the interaction with the antenna, speakers, display and remaining
+  electronics must be measured. No magnet arrangement is specified.
+
+### Hardware capability matrix
+
+Documentation, **not** a runtime registry, DSL or plugin mechanism (ADR 0026 § 12; ADR 0010,
+ADR 0017 § 1 and ADR 0024 § 5 each rejected a framework). Where code needs to know whether hardware
+exists, the existing ports already report it.
+
+| Capability | RH1 today | Possible reference hardware | Notes |
+|---|---|---|---|
+| Controls (SELECT, PREVIOUS, NEXT, VOLUME, HOME) | 4 of 5; SELECT missing | **required** | Not a capability — it is the interaction contract itself |
+| `DISPLAY` | yes, 7" DSI | optional, preferred compact 4–5" | ADR 0017: display is a capability, not a dependency |
+| `TOUCH` | yes | optional | Never required for any path (ADR 0024 § 1) |
+| `NFC` | no | optional | Shortcut, never an access requirement |
+| `AMBIENT_LIGHT` | VEML7700 ordered | optional | Candidate: merged into VCNL4040 |
+| `PROXIMITY` | no | optional | Illumination assistance only; unimplemented |
+| `CONTROL_ILLUMINATION` | yes, NeoPixel | optional | Never a precondition for operation (P24) |
+| `BATTERY` | no | optional | USB-C power; commodity power bank untested |
+
+A capability with no hardware has **no UI surface** (P15) and no branch in Domain or Application.
 
 The Waveshare 5-inch HDMI AMOLED is a possible **RH2** display candidate for later evaluation. This
 records an experiment option only: it is not a hardware decision, does not replace the acquired RH1
@@ -288,7 +382,11 @@ sound pressure. Until then, USB or HDMI audio remains acceptable for software wo
   assembled hardware.
 - The touch display makes RH1 useful for Device UI work, but screenless core operation remains a
   product boundary and must be protected by physical-input/display-off tests.
-- The current control placement, key order, switch feel and enclosure ergonomics require user testing.
+- The current control placement, key order, switch feel and enclosure ergonomics require user
+  testing. The NeoKey socket assignment (PREVIOUS 0, NEXT 1, gap 2, HOME 3) is a provisional layout
+  decision that has not been felt by hand.
+- Blind findability, tactile distinguishability of SELECT and VOLUME caps, and whether HOME can be
+  pressed accidentally are unmeasured (P21, P22).
 - Logical volume limits are not hearing-safety claims until the complete amplifier/speaker path is
   measured and calibrated as specified in `CONFIGURATION_DEFAULTS.md`.
 - The MiniAmp's advertised rating and the speakers' nominal ratings do not establish safe,

@@ -96,7 +96,30 @@ If output needs shortening, capture it to a file and inspect afterwards — neve
 
 ## Architecture
 
-_No entries yet._
+### M-005 — A contract stated an absolute rule and then exempted itself
+**Date:** 2026-08-19
+**Class:** architecture
+**What happened:** ADR 0024 § 2 justified permanent control meanings with the sentence "eyes-free
+operation depends on a control meaning the same thing in every state" — and in the same decision made
+LEFT and RIGHT resolve by content context. Its § A3 then recorded one cell as "genuinely undecided
+and not guessed here": what LEFT does on Now Playing during playback. That cell was never
+decidable, because both readings were correct under a rule that had already been broken. ADR 0026
+replaced the four-control set with five and gave the return path its own control.
+**Why it was easy to get wrong:** the exception looked cheap. Two controls were available, back and
+forward were needed, and "resolved by context" reads like sophistication rather than like a
+violation. The ADR even documented the exception carefully, which made it look considered instead of
+inconsistent. Nothing in the repository could detect it: the rule was prose, and the exception was
+prose in the same document.
+**Consequence:** roughly a day of interaction design was built on a control vocabulary that could not
+satisfy its own stated purpose, and one open cell was carried in the contract as an unresolved UX
+question when it was actually a structural defect. The missing return path also left the touch-free
+acceptance blocked on hardware that turned out not to be needed — HOME was buildable from switches
+already in the drawer.
+**Rule going forward:** when a decision states an absolute rule, the same decision must contain no
+exception to it. If an exception seems necessary, the rule is wrong or the decision is incomplete —
+say which, in the ADR, before recording the exception. An "open cell" that both readings satisfy is
+evidence of a broken rule, not of a missing user test. `docs/implementation/INTERACTION_MATRIX.md`
+now exists so that a control meaning is checked against every situation rather than against prose.
 
 ## Product rules
 
